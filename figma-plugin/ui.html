@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Inter, sans-serif; padding: 12px; margin: 0; font-size: 12px; }
+    label { display: block; margin-top: 8px; font-weight: 500; }
+    input, textarea { width: 100%; padding: 6px 8px; margin-top: 4px; border: 1px solid #e5e7eb; border-radius: 4px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    button:hover { background: #4338ca; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #dc2626; font-size: 11px; margin-top: 4px; }
+    .hint { color: #6b7280; font-size: 10px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <label>API URL (např. https://uxlog.prokoho.cz/api)</label>
+  <input type="text" id="apiUrl" placeholder="https://uxlog.prokoho.cz/api" />
+  
+  <label>ID projektu</label>
+  <input type="text" id="projectId" placeholder="1" />
+  
+  <label>Bearer token <span class="hint">(zkopírujte z UXLog aplikace)</span></label>
+  <textarea id="token" rows="3" placeholder="JWT token..."></textarea>
+  
+  <div id="error" class="error"></div>
+  <button id="importBtn">Importovat persony</button>
+
+  <script>
+    document.getElementById('importBtn').onclick = async () => {
+      const apiUrl = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
+      const projectId = document.getElementById('projectId').value.trim();
+      const token = document.getElementById('token').value.trim();
+      const errEl = document.getElementById('error');
+      const btn = document.getElementById('importBtn');
+
+      errEl.textContent = '';
+      if (!apiUrl || !projectId || !token) {
+        errEl.textContent = 'Vyplňte všechny údaje.';
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${apiUrl}/projects/${projectId}/figma`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        const personas = data.personas || [];
+        parent.postMessage({ pluginMessage: { type: 'createPersonas', personas } }, '*');
+      } catch (e) {
+        errEl.textContent = e.message || 'Chyba při načítání';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

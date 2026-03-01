@@ -1,0 +1,35 @@
+# Závislosti (naprostý základ pro úsporu)
+node_modules/
+vendor/
+.venv/
+env/
+
+# Buildy a výstupy (Claude je nepotřebuje číst, píše zdrojový kód)
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+# Logy a dočasné soubory (generují hodně šumu)
+*.log
+logs/
+tmp/
+.cache/
+.eslintcache
+
+# Velká média a binární soubory
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.mp4
+*.zip
+
+# Git a interní nastavení IDE
+.git/
+.idea/
+.vscode/
+.DS_Store

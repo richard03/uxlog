@@ -1,0 +1,8 @@
+config.php
+.env.development
+.env.production
+.vscode
+.DS_Store
+.node_modules
+.vite.config.js
+api/config.example.php

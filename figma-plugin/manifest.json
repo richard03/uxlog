@@ -1,0 +1,13 @@
+{
+  "name": "UXLog - Import Personas",
+  "id": "1234567890123456789",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "main": "code.js",
+  "ui": "ui.html",
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["https://uxlog.prokoho.cz", "uxlog.prokoho.cz"],
+    "devAllowedDomains": ["http://localhost", "http://localhost:5173", "http://127.0.0.1"]
+  }
+}
