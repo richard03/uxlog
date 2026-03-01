@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Pokud požadavek směřuje na existující soubor nebo složku, ponechat beze změny
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Všechny ostatní požadavky přesměrovat na index.html (SPA fallback)
+  RewriteRule . /index.html [L]
+</IfModule>

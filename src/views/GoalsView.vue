@@ -4,15 +4,16 @@
       <router-link :to="{ name: 'project', params: { id: projectId } }" class="back-link">
         {{ t.common.back }}
       </router-link>
-      <h1>{{ t.sections.goals }}</h1>
-      <button type="button" class="btn btn-primary" @click="openForm()">
-        {{ t.goal.add }}
-      </button>
+      <div class="header-row">
+        <h1>{{ t.sections.goals }}</h1>
+        <button type="button" class="btn btn-primary" @click="openForm()">
+          {{ t.goal.add }}
+        </button>
+      </div>
     </header>
 
     <div v-if="goals.length === 0" class="empty-state">
       <p>{{ t.common.empty }}</p>
-      <button type="button" class="btn btn-primary" @click="openForm()">{{ t.goal.add }}</button>
     </div>
 
     <ul v-else class="entity-list" role="list">
@@ -72,6 +73,7 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
 const store = useStore()
@@ -89,7 +91,7 @@ const form = ref({ code: '', name: '', description: '', metrics: '' })
 
 function openForm(item = null) {
   editing.value = item
-  form.value = item ? { ...item } : { code: '', name: '', description: '', metrics: '' }
+  form.value = item ? { ...item } : { code: generateNextCode('GOL', goals.value), name: '', description: '', metrics: '' }
   showForm.value = true
 }
 
@@ -122,14 +124,19 @@ function doDelete() {
 <style scoped>
 .page-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
 
 .back-link {
-  width: 100%;
+  width: fit-content;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .entity-list {

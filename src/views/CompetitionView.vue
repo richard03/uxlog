@@ -2,13 +2,14 @@
   <div class="container" v-if="project">
     <header class="page-header">
       <router-link :to="{ name: 'project', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
-      <h1>{{ t.sections.competition }}</h1>
-      <button type="button" class="btn btn-primary" @click="openForm()">{{ t.competition.add }}</button>
+      <div class="header-row">
+        <h1>{{ t.sections.competition }}</h1>
+        <button type="button" class="btn btn-primary" @click="openForm()">{{ t.competition.add }}</button>
+      </div>
     </header>
 
     <div v-if="items.length === 0" class="empty-state">
       <p>{{ t.common.empty }}</p>
-      <button type="button" class="btn btn-primary" @click="openForm()">{{ t.competition.add }}</button>
     </div>
 
     <ul v-else class="entity-list" role="list">
@@ -112,8 +113,9 @@ function doDelete() {
 </script>
 
 <style scoped>
-.page-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); }
-.back-link { width: 100%; }
+.page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
+.back-link { width: fit-content; }
+.header-row { display: flex; align-items: center; justify-content: space-between; }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
 .card-body { flex: 1; }
