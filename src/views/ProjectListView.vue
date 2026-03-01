@@ -17,17 +17,13 @@
         <router-link :to="{ name: 'project', params: { id: p.id } }" class="card-link">
           <div class="card-header">
             <h3 class="card-title">{{ p.name || t.project.name }}</h3>
-            <span class="badge badge-accent">{{ scopeLabel(p.scope) }}</span>
           </div>
           <div class="card-meta">
-            <span class="badge">{{ priorityLabel(p.priority) }}</span>
-            <span class="card-date">{{ formatDate(p.lastWorkedAt) }}</span>
+            <span class="badge">{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</span>
+            <span class="badge">{{ t.project.scopeLabel }}: {{ scopeLabel(p.scope) }}</span>
+            <span class="badge">{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</span>
           </div>
         </router-link>
-        <div class="card-actions">
-          <button type="button" class="btn btn-ghost" @click.stop="openForm(p)">{{ t.common.edit }}</button>
-          <button type="button" class="btn btn-ghost" @click.stop="confirmDelete(p)">{{ t.common.delete }}</button>
-        </div>
       </li>
     </ul>
 
@@ -62,13 +58,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="showConfirm"
-      :title="t.project.delete"
-      :message="t.project.deleteConfirm"
-      @confirm="doDelete"
-      @cancel="showConfirm = false"
-    />
   </div>
 </template>
 
@@ -78,15 +67,12 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { formatDate } from '../utils/formatDate.js'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
 
 const showForm = ref(false)
-const showConfirm = ref(false)
 const editing = ref(null)
-const deleteId = ref(null)
 
 const form = ref({
   name: '',
@@ -131,16 +117,6 @@ function saveProject() {
   closeForm()
 }
 
-function confirmDelete(project) {
-  deleteId.value = project.id
-  showConfirm.value = true
-}
-
-function doDelete() {
-  if (deleteId.value) store.deleteProject(deleteId.value)
-  showConfirm.value = false
-  deleteId.value = null
-}
 </script>
 
 <style scoped>
@@ -185,20 +161,8 @@ function doDelete() {
   font-size: 0.9rem;
 }
 
-.project-list .card {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-md);
-}
-
 .project-list .card-link {
-  flex: 1;
-}
-
-.card-actions {
-  display: flex;
-  gap: var(--space-xs);
+  display: block;
 }
 
 .form-actions {
