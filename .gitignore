@@ -6,3 +6,5 @@ config.php
 .node_modules
 .vite.config.js
 api/config.example.php
+/node_modules
+/dist

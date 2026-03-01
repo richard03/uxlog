@@ -1,0 +1,314 @@
+/* UXLog - Design system s podporou tmavého režimu a přístupnosti */
+
+:root {
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --transition: 0.2s ease;
+
+  /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven */
+  --bg: #1a1814;
+  --bg-elevated: #25221c;
+  --bg-muted: #322e27;
+  --text: #f5f2ed;
+  --text-muted: #9a9489;
+  --accent: #e07d4a;
+  --accent-hover: #f0936a;
+  --accent-muted: #3d3028;
+  --border: #3d3830;
+  --border-focus: #e07d4a;
+  --success: #40916c;
+  --warning: #d4a017;
+  --error: #c92a2a;
+}
+
+[data-theme="light"] {
+  --bg: #f8f6f3;
+  --bg-elevated: #ffffff;
+  --bg-muted: #ebe7e1;
+  --text: #1a1814;
+  --text-muted: #5c564d;
+  --accent: #c45c2a;
+  --accent-hover: #a84d22;
+  --accent-muted: #e8d5cc;
+  --border: #d9d4cc;
+  --border-focus: #c45c2a;
+  --success: #2d6a4f;
+  --warning: #b8860b;
+  --error: #9d2c2c;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1814;
+  --bg-elevated: #25221c;
+  --bg-muted: #322e27;
+  --text: #f5f2ed;
+  --text-muted: #9a9489;
+  --accent: #e07d4a;
+  --accent-hover: #f0936a;
+  --accent-muted: #3d3028;
+  --border: #3d3830;
+  --border-focus: #e07d4a;
+  --success: #40916c;
+  --warning: #d4a017;
+  --error: #c92a2a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  margin: 0 0 var(--space-sm);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.15rem; }
+
+p {
+  margin: 0 0 var(--space-md);
+}
+
+/* Links */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-muted);
+}
+
+.btn-danger {
+  background: var(--error);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+/* Form controls */
+input, textarea, select {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  transition: border-color var(--transition);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+/* Cards */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  transition: border-color var(--transition);
+}
+
+.card:hover {
+  border-color: var(--text-muted);
+}
+
+.card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-link:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Layout */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-md);
+}
+
+.page-header {
+  margin-bottom: var(--space-lg);
+}
+
+/* Skip link pro přístupnost */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-sm);
+  z-index: 100;
+  transition: top var(--transition);
+}
+
+.skip-link:focus {
+  top: var(--space-md);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
+
+.badge-accent {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  margin-bottom: var(--space-md);
+}
+
+/* Search */
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  padding-left: 2.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}

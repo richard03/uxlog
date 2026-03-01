@@ -1,0 +1,80 @@
+/**
+ * Vue composable pro reaktivní přístup ke store.
+ * Používá Vue reactive state pro automatickou reaktivitu.
+ */
+
+import * as store from '../lib/store.js'
+
+/**
+ * Vrací metody a reaktivní state pro práci se store.
+ * @returns {Object}
+ */
+export function useStore() {
+  return {
+    state: store.state,
+    getData: store.getData,
+    getProjects: store.getProjects,
+    getProject: store.getProject,
+    addProject: store.addProject,
+    updateProject: store.updateProject,
+    deleteProject: store.deleteProject,
+    getGoals: store.getGoals,
+    getGoal: store.getGoal,
+    addGoal: store.addGoal,
+    updateGoal: store.updateGoal,
+    deleteGoal: store.deleteGoal,
+    getStakeholders: store.getStakeholders,
+    getStakeholder: store.getStakeholder,
+    addStakeholder: store.addStakeholder,
+    updateStakeholder: store.updateStakeholder,
+    deleteStakeholder: store.deleteStakeholder,
+    getCompetitions: store.getCompetitions,
+    getCompetition: store.getCompetition,
+    addCompetition: store.addCompetition,
+    updateCompetition: store.updateCompetition,
+    deleteCompetition: store.deleteCompetition,
+    getHypotheses: store.getHypotheses,
+    getHypothesis: store.getHypothesis,
+    addHypothesis: store.addHypothesis,
+    updateHypothesis: store.updateHypothesis,
+    deleteHypothesis: store.deleteHypothesis,
+    getPersonas: store.getPersonas,
+    getPersona: store.getPersona,
+    addPersona: store.addPersona,
+    updatePersona: store.updatePersona,
+    deletePersona: store.deletePersona,
+    getScenarios: store.getScenarios,
+    getScenario: store.getScenario,
+    addScenario: store.addScenario,
+    updateScenario: store.updateScenario,
+    deleteScenario: store.deleteScenario,
+    getRequirements: store.getRequirements,
+    getRequirement: store.getRequirement,
+    addRequirement: store.addRequirement,
+    updateRequirement: store.updateRequirement,
+    deleteRequirement: store.deleteRequirement,
+    search: store.search,
+    exportData: store.exportData,
+    // Relations
+    linkStakeholderRequirement: store.linkStakeholderRequirement,
+    unlinkStakeholderRequirement: store.unlinkStakeholderRequirement,
+    linkHypothesisRequirement: store.linkHypothesisRequirement,
+    unlinkHypothesisRequirement: store.unlinkHypothesisRequirement,
+    linkPersonaScenario: store.linkPersonaScenario,
+    unlinkPersonaScenario: store.unlinkPersonaScenario,
+    linkScenarioHypothesis: store.linkScenarioHypothesis,
+    unlinkScenarioHypothesis: store.unlinkScenarioHypothesis,
+    linkPersonaRequirement: store.linkPersonaRequirement,
+    unlinkPersonaRequirement: store.unlinkPersonaRequirement,
+    linkRequirementConflict: store.linkRequirementConflict,
+    unlinkRequirementConflict: store.unlinkRequirementConflict,
+    linkRequirementScenario: store.linkRequirementScenario,
+    unlinkRequirementScenario: store.unlinkRequirementScenario,
+    linkRequirementStakeholder: store.linkRequirementStakeholder,
+    unlinkRequirementStakeholder: store.unlinkRequirementStakeholder,
+    linkScenarioPersona: store.linkScenarioPersona,
+    unlinkScenarioPersona: store.unlinkScenarioPersona,
+    linkScenarioRequirement: store.linkScenarioRequirement,
+    unlinkScenarioRequirement: store.unlinkScenarioRequirement,
+  }
+}
