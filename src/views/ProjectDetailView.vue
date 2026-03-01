@@ -10,9 +10,9 @@
         </div>
       </div>
       <div class="header-meta">
-        <span class="badge">{{ tPath(`scope.${project.scope}`) }}</span>
-        <span class="badge">{{ tPath(`priority.${project.priority}`) }}</span>
-        <span class="date">{{ formatDate(project.lastWorkedAt) }}</span>
+        <span class="badge">{{ t.project.priority }}: {{ tPath(`priority.${project.priority}`) }}</span>
+        <span class="badge">{{ t.project.scopeLabel }}: {{ tPath(`scope.${project.scope}`) }}</span>
+        <span class="badge">{{ t.project.lastActivity }}: {{ formatDate(project.lastWorkedAt) }}</span>
       </div>
     </header>
 
