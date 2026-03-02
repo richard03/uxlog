@@ -10,7 +10,23 @@ import { generateId } from './id.js'
 /** @typedef {'research'|'design'|'development'} Phase */
 /** @typedef {'protopersona'|'persona'} PersonaStatus */
 /** @typedef {'untested'|'tested'|'refuted'} HypothesisStatus */
-/** @typedef {'must'|'should'|'could'|'wont'} MoscowRating */
+/** @typedef {'must'|'should'|'could'|'wont'} Priority */
+/** @typedef {'high'|'medium'|'low'} StakeholderLevel */
+/** @typedef {'key_player'|'keep_satisfied'|'keep_informed'|'monitor'} StakeholderStrategy */
+
+/**
+ * Vrátí strategii stakeholdera podle matice moci/zájmu (Mendelowova matice).
+ * @param {StakeholderLevel} influenceLevel
+ * @param {StakeholderLevel} interestLevel
+ * @returns {StakeholderStrategy|null}
+ */
+export function getStakeholderStrategy(influenceLevel, interestLevel) {
+  if (!influenceLevel || !interestLevel) return null
+  if (influenceLevel === 'high' && interestLevel === 'high') return 'key_player'
+  if (influenceLevel === 'high') return 'keep_satisfied'
+  if (interestLevel === 'high') return 'keep_informed'
+  return 'monitor'
+}
 
 /**
  * Vytvoří nový projekt.
@@ -150,7 +166,7 @@ export function createScenario(projectId, overrides = {}) {
     valueUnit: 'daily',
     userCount: '',
     userCountUnit: 'daily',
-    moscowRating: 'could',
+    priority: 'could',
     personaIds: [],
     hypothesisIds: [],
     requirementIds: [],
@@ -172,7 +188,7 @@ export function createRequirement(projectId, overrides = {}) {
     name: '',
     description: '',
     motivation: '',
-    moscowRating: 'could',
+    priority: 'could',
     wontHaveExplanation: '',
     conflictingRequirementIds: [],
     scenarioIds: [],

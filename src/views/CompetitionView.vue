@@ -1,7 +1,7 @@
 <template>
   <div class="container" v-if="project">
     <header class="page-header">
-      <router-link :to="{ name: 'project', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
+      <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
         <h1>{{ t.sections.competition }}</h1>
         <button type="button" class="btn btn-primary" @click="openForm()">{{ t.competition.add }}</button>
@@ -46,6 +46,7 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
 const store = useStore()
@@ -54,6 +55,12 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getCompetitions(projectId.value))
+
+const breadcrumbs = computed(() => [
+  { label: t.nav.projects, to: { name: 'projects' } },
+  { label: project.value?.name ?? '…', to: { name: 'project', params: { id: projectId.value } } },
+  { label: t.sections.competition },
+])
 
 const showForm = ref(false)
 const form = ref({ name: '', description: '', strengths: '', weaknesses: '', inspiration: '' })
@@ -73,7 +80,6 @@ function save() {
 
 <style scoped>
 .page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
-.back-link { width: fit-content; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }

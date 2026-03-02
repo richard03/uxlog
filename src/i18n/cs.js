@@ -75,6 +75,18 @@ export default {
     delete: 'Smazat stakeholdera',
     deleteConfirm: 'Opravdu smazat stakeholdera?',
   },
+  stakeholderStrategy: {
+    key_player: 'Klíčový hráč',
+    keep_satisfied: 'Udržovat spokojené',
+    keep_informed: 'Informovat',
+    monitor: 'Monitorovat',
+  },
+  stakeholderLevel: {
+    '': '— nevybráno —',
+    high: 'Vysoký',
+    medium: 'Střední',
+    low: 'Nízký',
+  },
   competition: {
     label: 'Konkurence',
     name: 'Název',
@@ -108,7 +120,7 @@ export default {
   persona: {
     label: 'Persona',
     code: 'Kód',
-    name: 'Název',
+    name: 'Jméno',
     status: 'Stav',
     description: 'Popis',
     motivation: 'Motivace',
@@ -136,7 +148,7 @@ export default {
     userCount: 'Počet uživatelů',
     frequency: 'Četnost spuštění',
     value: 'Hodnota',
-    moscowRating: 'Priorita',
+    priority: 'Priorita',
     unit: {
       daily: 'denně',
       monthly: 'měsíčně',
@@ -161,7 +173,7 @@ export default {
     name: 'Název',
     description: 'Popis',
     motivation: 'Motivace (co se stane, pokud nebude splněn)',
-    moscowRating: 'MoSCoW',
+    priority: 'Priorita',
     wontHaveExplanation: 'Vysvětlení (proč nebude splněn)',
     conflictingRequirements: 'Konfliktní požadavky',
     affectedScenarios: 'Ovlivněné scénáře',

@@ -1,7 +1,7 @@
 <template>
   <div class="container" v-if="project">
     <header class="page-header">
-      <router-link to="/" class="back-link">{{ t.common.back }}</router-link>
+      <Breadcrumb :items="breadcrumbs" />
       <div class="header-title-row">
         <h1>{{ project.name }}</h1>
         <div class="header-actions">
@@ -84,6 +84,7 @@ import { useI18n } from '../composables/useI18n.js'
 import { formatDate } from '../utils/formatDate.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -101,6 +102,11 @@ const form = ref({
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
+
+const breadcrumbs = computed(() => [
+  { label: t.nav.projects, to: { name: 'projects' } },
+  { label: project.value?.name ?? '…' },
+])
 
 /**
  * Otevře formulář pro úpravu projektu s aktuálními hodnotami.
@@ -185,12 +191,6 @@ const sections = computed(() => {
 .header-actions {
   display: flex;
   gap: var(--space-xs);
-}
-
-.back-link {
-  display: inline-block;
-  margin-bottom: var(--space-sm);
-  font-size: 0.9rem;
 }
 
 .header-meta {

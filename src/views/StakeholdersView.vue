@@ -1,7 +1,7 @@
 <template>
   <div class="container" v-if="project">
     <header class="page-header">
-      <router-link :to="{ name: 'project', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
+      <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
         <h1>{{ t.sections.stakeholders }}</h1>
         <button type="button" class="btn btn-primary" @click="openForm()">{{ t.stakeholder.add }}</button>
@@ -18,8 +18,8 @@
           <h3 class="card-title">{{ s.name || t.stakeholder.name }}</h3>
           <p v-if="s.description" class="card-desc">{{ s.description }}</p>
           <div class="card-meta">
-            <span v-if="s.influenceLevel" class="badge">{{ t.stakeholder.influenceLevel }}: {{ s.influenceLevel }}</span>
-            <span v-if="s.interestLevel" class="badge">{{ t.stakeholder.interestLevel }}: {{ s.interestLevel }}</span>
+            <span v-if="s.influenceLevel" class="badge">{{ t.stakeholder.influenceLevel }}: {{ t.stakeholderLevel[s.influenceLevel] }}</span>
+            <span v-if="s.interestLevel" class="badge">{{ t.stakeholder.interestLevel }}: {{ t.stakeholderLevel[s.interestLevel] }}</span>
           </div>
         </router-link>
       </li>
@@ -34,6 +34,18 @@
         <div class="form-group">
           <label for="sh-desc">{{ t.stakeholder.description }}</label>
           <textarea id="sh-desc" v-model="form.description" />
+        </div>
+        <div class="form-group">
+          <label for="sh-influence">{{ t.stakeholder.influenceLevel }}</label>
+          <select id="sh-influence" v-model="form.influenceLevel">
+            <option v-for="(label, val) in t.stakeholderLevel" :key="val" :value="val">{{ label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sh-interest">{{ t.stakeholder.interestLevel }}</label>
+          <select id="sh-interest" v-model="form.interestLevel">
+            <option v-for="(label, val) in t.stakeholderLevel" :key="val" :value="val">{{ label }}</option>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
@@ -50,6 +62,7 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
 const store = useStore()
@@ -58,6 +71,12 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getStakeholders(projectId.value))
+
+const breadcrumbs = computed(() => [
+  { label: t.nav.projects, to: { name: 'projects' } },
+  { label: project.value?.name ?? '…', to: { name: 'project', params: { id: projectId.value } } },
+  { label: t.sections.stakeholders },
+])
 
 const showForm = ref(false)
 const form = ref({ name: '', description: '', influenceLevel: '', interestLevel: '' })
@@ -77,7 +96,6 @@ function save() {
 
 <style scoped>
 .page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
-.back-link { width: fit-content; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }

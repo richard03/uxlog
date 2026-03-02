@@ -1,7 +1,7 @@
 <template>
   <div class="container" v-if="project">
     <header class="page-header">
-      <router-link :to="{ name: 'project', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
+      <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
         <h1>{{ t.sections.requirements }}</h1>
         <button type="button" class="btn btn-primary" @click="openForm()">{{ t.requirement.add }}</button>
@@ -16,7 +16,7 @@
       <li v-for="r in items" :key="r.id" class="card card-clickable">
         <router-link :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }" class="card-body">
           <span v-if="r.code" class="badge badge-accent">{{ r.code }}</span>
-          <span class="badge">{{ tPath(`moscow.${r.moscowRating}`) }}</span>
+          <span class="badge">{{ tPath(`moscow.${r.priority}`) }}</span>
           <h3 class="card-title">{{ r.name || t.requirement.name }}</h3>
           <p v-if="r.description" class="card-desc">{{ r.description }}</p>
         </router-link>
@@ -34,8 +34,8 @@
           <input id="r-name" v-model="form.name" required />
         </div>
         <div class="form-group">
-          <label for="r-moscow">{{ t.requirement.moscowRating }}</label>
-          <select id="r-moscow" v-model="form.moscowRating">
+          <label for="r-moscow">{{ t.requirement.priority }}</label>
+          <select id="r-moscow" v-model="form.priority">
             <option value="must">{{ t.moscow.must }}</option>
             <option value="should">{{ t.moscow.should }}</option>
             <option value="could">{{ t.moscow.could }}</option>
@@ -61,6 +61,7 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import Breadcrumb from '../components/Breadcrumb.vue'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -71,11 +72,17 @@ const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getRequirements(projectId.value))
 
+const breadcrumbs = computed(() => [
+  { label: t.nav.projects, to: { name: 'projects' } },
+  { label: project.value?.name ?? '…', to: { name: 'project', params: { id: projectId.value } } },
+  { label: t.sections.requirements },
+])
+
 const showForm = ref(false)
-const form = ref({ code: '', name: '', description: '', motivation: '', moscowRating: 'could', wontHaveExplanation: '' })
+const form = ref({ code: '', name: '', description: '', motivation: '', priority: 'could', wontHaveExplanation: '' })
 
 function openForm() {
-  form.value = { code: generateNextCode('REQ', items.value), name: '', description: '', motivation: '', moscowRating: 'could', wontHaveExplanation: '' }
+  form.value = { code: generateNextCode('REQ', items.value), name: '', description: '', motivation: '', priority: 'could', wontHaveExplanation: '' }
   showForm.value = true
 }
 
@@ -89,7 +96,6 @@ function save() {
 
 <style scoped>
 .page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
-.back-link { width: fit-content; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
