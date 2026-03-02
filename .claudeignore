@@ -1,5 +1,6 @@
 # Závislosti (naprostý základ pro úsporu)
 node_modules/
+dist/
 vendor/
 .venv/
 env/

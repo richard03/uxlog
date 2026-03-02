@@ -3,78 +3,79 @@
     <header class="page-header">
       <router-link :to="{ name: 'scenarios', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
       <div class="header-title-row">
-        <h1>{{ scenario.name || t.scenario.name }}</h1>
-        <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="openForm">{{ t.common.edit }}</button>
-          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        <div class="header-title">
+          <button
+            class="editable-code"
+            @click="openEdit('code')"
+            :aria-label="`${t.common.edit} – ${t.scenario.code}`"
+          >
+            <span>{{ scenario.code || '–' }}</span>
+            <svg class="pencil" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button
+            class="editable-name"
+            @click="openEdit('name')"
+            :aria-label="`${t.common.edit} – ${t.scenario.name}`"
+          >
+            <h1>{{ scenario.name || t.scenario.name }}</h1>
+            <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
         </div>
-      </div>
-      <div class="header-meta">
-        <span v-if="scenario.code" class="badge badge-accent">{{ scenario.code }}</span>
-        <span class="badge">{{ tPath(`scenario.scenarioType.${scenario.type || 'main'}`) }}</span>
-        <span v-if="scenario.moscowRating" class="badge">{{ tPath(`moscow.${scenario.moscowRating}`) }}</span>
+        <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
       </div>
     </header>
 
     <section class="detail-section">
       <h2 class="visually-hidden">{{ t.scenario.label }}</h2>
       <dl class="detail-list">
-        <div v-if="scenario.description" class="detail-item">
-          <dt>{{ t.scenario.description }}</dt>
-          <dd>{{ scenario.description }}</dd>
-        </div>
-        <div v-if="scenario.frequency" class="detail-item">
-          <dt>{{ t.scenario.frequency }}</dt>
-          <dd>{{ scenario.frequency }}</dd>
-        </div>
-        <div v-if="scenario.value" class="detail-item">
-          <dt>{{ t.scenario.value }}</dt>
-          <dd>{{ scenario.value }}</dd>
+        <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
+          <dt>{{ field.label }}</dt>
+          <dd :class="{ 'value-empty': isFieldEmpty(field) }">{{ displayValue(field.key) }}</dd>
+          <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
     </section>
 
-    <Modal v-if="showForm" :title="t.scenario.edit" @close="closeForm">
-      <form @submit.prevent="save">
+    <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
+      <form @submit.prevent="saveField">
         <div class="form-group">
-          <label for="sd-code">{{ t.scenario.code }}</label>
-          <input id="sd-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="sd-name">{{ t.scenario.name }}</label>
-          <input id="sd-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="sd-type">{{ t.scenario.type }}</label>
-          <select id="sd-type" v-model="form.type">
-            <option value="main">{{ t.scenario.scenarioType.main }}</option>
-            <option value="secondary">{{ t.scenario.scenarioType.secondary }}</option>
-            <option value="error">{{ t.scenario.scenarioType.error }}</option>
+          <label for="edit-field">{{ editingLabel }}</label>
+          <input
+            v-if="editingType === 'text'"
+            id="edit-field"
+            v-model="editValue"
+            class="form-control"
+          />
+          <textarea
+            v-else-if="editingType === 'textarea'"
+            id="edit-field"
+            v-model="editValue"
+            class="form-control"
+            rows="4"
+          />
+          <select
+            v-else-if="editingType === 'select'"
+            id="edit-field"
+            v-model="editValue"
+            class="form-control"
+          >
+            <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label for="sd-desc">{{ t.scenario.description }}</label>
-          <textarea id="sd-desc" v-model="form.description" />
-        </div>
-        <div class="form-group">
-          <label for="sd-frequency">{{ t.scenario.frequency }}</label>
-          <input id="sd-frequency" v-model="form.frequency" />
-        </div>
-        <div class="form-group">
-          <label for="sd-value">{{ t.scenario.value }}</label>
-          <input id="sd-value" v-model="form.value" />
-        </div>
-        <div class="form-group">
-          <label for="sd-moscow">{{ t.scenario.moscowRating }}</label>
-          <select id="sd-moscow" v-model="form.moscowRating">
-            <option value="must">{{ t.moscow.must }}</option>
-            <option value="should">{{ t.moscow.should }}</option>
-            <option value="could">{{ t.moscow.could }}</option>
-            <option value="wont">{{ t.moscow.wont }}</option>
-          </select>
+          <div v-else-if="editingType === 'number-unit'" class="number-unit-row">
+            <input
+              id="edit-field"
+              v-model="editValue"
+              type="number"
+              min="0"
+              class="form-control"
+            />
+            <select v-model="editUnit" class="form-control unit-select">
+              <option v-for="opt in editingUnits" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
+          <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
         </div>
       </form>
@@ -94,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
@@ -111,60 +112,125 @@ const scenarioId = computed(() => route.params.scenarioId)
 const project = computed(() => store.getProject(projectId.value))
 const scenario = computed(() => store.getScenario(scenarioId.value))
 
-const showForm = ref(false)
 const showConfirm = ref(false)
-const form = ref({
-  code: '',
-  name: '',
-  type: 'main',
-  description: '',
-  frequency: '',
-  value: '',
-  moscowRating: 'could',
-})
+const editingField = ref(null)
+const editValue = ref('')
+const editUnit = ref('daily')
+
+const units = [
+  { value: 'daily', label: t.scenario.unit.daily },
+  { value: 'monthly', label: t.scenario.unit.monthly },
+  { value: 'yearly', label: t.scenario.unit.yearly },
+]
+
+const fields = [
+  { key: 'description', label: t.scenario.description, type: 'textarea' },
+  {
+    key: 'type',
+    label: t.scenario.type,
+    type: 'select',
+    options: [
+      { value: 'main', label: t.scenario.scenarioType.main },
+      { value: 'secondary', label: t.scenario.scenarioType.secondary },
+      { value: 'error', label: t.scenario.scenarioType.error },
+    ],
+  },
+  {
+    key: 'moscowRating',
+    label: t.scenario.moscowRating,
+    type: 'select',
+    options: [
+      { value: 'must', label: tPath('moscow.must') },
+      { value: 'should', label: tPath('moscow.should') },
+      { value: 'could', label: tPath('moscow.could') },
+      { value: 'wont', label: tPath('moscow.wont') },
+    ],
+  },
+  { key: 'userCount', valueKey: 'userCount', unitKey: 'userCountUnit', label: t.scenario.userCount, type: 'number-unit', units },
+  { key: 'frequency', valueKey: 'frequencyValue', unitKey: 'frequencyUnit', label: t.scenario.frequency, type: 'number-unit', units },
+  { key: 'value', valueKey: 'valueAmount', unitKey: 'valueUnit', label: t.scenario.value, type: 'number-unit', units },
+]
+
+// Zahrnuje také code a name pro modál (editace z hlavičky)
+const allFields = [
+  { key: 'code', label: t.scenario.code, type: 'text' },
+  { key: 'name', label: t.scenario.name, type: 'text' },
+  ...fields,
+]
+
+const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
+const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
+const editingType = computed(() => editingFieldDef.value?.type ?? 'text')
+const editingOptions = computed(() => editingFieldDef.value?.options ?? [])
+const editingUnits = computed(() => editingFieldDef.value?.units ?? [])
 
 /**
- * Naplní formulář aktuálními hodnotami scénáře.
+ * Vrátí true pokud je pole prázdné (pro účely CSS třídy value-empty).
  */
-function fillForm() {
-  if (scenario.value) {
-    form.value = {
-      code: scenario.value.code ?? '',
-      name: scenario.value.name ?? '',
-      type: scenario.value.type ?? 'main',
-      description: scenario.value.description ?? '',
-      frequency: scenario.value.frequency ?? '',
-      value: scenario.value.value ?? '',
-      moscowRating: scenario.value.moscowRating ?? 'could',
-    }
+function isFieldEmpty(field) {
+  if (field.type === 'number-unit') return !scenario.value?.[field.valueKey]
+  return !scenario.value?.[field.key]
+}
+
+/**
+ * Vrátí hodnotu pole pro zobrazení. U select polí vrátí popisek, u prázdných hodnot '—'.
+ */
+function displayValue(key) {
+  const field = allFields.find((f) => f.key === key)
+  if (!field) return '—'
+  if (field.type === 'number-unit') {
+    const num = scenario.value?.[field.valueKey]
+    if (!num) return '—'
+    const unitVal = scenario.value?.[field.unitKey] ?? 'daily'
+    const unitLabel = field.units.find((u) => u.value === unitVal)?.label ?? unitVal
+    return `${num} ${unitLabel}`
+  }
+  const val = scenario.value?.[field.key]
+  if (!val) return '—'
+  if (field.type === 'select') {
+    return field.options.find((o) => o.value === val)?.label ?? val
+  }
+  return val
+}
+
+/**
+ * Otevře modál pro editaci jednoho pole.
+ */
+function openEdit(key) {
+  editingField.value = key
+  const field = allFields.find((f) => f.key === key)
+  if (field?.type === 'number-unit') {
+    editValue.value = scenario.value?.[field.valueKey] ?? ''
+    editUnit.value = scenario.value?.[field.unitKey] ?? 'daily'
+  } else {
+    editValue.value = scenario.value?.[key] ?? ''
   }
 }
 
-watch(scenario, fillForm, { immediate: true })
-
 /**
- * Otevře formulář pro úpravu scénáře.
+ * Zavře modál bez uložení.
  */
-function openForm() {
-  fillForm()
-  showForm.value = true
+function closeEdit() {
+  editingField.value = null
+  editValue.value = ''
+  editUnit.value = 'daily'
 }
 
 /**
- * Zavře formulář pro úpravu.
+ * Uloží změnu jednoho pole.
  */
-function closeForm() {
-  showForm.value = false
-}
-
-/**
- * Uloží úpravy scénáře.
- */
-function save() {
-  if (scenario.value) {
-    store.updateScenario(scenario.value.id, form.value)
-    closeForm()
+function saveField() {
+  if (!scenario.value || !editingField.value) return
+  const field = editingFieldDef.value
+  if (field?.type === 'number-unit') {
+    store.updateScenario(scenario.value.id, {
+      [field.valueKey]: editValue.value,
+      [field.unitKey]: editUnit.value,
+    })
+  } else {
+    store.updateScenario(scenario.value.id, { [editingField.value]: editValue.value })
   }
+  closeEdit()
 }
 
 /**
@@ -193,32 +259,63 @@ function doDelete() {
 
 .header-title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-md);
+}
+
+.header-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
-.header-title-row h1 {
-  margin: 0;
+.editable-code,
+.editable-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
 }
 
-.header-actions {
-  display: flex;
-  gap: var(--space-xs);
+.editable-code {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.editable-name h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.editable-code .pencil,
+.editable-name .pencil {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.editable-code:hover .pencil,
+.editable-code:focus-visible .pencil,
+.editable-name:hover .pencil,
+.editable-name:focus-visible .pencil {
+  opacity: 1;
 }
 
 .back-link {
   display: inline-block;
   margin-bottom: var(--space-sm);
   font-size: 0.9rem;
-}
-
-.header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
 }
 
 .detail-section {
@@ -228,22 +325,49 @@ function doDelete() {
 .detail-list {
   margin: 0;
   padding: 0;
-  list-style: none;
 }
 
 .detail-item {
-  margin-bottom: var(--space-md);
+  display: grid;
+  grid-template-columns: 10rem 1fr auto;
+  align-items: baseline;
+  gap: 0 var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
 }
 
 .detail-item dt {
   font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: var(--space-xs);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .detail-item dd {
   margin: 0;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+.value-empty {
   color: var(--text-muted);
+  font-style: italic;
+}
+
+.edit-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--text-muted);
+}
+
+.detail-item:hover .edit-btn,
+.detail-item:focus-within .edit-btn {
+  opacity: 1;
 }
 
 .visually-hidden {
@@ -256,6 +380,20 @@ function doDelete() {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.number-unit-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.number-unit-row .form-control:first-child {
+  flex: 1;
+}
+
+.unit-select {
+  width: 8rem;
+  flex-shrink: 0;
 }
 
 .form-actions {

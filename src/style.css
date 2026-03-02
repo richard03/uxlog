@@ -16,6 +16,8 @@
 
   --transition: 0.2s ease;
 
+  --breakpoint-md: 900px;
+
   /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven */
   --bg: #1a1814;
   --bg-elevated: #25221c;
@@ -311,4 +313,10 @@ label {
   transform: translateY(-50%);
   color: var(--text-muted);
   pointer-events: none;
+}
+
+@media (min-width: var(--breakpoint-md)) {
+  .header-inner {
+    padding-left: var(--space-md);
+  }
 }
