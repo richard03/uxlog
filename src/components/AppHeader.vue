@@ -52,15 +52,15 @@ const isDark = computed(() => theme.isDark.value)
  * Exportuje data do schránky.
  */
 function handleExport() {
-  const json = store.exportData()
-  navigator.clipboard.writeText(json).then(() => {
+  const yaml = store.exportData()
+  navigator.clipboard.writeText(yaml).then(() => {
     alert(t.common.exportSuccess)
   }).catch(() => {
-    const blob = new Blob([json], { type: 'application/json' })
+    const blob = new Blob([yaml], { type: 'application/yaml' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'uxlog-export.json'
+    a.download = 'uxlog-export.yaml'
     a.click()
     URL.revokeObjectURL(url)
   })

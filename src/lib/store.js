@@ -533,6 +533,8 @@ export function search(query, projectId) {
 
 // --- Export ---
 
+import { toYaml } from './yaml.js'
+
 export function exportData() {
-  return JSON.stringify(getData(), null, 2)
+  return toYaml(getData())
 }
