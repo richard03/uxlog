@@ -48,7 +48,7 @@ const SEARCH_FIELDS = {
   competition: ['name', 'description', 'strengths', 'weaknesses', 'inspiration'],
   hypothesis: ['code', 'name', 'description', 'explanation'],
   persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'],
-  scenario: ['code', 'name', 'description', 'frequency', 'value'],
+  scenario: ['code', 'name', 'type', 'description', 'frequency', 'value'],
   requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation'],
 }
 

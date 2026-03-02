@@ -59,6 +59,12 @@ const routes = [
     component: () => import('../views/ScenariosView.vue'),
     meta: { title: 'Scénáře' },
   },
+  {
+    path: '/project/:id/scenarios/:scenarioId',
+    name: 'scenarioDetail',
+    component: () => import('../views/ScenarioDetailView.vue'),
+    meta: { title: 'Scénář' },
+  },
 ]
 
 const router = createRouter({

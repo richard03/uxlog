@@ -13,23 +13,17 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="s in items" :key="s.id" class="card">
-        <div class="card-body">
+      <li v-for="s in items" :key="s.id" class="card card-clickable">
+        <router-link :to="{ name: 'scenarioDetail', params: { id: projectId, scenarioId: s.id } }" class="card-body">
           <span v-if="s.code" class="badge badge-accent">{{ s.code }}</span>
-          <span class="badge">{{ tPath(`moscow.${s.moscowRating}`) }}</span>
+          <span class="badge">{{ tPath(`scenario.scenarioType.${s.type || 'main'}`) }}</span>
           <h3 class="card-title">{{ s.name || t.scenario.name }}</h3>
           <p v-if="s.description" class="card-desc">{{ s.description }}</p>
-          <p v-if="s.frequency"><strong>{{ t.scenario.frequency }}:</strong> {{ s.frequency }}</p>
-          <p v-if="s.value"><strong>{{ t.scenario.value }}:</strong> {{ s.value }}</p>
-        </div>
-        <div class="card-actions">
-          <button type="button" class="btn btn-ghost" @click="openForm(s)">{{ t.common.edit }}</button>
-          <button type="button" class="btn btn-ghost" @click="confirmDelete(s)">{{ t.common.delete }}</button>
-        </div>
+        </router-link>
       </li>
     </ul>
 
-    <Modal v-if="showForm" :title="editing ? t.scenario.edit : t.scenario.add" @close="closeForm">
+    <Modal v-if="showForm" :title="t.scenario.add" @close="closeForm">
       <form @submit.prevent="save">
         <div class="form-group">
           <label for="s-code">{{ t.scenario.code }}</label>
@@ -40,25 +34,16 @@
           <input id="s-name" v-model="form.name" required />
         </div>
         <div class="form-group">
+          <label for="s-type">{{ t.scenario.type }}</label>
+          <select id="s-type" v-model="form.type">
+            <option value="main">{{ t.scenario.scenarioType.main }}</option>
+            <option value="secondary">{{ t.scenario.scenarioType.secondary }}</option>
+            <option value="error">{{ t.scenario.scenarioType.error }}</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="s-desc">{{ t.scenario.description }}</label>
           <textarea id="s-desc" v-model="form.description" />
-        </div>
-        <div class="form-group">
-          <label for="s-frequency">{{ t.scenario.frequency }}</label>
-          <input id="s-frequency" v-model="form.frequency" />
-        </div>
-        <div class="form-group">
-          <label for="s-value">{{ t.scenario.value }}</label>
-          <input id="s-value" v-model="form.value" />
-        </div>
-        <div class="form-group">
-          <label for="s-moscow">{{ t.scenario.moscowRating }}</label>
-          <select id="s-moscow" v-model="form.moscowRating">
-            <option value="must">{{ t.moscow.must }}</option>
-            <option value="should">{{ t.moscow.should }}</option>
-            <option value="could">{{ t.moscow.could }}</option>
-            <option value="wont">{{ t.moscow.wont }}</option>
-          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
@@ -66,8 +51,6 @@
         </div>
       </form>
     </Modal>
-
-    <ConfirmDialog v-if="showConfirm" :title="t.scenario.delete" :message="t.scenario.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
   </div>
 </template>
 
@@ -77,7 +60,6 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -89,37 +71,34 @@ const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getScenarios(projectId.value))
 
 const showForm = ref(false)
-const showConfirm = ref(false)
-const editing = ref(null)
-const deleteId = ref(null)
-const form = ref({ code: '', name: '', description: '', frequency: '', value: '', moscowRating: 'could' })
+const form = ref({ code: '', name: '', type: 'main', description: '' })
 
-function openForm(item = null) {
-  editing.value = item
-  form.value = item ? { ...item } : { code: generateNextCode('SCN', items.value), name: '', description: '', frequency: '', value: '', moscowRating: 'could' }
+/**
+ * Otevře formulář pro přidání nového scénáře.
+ */
+function openForm() {
+  form.value = {
+    code: generateNextCode('SCN', items.value),
+    name: '',
+    type: 'main',
+    description: '',
+  }
   showForm.value = true
 }
 
+/**
+ * Zavře formulář pro přidání scénáře.
+ */
 function closeForm() {
   showForm.value = false
-  editing.value = null
 }
 
+/**
+ * Uloží nový scénář a zavře formulář.
+ */
 function save() {
-  if (editing.value) store.updateScenario(editing.value.id, form.value)
-  else store.addScenario(projectId.value, form.value)
+  store.addScenario(projectId.value, form.value)
   closeForm()
-}
-
-function confirmDelete(item) {
-  deleteId.value = item.id
-  showConfirm.value = true
-}
-
-function doDelete() {
-  if (deleteId.value) store.deleteScenario(deleteId.value)
-  showConfirm.value = false
-  deleteId.value = null
 }
 </script>
 
@@ -132,6 +111,7 @@ function doDelete() {
 .card-body { flex: 1; }
 .card-title { margin: var(--space-xs) 0; font-size: 1rem; }
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
-.card-actions { display: flex; gap: var(--space-xs); }
+.card-clickable .card-body { text-decoration: none; color: inherit; display: block; }
+.card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
 </style>

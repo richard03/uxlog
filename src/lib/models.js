@@ -142,6 +142,7 @@ export function createScenario(projectId, overrides = {}) {
     projectId,
     code: '',
     name: '',
+    type: 'main',
     description: '',
     frequency: '',
     value: '',
