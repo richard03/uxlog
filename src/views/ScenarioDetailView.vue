@@ -1,7 +1,7 @@
 <template>
   <div class="container" v-if="project && scenario">
     <header class="page-header">
-      <router-link :to="{ name: 'scenarios', params: { id: projectId } }" class="back-link">{{ t.common.back }}</router-link>
+      <Breadcrumb :items="breadcrumbs" />
       <div class="header-title-row">
         <div class="header-title">
           <button
@@ -101,6 +101,7 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,6 +112,13 @@ const projectId = computed(() => route.params.id)
 const scenarioId = computed(() => route.params.scenarioId)
 const project = computed(() => store.getProject(projectId.value))
 const scenario = computed(() => store.getScenario(scenarioId.value))
+
+const breadcrumbs = computed(() => [
+  { label: t.nav.projects, to: { name: 'projects' } },
+  { label: project.value?.name ?? '…', to: { name: 'project', params: { id: projectId.value } } },
+  { label: t.sections.scenarios, to: { name: 'scenarios', params: { id: projectId.value } } },
+  { label: scenario.value?.name || t.scenario.label },
+])
 
 const showConfirm = ref(false)
 const editingField = ref(null)
@@ -312,11 +320,6 @@ function doDelete() {
   opacity: 1;
 }
 
-.back-link {
-  display: inline-block;
-  margin-bottom: var(--space-sm);
-  font-size: 0.9rem;
-}
 
 .detail-section {
   margin-top: var(--space-lg);

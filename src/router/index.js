@@ -24,15 +24,33 @@ const routes = [
     meta: { title: 'Cíle' },
   },
   {
+    path: '/project/:id/goals/:goalId',
+    name: 'goalDetail',
+    component: () => import('../views/GoalDetailView.vue'),
+    meta: { title: 'Cíl' },
+  },
+  {
     path: '/project/:id/stakeholders',
     name: 'stakeholders',
     component: () => import('../views/StakeholdersView.vue'),
     meta: { title: 'Stakeholdeři' },
   },
   {
+    path: '/project/:id/stakeholders/:stakeholderId',
+    name: 'stakeholderDetail',
+    component: () => import('../views/StakeholderDetailView.vue'),
+    meta: { title: 'Stakeholder' },
+  },
+  {
     path: '/project/:id/competition',
     name: 'competition',
     component: () => import('../views/CompetitionView.vue'),
+    meta: { title: 'Konkurence' },
+  },
+  {
+    path: '/project/:id/competition/:competitionId',
+    name: 'competitionDetail',
+    component: () => import('../views/CompetitionDetailView.vue'),
     meta: { title: 'Konkurence' },
   },
   {
@@ -42,16 +60,34 @@ const routes = [
     meta: { title: 'Hypotézy' },
   },
   {
+    path: '/project/:id/hypothesis/:hypothesisId',
+    name: 'hypothesisDetail',
+    component: () => import('../views/HypothesisDetailView.vue'),
+    meta: { title: 'Hypotéza' },
+  },
+  {
     path: '/project/:id/personas',
     name: 'personas',
     component: () => import('../views/PersonasView.vue'),
     meta: { title: 'Persony' },
   },
   {
+    path: '/project/:id/personas/:personaId',
+    name: 'personaDetail',
+    component: () => import('../views/PersonaDetailView.vue'),
+    meta: { title: 'Persona' },
+  },
+  {
     path: '/project/:id/requirements',
     name: 'requirements',
     component: () => import('../views/RequirementsView.vue'),
     meta: { title: 'Požadavky' },
+  },
+  {
+    path: '/project/:id/requirements/:requirementId',
+    name: 'requirementDetail',
+    component: () => import('../views/RequirementDetailView.vue'),
+    meta: { title: 'Požadavek' },
   },
   {
     path: '/project/:id/scenarios',

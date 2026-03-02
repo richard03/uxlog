@@ -13,23 +13,17 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="r in items" :key="r.id" class="card">
-        <div class="card-body">
+      <li v-for="r in items" :key="r.id" class="card card-clickable">
+        <router-link :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }" class="card-body">
           <span v-if="r.code" class="badge badge-accent">{{ r.code }}</span>
           <span class="badge">{{ tPath(`moscow.${r.moscowRating}`) }}</span>
           <h3 class="card-title">{{ r.name || t.requirement.name }}</h3>
           <p v-if="r.description" class="card-desc">{{ r.description }}</p>
-          <p v-if="r.motivation"><strong>{{ t.requirement.motivation }}:</strong> {{ r.motivation }}</p>
-          <p v-if="r.moscowRating === 'wont' && r.wontHaveExplanation"><strong>{{ t.requirement.wontHaveExplanation }}:</strong> {{ r.wontHaveExplanation }}</p>
-        </div>
-        <div class="card-actions">
-          <button type="button" class="btn btn-ghost" @click="openForm(r)">{{ t.common.edit }}</button>
-          <button type="button" class="btn btn-ghost" @click="confirmDelete(r)">{{ t.common.delete }}</button>
-        </div>
+        </router-link>
       </li>
     </ul>
 
-    <Modal v-if="showForm" :title="editing ? t.requirement.edit : t.requirement.add" @close="closeForm">
+    <Modal v-if="showForm" :title="t.requirement.add" @close="closeForm">
       <form @submit.prevent="save">
         <div class="form-group">
           <label for="r-code">{{ t.requirement.code }}</label>
@@ -40,14 +34,6 @@
           <input id="r-name" v-model="form.name" required />
         </div>
         <div class="form-group">
-          <label for="r-desc">{{ t.requirement.description }}</label>
-          <textarea id="r-desc" v-model="form.description" />
-        </div>
-        <div class="form-group">
-          <label for="r-motivation">{{ t.requirement.motivation }}</label>
-          <textarea id="r-motivation" v-model="form.motivation" />
-        </div>
-        <div class="form-group">
           <label for="r-moscow">{{ t.requirement.moscowRating }}</label>
           <select id="r-moscow" v-model="form.moscowRating">
             <option value="must">{{ t.moscow.must }}</option>
@@ -56,9 +42,9 @@
             <option value="wont">{{ t.moscow.wont }}</option>
           </select>
         </div>
-        <div class="form-group" v-if="form.moscowRating === 'wont'">
-          <label for="r-wont">{{ t.requirement.wontHaveExplanation }}</label>
-          <textarea id="r-wont" v-model="form.wontHaveExplanation" />
+        <div class="form-group">
+          <label for="r-desc">{{ t.requirement.description }}</label>
+          <textarea id="r-desc" v-model="form.description" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
@@ -66,8 +52,6 @@
         </div>
       </form>
     </Modal>
-
-    <ConfirmDialog v-if="showConfirm" :title="t.requirement.delete" :message="t.requirement.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
   </div>
 </template>
 
@@ -77,7 +61,6 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -89,37 +72,18 @@ const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getRequirements(projectId.value))
 
 const showForm = ref(false)
-const showConfirm = ref(false)
-const editing = ref(null)
-const deleteId = ref(null)
 const form = ref({ code: '', name: '', description: '', motivation: '', moscowRating: 'could', wontHaveExplanation: '' })
 
-function openForm(item = null) {
-  editing.value = item
-  form.value = item ? { ...item } : { code: generateNextCode('REQ', items.value), name: '', description: '', motivation: '', moscowRating: 'could', wontHaveExplanation: '' }
+function openForm() {
+  form.value = { code: generateNextCode('REQ', items.value), name: '', description: '', motivation: '', moscowRating: 'could', wontHaveExplanation: '' }
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  editing.value = null
-}
+function closeForm() { showForm.value = false }
 
 function save() {
-  if (editing.value) store.updateRequirement(editing.value.id, form.value)
-  else store.addRequirement(projectId.value, form.value)
+  store.addRequirement(projectId.value, form.value)
   closeForm()
-}
-
-function confirmDelete(item) {
-  deleteId.value = item.id
-  showConfirm.value = true
-}
-
-function doDelete() {
-  if (deleteId.value) store.deleteRequirement(deleteId.value)
-  showConfirm.value = false
-  deleteId.value = null
 }
 </script>
 
@@ -128,10 +92,9 @@ function doDelete() {
 .back-link { width: fit-content; }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
-.card { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
-.card-body { flex: 1; }
+.card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-title { margin: var(--space-xs) 0; font-size: 1rem; }
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
-.card-actions { display: flex; gap: var(--space-xs); }
+.card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
 </style>

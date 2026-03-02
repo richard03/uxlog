@@ -24,6 +24,7 @@
         class="section-link"
       >
         {{ tPath(`sections.${s.id}`) }}
+        <span class="section-count">{{ s.count }}</span>
       </router-link>
     </nav>
 
@@ -150,15 +151,18 @@ function doDelete() {
   showConfirm.value = false
 }
 
-const sections = [
-  { id: 'goals', route: 'goals' },
-  { id: 'stakeholders', route: 'stakeholders' },
-  { id: 'competition', route: 'competition' },
-  { id: 'hypothesis', route: 'hypothesis' },
-  { id: 'personas', route: 'personas' },
-  { id: 'requirements', route: 'requirements' },
-  { id: 'scenarios', route: 'scenarios' },
-]
+const sections = computed(() => {
+  const pid = projectId.value
+  return [
+    { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
+    { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
+    { id: 'competition', route: 'competition', count: store.getCompetitions(pid).length },
+    { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },
+    { id: 'personas', route: 'personas', count: store.getPersonas(pid).length },
+    { id: 'requirements', route: 'requirements', count: store.getRequirements(pid).length },
+    { id: 'scenarios', route: 'scenarios', count: store.getScenarios(pid).length },
+  ]
+})
 </script>
 
 <style scoped>
@@ -208,6 +212,9 @@ const sections = [
 }
 
 .section-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: var(--space-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -220,6 +227,15 @@ const sections = [
 .section-link:hover {
   border-color: var(--accent);
   background: var(--accent-muted);
+}
+
+.section-count {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-top: var(--space-xs);
 }
 
 .section-link.router-link-active {
