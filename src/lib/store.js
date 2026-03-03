@@ -15,8 +15,10 @@ import {
   createPersona,
   createScenario,
   createRequirement,
+  createActivity,
 } from './models.js'
 import { searchAll } from './search.js'
+import { ACTIVITY_TYPES } from './activityTypes.js'
 
 /** Reaktivní stav – Vue automaticky sleduje změny */
 export const state = reactive(
@@ -69,6 +71,15 @@ export function addProject(overrides = {}) {
   const project = createProject(overrides)
   state.projects = state.projects || []
   state.projects.push(project)
+  // Přidat všechny předdefinované aktivity jako výchozí
+  state.activities = state.activities || []
+  for (const type of ACTIVITY_TYPES) {
+    state.activities.push(createActivity(project.id, {
+      typeKey: type.key,
+      name: type.defaultName,
+      sortOrder: type.sortOrder,
+    }))
+  }
   console.log('[UXLog] addProject:', project.name, 'celkem projektů:', state.projects.length)
   persist()
   return project
@@ -353,6 +364,47 @@ export function deleteRequirement(id) {
   persist()
 }
 
+// --- Activities ---
+
+export function getActivities(projectId) {
+  return (getData().activities || [])
+    .filter((a) => a.projectId === projectId && !a.dismissed)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+}
+
+export function getAllActivities(projectId) {
+  return (getData().activities || []).filter((a) => a.projectId === projectId)
+}
+
+export function getActivity(id) {
+  return getData().activities?.find((a) => a.id === id) ?? null
+}
+
+export function addActivity(projectId, overrides = {}) {
+  const a = createActivity(projectId, overrides)
+  state.activities = state.activities || []
+  state.activities.push(a)
+  updateProject(projectId, {})
+  persist()
+  return a
+}
+
+export function updateActivity(id, updates) {
+  const idx = state.activities?.findIndex((a) => a.id === id)
+  if (idx === -1) return null
+  state.activities[idx] = { ...state.activities[idx], ...updates }
+  if (state.activities[idx].projectId) updateProject(state.activities[idx].projectId, {})
+  persist()
+  return state.activities[idx]
+}
+
+export function deleteActivity(id) {
+  const activity = state.activities?.find((a) => a.id === id)
+  state.activities = (state.activities || []).filter((a) => a.id !== id)
+  if (activity?.projectId) updateProject(activity.projectId, {})
+  persist()
+}
+
 // --- Relations (bez kaskádového mazání) ---
 
 export function linkStakeholderRequirement(stakeholderId, requirementId) {
@@ -537,4 +589,19 @@ import { toYaml } from './yaml.js'
 
 export function exportData() {
   return toYaml(getData())
+}
+
+export function exportProjectData(projectId) {
+  const data = getData()
+  return toYaml({
+    project: data.projects?.find((p) => p.id === projectId) ?? null,
+    goals: (data.goals || []).filter((g) => g.projectId === projectId),
+    stakeholders: (data.stakeholders || []).filter((s) => s.projectId === projectId),
+    competitions: (data.competitions || []).filter((c) => c.projectId === projectId),
+    hypotheses: (data.hypotheses || []).filter((h) => h.projectId === projectId),
+    personas: (data.personas || []).filter((p) => p.projectId === projectId),
+    scenarios: (data.scenarios || []).filter((s) => s.projectId === projectId),
+    requirements: (data.requirements || []).filter((r) => r.projectId === projectId),
+    activities: (data.activities || []).filter((a) => a.projectId === projectId),
+  })
 }

@@ -21,13 +21,6 @@
         >
           {{ t.common.search }}
         </button>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="handleExport"
-        >
-          {{ t.nav.export }}
-        </button>
       </nav>
     </div>
     <SearchModal v-if="showSearch" @close="showSearch = false" />
@@ -38,33 +31,13 @@
 import { ref, computed } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
-import { useStore } from '../composables/useStore.js'
 import SearchModal from './SearchModal.vue'
 
 const theme = useTheme()
 const { t } = useI18n()
-const store = useStore()
 const showSearch = ref(false)
 
 const isDark = computed(() => theme.isDark.value)
-
-/**
- * Exportuje data do schránky.
- */
-function handleExport() {
-  const yaml = store.exportData()
-  navigator.clipboard.writeText(yaml).then(() => {
-    alert(t.common.exportSuccess)
-  }).catch(() => {
-    const blob = new Blob([yaml], { type: 'application/yaml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'uxlog-export.yaml'
-    a.click()
-    URL.revokeObjectURL(url)
-  })
-}
 </script>
 
 <style scoped>

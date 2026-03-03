@@ -21,7 +21,10 @@
           <div class="card-meta">
             <span class="badge">{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</span>
             <span class="badge">{{ t.project.scopeLabel }}: {{ scopeLabel(p.scope) }}</span>
-            <span class="badge">{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</span>
+            <span
+              class="badge"
+              :class="{ 'badge-warning': isActivityOverdue(p) }"
+            >{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</span>
           </div>
         </router-link>
       </li>
@@ -66,6 +69,7 @@ import { ref, computed } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { formatDate } from '../utils/formatDate.js'
+import { isActivityOverdue } from '../lib/activity.js'
 import Modal from '../components/Modal.vue'
 
 const store = useStore()

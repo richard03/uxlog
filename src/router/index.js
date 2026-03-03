@@ -101,6 +101,12 @@ const routes = [
     component: () => import('../views/ScenarioDetailView.vue'),
     meta: { title: 'Scénář' },
   },
+  {
+    path: '/project/:id/activities/:activityId',
+    name: 'activityDetail',
+    component: () => import('../views/ActivityDetailView.vue'),
+    meta: { title: 'Aktivita' },
+  },
 ]
 
 const router = createRouter({

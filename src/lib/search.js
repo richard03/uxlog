@@ -50,6 +50,7 @@ const SEARCH_FIELDS = {
   persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'],
   scenario: ['code', 'name', 'type', 'description', 'frequency', 'value'],
   requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation'],
+  activity: ['name', 'description'],
 }
 
 /**
@@ -70,6 +71,7 @@ export function searchAll(data, query, projectId) {
     personaIds: [],
     scenarioIds: [],
     requirementIds: [],
+    activityIds: [],
   }
 
   const filterByProject = (entity) => !projectId || entity.projectId === projectId
@@ -112,6 +114,11 @@ export function searchAll(data, query, projectId) {
   if (data.requirements) {
     result.requirementIds = data.requirements
       .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.requirement, q))
+      .map((e) => e.id)
+  }
+  if (data.activities) {
+    result.activityIds = data.activities
+      .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.activity, q))
       .map((e) => e.id)
   }
 

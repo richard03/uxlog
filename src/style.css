@@ -286,6 +286,12 @@ label {
   color: var(--accent);
 }
 
+.badge-warning {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  font-weight: 600;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

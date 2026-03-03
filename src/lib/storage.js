@@ -46,5 +46,6 @@ export function getEmptyData() {
     personas: [],
     scenarios: [],
     requirements: [],
+    activities: [],
   }
 }

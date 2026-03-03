@@ -138,6 +138,7 @@ export function createPersona(projectId, overrides = {}) {
     motivation: '',
     needs: '',
     problems: '',
+    context: '',
     targetGroupSize: '',
     targetGroupValue: '',
     scenarioIds: [],
@@ -170,6 +171,26 @@ export function createScenario(projectId, overrides = {}) {
     personaIds: [],
     hypothesisIds: [],
     requirementIds: [],
+    ...overrides,
+  }
+}
+
+/**
+ * Vytvoří novou aktivitu.
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createActivity(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    typeKey: null,
+    name: '',
+    description: '',
+    status: 'pending',
+    dismissed: false,
+    sortOrder: 9999,
     ...overrides,
   }
 }
