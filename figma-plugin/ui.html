@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UXLog — Persony</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      color: #CBD5E1;
+      background: #0F172A;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    /* Hlavička */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .header-text h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #F8FAFC;
+      line-height: 1.2;
+    }
+    .header-text p {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 1px;
+    }
+
+    /* Formulář */
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #64748B;
+      margin-bottom: 5px;
+      letter-spacing: 0.3px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #E2E8F0;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 10.5px;
+      line-height: 1.5;
+      padding: 10px 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: #6366F1; }
+    textarea::placeholder { color: #334155; font-family: inherit; font-size: 11px; }
+
+    select {
+      width: 100%;
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #E2E8F0;
+      font-size: 12px;
+      padding: 8px 12px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    select:focus { border-color: #6366F1; }
+
+    /* Náhled */
+    .preview {
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+      font-size: 11.5px;
+      color: #94A3B8;
+    }
+    .preview-item + .preview-item {
+      border-top: 1px solid #1E293B;
+    }
+    .preview-code {
+      font-family: monospace;
+      font-size: 10px;
+      color: #475569;
+      min-width: 52px;
+    }
+    .preview-name { color: #E2E8F0; font-weight: 500; flex: 1; }
+    .badge {
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .badge-persona      { background: rgba(99,102,241,.18); color: #818CF8; }
+    .badge-protopersona { background: rgba(139,92,246,.18); color: #A78BFA; }
+    .preview-more { color: #475569; font-size: 11px; padding: 4px 0 0; }
+
+    /* Tlačítko */
+    button {
+      width: 100%;
+      padding: 10px 16px;
+      background: #6366F1;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      letter-spacing: 0.1px;
+    }
+    button:hover:not(:disabled) { background: #4F46E5; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Stav */
+    .status {
+      margin-top: 12px;
+      font-size: 11.5px;
+      min-height: 18px;
+      line-height: 1.4;
+    }
+    .status-info { color: #475569; }
+    .status-ok   { color: #4ADE80; }
+    .status-err  { color: #F87171; }
+
+    /* Skrytý projekt select */
+    .field-hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">U</div>
+    <div class="header-text">
+      <h1>Import person</h1>
+      <p>UXLog → Figma</p>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="json">Exportovaná data (YAML z UXLog)</label>
+    <textarea id="json" spellcheck="false"
+      placeholder="projects:
+  - id: ...
+personas:
+  - id: ...
+    name: ..."></textarea>
+  </div>
+
+  <div class="field field-hidden" id="projectField">
+    <label for="project">Projekt</label>
+    <select id="project"></select>
+  </div>
+
+  <div class="preview" id="preview"></div>
+
+  <button id="btn" disabled>Generovat persony</button>
+
+  <div class="status status-info" id="status">Vložte YAML exportovaný z UXLog.</div>
+
+  <script>
+    'use strict';
+
+    // -----------------------------------------------------------------------
+    // Minimální YAML parser — tuned na výstup UXLog yaml.js
+    // Podporuje: mapping, arrays, skaláry, double-quoted strings s \n/\"
+    // -----------------------------------------------------------------------
+    function parseYaml(text) {
+      const lines = text.split('\n');
+      let pos = 0;
+
+      function skipBlank() {
+        while (pos < lines.length && /^\s*$/.test(lines[pos])) pos++;
+      }
+
+      function countIndent(s) {
+        let n = 0; while (n < s.length && s[n] === ' ') n++; return n;
+      }
+
+      function parseScalar(s) {
+        s = s.trim();
+        if (s === 'null' || s === '~') return null;
+        if (s === 'true')  return true;
+        if (s === 'false') return false;
+        if (s === "''")    return '';
+        if (s === '[]')    return [];
+        if (s === '{}')    return {};
+        // Double-quoted string — UXLog používá JSON-kompatibilní escaping
+        if (s.startsWith('"') && s.endsWith('"')) {
+          try { return JSON.parse(s); } catch (e) { return s.slice(1, -1); }
+        }
+        return s;
+      }
+
+      // mapping: klíče na stejné nebo hlubší úrovni než baseIndent
+      function parseMapping(baseIndent) {
+        const obj = {};
+        while (pos < lines.length) {
+          skipBlank();
+          if (pos >= lines.length) break;
+          const line    = lines[pos];
+          const ind     = countIndent(line);
+          if (ind < baseIndent) break;
+          const trimmed = line.trim();
+          const m       = trimmed.match(/^([^:]+?):\s*(.*)/);
+          if (!m) { pos++; continue; }
+          const key  = m[1];
+          const rest = m[2];
+          pos++;
+          if (rest === '') {
+            skipBlank();
+            if (pos < lines.length) {
+              const nt = lines[pos].trim();
+              obj[key] = (nt.startsWith('- ') || nt === '-')
+                ? parseArray(ind + 2)
+                : parseMapping(ind + 2);
+            } else {
+              obj[key] = null;
+            }
+          } else {
+            obj[key] = parseScalar(rest);
+          }
+        }
+        return obj;
+      }
+
+      // array: položky začínající '- ' na úrovni baseIndent
+      function parseArray(baseIndent) {
+        const arr = [];
+        while (pos < lines.length) {
+          skipBlank();
+          if (pos >= lines.length) break;
+          const line    = lines[pos];
+          const ind     = countIndent(line);
+          if (ind < baseIndent) break;
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('- ') && trimmed !== '-') break;
+          pos++;
+
+          if (trimmed === '-') {
+            skipBlank();
+            arr.push(parseBlock(ind + 2));
+            continue;
+          }
+
+          const content = trimmed.slice(2);   // text za '- '
+          const ci      = content.indexOf(': ');
+
+          if (ci !== -1) {
+            // Objekt — první klíč je inline
+            const k   = content.slice(0, ci);
+            const v   = content.slice(ci + 2);
+            const obj = {};
+            obj[k] = v === '' ? (skipBlank(), parseBlock(ind + 2)) : parseScalar(v);
+            parseObjCont(obj, ind + 2);
+            arr.push(obj);
+          } else if (content.endsWith(':')) {
+            // Objekt — první klíč bez hodnoty
+            const obj = {};
+            const k   = content.slice(0, -1);
+            skipBlank();
+            obj[k] = parseBlock(ind + 2);
+            parseObjCont(obj, ind + 2);
+            arr.push(obj);
+          } else {
+            // Skalární položka (např. UUID v scenarioIds)
+            arr.push(parseScalar(content));
+          }
+        }
+        return arr;
+      }
+
+      // čtení dalších klíčů objektu v poli (po první inline dvojici)
+      function parseObjCont(obj, baseIndent) {
+        while (pos < lines.length) {
+          skipBlank();
+          if (pos >= lines.length) break;
+          const line    = lines[pos];
+          const ind     = countIndent(line);
+          if (ind < baseIndent) break;
+          const trimmed = line.trim();
+          if (trimmed.startsWith('- ')) break;  // nová položka pole
+          const ci = trimmed.indexOf(': ');
+          if (ci !== -1) {
+            const k = trimmed.slice(0, ci);
+            const v = trimmed.slice(ci + 2);
+            pos++;
+            obj[k] = v === '' ? (skipBlank(), parseBlock(ind + 2)) : parseScalar(v);
+          } else if (trimmed.endsWith(':')) {
+            const k = trimmed.slice(0, -1);
+            pos++;
+            skipBlank();
+            obj[k] = parseBlock(ind + 2);
+          } else {
+            pos++;
+          }
+        }
+      }
+
+      function parseBlock(baseIndent) {
+        skipBlank();
+        if (pos >= lines.length) return null;
+        const t = lines[pos].trim();
+        return (t.startsWith('- ') || t === '-')
+          ? parseArray(baseIndent)
+          : parseMapping(baseIndent);
+      }
+
+      return parseMapping(0);
+    }
+
+    // -----------------------------------------------------------------------
+
+    let parsedData     = null;
+    let selectedPersonas = [];
+
+    const jsonTA       = document.getElementById('json');
+    const projectSel   = document.getElementById('project');
+    const projectField = document.getElementById('projectField');
+    const previewEl    = document.getElementById('preview');
+    const btn          = document.getElementById('btn');
+    const statusEl     = document.getElementById('status');
+
+    // -----------------------------------------------------------------------
+
+    function setStatus(msg, type = 'info') {
+      statusEl.textContent = msg;
+      statusEl.className   = `status status-${type}`;
+    }
+
+    function resetUI() {
+      parsedData       = null;
+      selectedPersonas = [];
+      projectField.style.display = 'none';
+      previewEl.style.display    = 'none';
+      previewEl.innerHTML        = '';
+      btn.disabled               = true;
+      btn.textContent            = 'Generovat persony';
+    }
+
+    // -----------------------------------------------------------------------
+    // Parsování JSON
+    // -----------------------------------------------------------------------
+
+    function parseJSON() {
+      const raw = jsonTA.value.trim();
+      if (!raw) { resetUI(); setStatus('Vložte YAML exportovaný z UXLog.', 'info'); return; }
+
+      let data;
+      try {
+        data = parseYaml(raw);
+      } catch (e) {
+        resetUI(); setStatus('Neplatný YAML: ' + e.message, 'err'); return;
+      }
+
+      if (!data || !Array.isArray(data.personas)) {
+        resetUI(); setStatus('YAML neobsahuje pole „personas".', 'err'); return;
+      }
+
+      parsedData = data;
+      populateProjects();
+    }
+
+    // -----------------------------------------------------------------------
+    // Naplnění selectu projektů
+    // -----------------------------------------------------------------------
+
+    function populateProjects() {
+      const projects  = parsedData.projects || [];
+      const personas  = parsedData.personas;
+      const projectIds = [...new Set(personas.map(p => p.projectId).filter(Boolean))];
+
+      if (projectIds.length === 0) {
+        resetUI(); setStatus('Žádné persony v exportu nenalezeny.', 'err'); return;
+      }
+
+      projectSel.innerHTML = '';
+
+      if (projectIds.length > 1) {
+        const allOpt = document.createElement('option');
+        allOpt.value       = '__all__';
+        allOpt.textContent = 'Všechny projekty';
+        projectSel.appendChild(allOpt);
+      }
+
+      for (const pid of projectIds) {
+        const proj = projects.find(p => p.id === pid);
+        const opt  = document.createElement('option');
+        opt.value       = pid;
+        opt.textContent = proj ? proj.name : `Projekt ${pid.slice(0, 8)}…`;
+        projectSel.appendChild(opt);
+      }
+
+      projectField.style.display = projectIds.length > 1 ? 'block' : 'none';
+      updatePreview();
+    }
+
+    // -----------------------------------------------------------------------
+    // Aktualizace náhledu
+    // -----------------------------------------------------------------------
+
+    function updatePreview() {
+      if (!parsedData) return;
+
+      const pid = projectSel.value;
+      const personas = parsedData.personas.filter(p =>
+        pid === '__all__' || p.projectId === pid
+      );
+
+      selectedPersonas = personas;
+
+      if (personas.length === 0) {
+        previewEl.style.display = 'none';
+        btn.disabled = true;
+        setStatus('Pro zvolený projekt nejsou žádné persony.', 'err');
+        return;
+      }
+
+      btn.disabled = false;
+      setStatus('', 'info');
+
+      // Řídká čeština pro koncovky
+      const cnt = personas.length;
+      const suffix = cnt === 1 ? 'u' : cnt < 5 ? 'y' : '';
+      btn.textContent = `Generovat ${cnt} person${suffix}`;
+
+      // Náhled — max 6 položek
+      const shown = personas.slice(0, 6);
+      const rows  = shown.map(p => {
+        const badgeCls  = p.status === 'persona' ? 'badge-persona' : 'badge-protopersona';
+        const badgeText = p.status === 'persona' ? 'Persona' : 'Protopersona';
+        return `
+          <div class="preview-item">
+            <span class="preview-code">${escHtml(p.code || '—')}</span>
+            <span class="preview-name">${escHtml(p.name || 'Bez jména')}</span>
+            <span class="badge ${badgeCls}">${badgeText}</span>
+          </div>`;
+      }).join('');
+
+      const more = personas.length > 6
+        ? `<div class="preview-more">+ ${personas.length - 6} dalších…</div>`
+        : '';
+
+      previewEl.innerHTML        = rows + more;
+      previewEl.style.display    = 'block';
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // -----------------------------------------------------------------------
+    // Odeslání do Figmy
+    // -----------------------------------------------------------------------
+
+    btn.addEventListener('click', () => {
+      if (!selectedPersonas.length) return;
+
+      const pid      = projectSel.value;
+      const projects = parsedData.projects || [];
+      const proj     = pid === '__all__' ? null : projects.find(p => p.id === pid);
+      const projectName = proj ? proj.name : (projects[0] ? projects[0].name : '');
+
+      btn.disabled    = true;
+      setStatus('Generuji karty person ve Figmě…', 'info');
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate',
+          personas: selectedPersonas,
+          projectName,
+        }
+      }, '*');
+    });
+
+    // -----------------------------------------------------------------------
+    // Odpovědi z Figmy
+    // -----------------------------------------------------------------------
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'success') {
+        btn.disabled = false;
+        const cnt = msg.count;
+        const suffix = cnt === 1 ? 'a' : cnt < 5 ? 'y' : '';
+        setStatus(`✓ Vytvořen${suffix} ${cnt} kart${cnt === 1 ? 'a' : cnt < 5 ? 'y' : ''} person.`, 'ok');
+      } else if (msg.type === 'error') {
+        btn.disabled = false;
+        setStatus('Chyba: ' + msg.message, 'err');
+      }
+    };
+
+    // -----------------------------------------------------------------------
+    // Spuštění
+    // -----------------------------------------------------------------------
+
+    jsonTA.addEventListener('input', parseJSON);
+    projectSel.addEventListener('change', updatePreview);
+  </script>
+
+</body>
+</html>
