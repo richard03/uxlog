@@ -130,9 +130,10 @@ function fl(parent, child, h, v, grow) {
 // Rozměry
 // ---------------------------------------------------------------------------
 
-const CARD_W    = 800;  // šířka karty = 2 × BLOCK_W
-const BLOCK_W   = 400;  // šířka jednoho bloku (= CARD_W / 2)
-const BLOCK_H   = 400;  // výška jednoho bloku
+const CARD_W    = 1200;  // šířka karty = 2 × BLOCK_W
+const CARD_H    = 1600;  // výška karty (pevná)
+const BLOCK_W   = 600;  // šířka jednoho bloku (= CARD_W / 2)
+const BLOCK_H   = 600;  // výška jednoho bloku (výchozí, přepíše FILL)
 const PHOTO_SZ  = 300;  // foto 300 × 300
 const PAD       = 28;   // vnitřní odsazení top sekce
 
@@ -177,9 +178,9 @@ function buildCard(persona) {
   const card = figma.createFrame();
   card.name                  = [persona.code, persona.name].filter(Boolean).join(' — ') || 'Persona';
   card.layoutMode            = 'VERTICAL';
-  card.primaryAxisSizingMode = 'AUTO';
+  card.primaryAxisSizingMode = 'FIXED';
   card.counterAxisSizingMode = 'FIXED';
-  card.resize(CARD_W, 100);
+  card.resize(CARD_W, CARD_H);
   card.itemSpacing           = 0;
   card.fills                 = [solid(C.white)];
   card.cornerRadius          = 16;
@@ -207,7 +208,7 @@ function buildCard(persona) {
   fl(card, buildDivider(), 'FILL', 'FIXED');
 
   // 2×2 mřížka barevných bloků
-  fl(card, buildBlockGrid(persona, accent), 'FILL', 'HUG');
+  fl(card, buildBlockGrid(persona, accent), 'FILL', 'FILL', 1);
 
   return card;
 }
@@ -386,7 +387,7 @@ function buildBlockGrid(persona, accent) {
   const grid = figma.createFrame();
   grid.name                  = 'Bloky';
   grid.layoutMode            = 'VERTICAL';
-  grid.primaryAxisSizingMode = 'AUTO';
+  grid.primaryAxisSizingMode = 'FIXED';
   grid.counterAxisSizingMode = 'FIXED';  // šířka = FILL z karty
   grid.itemSpacing           = 0;
   grid.fills                 = [];
@@ -396,11 +397,10 @@ function buildBlockGrid(persona, accent) {
     rowFrame.name                  = `Řada ${row + 1}`;
     rowFrame.layoutMode            = 'HORIZONTAL';
     rowFrame.primaryAxisSizingMode = 'FIXED';   // šířka = FILL z gridu
-    rowFrame.counterAxisSizingMode = 'FIXED';   // výška fixní = BLOCK_H
-    rowFrame.resize(CARD_W, BLOCK_H);
+    rowFrame.counterAxisSizingMode = 'FIXED';   // výška = FILL z gridu
     rowFrame.itemSpacing           = 0;
     rowFrame.fills                 = [];
-    fl(grid, rowFrame, 'FILL', 'FIXED');
+    fl(grid, rowFrame, 'FILL', 'FILL', 1);
 
     for (let col = 0; col < 2; col++) {
       const s = sections[row * 2 + col];
