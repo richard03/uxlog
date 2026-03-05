@@ -16,6 +16,7 @@ import {
   createScenario,
   createRequirement,
   createActivity,
+  createTeamMember,
 } from './models.js'
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
@@ -405,6 +406,41 @@ export function deleteActivity(id) {
   persist()
 }
 
+// --- Team Members ---
+
+export function getTeamMembers(projectId) {
+  return (getData().teamMembers || []).filter((m) => m.projectId === projectId)
+}
+
+export function getTeamMember(id) {
+  return getData().teamMembers?.find((m) => m.id === id) ?? null
+}
+
+export function addTeamMember(projectId, overrides = {}) {
+  const m = createTeamMember(projectId, overrides)
+  state.teamMembers = state.teamMembers || []
+  state.teamMembers.push(m)
+  updateProject(projectId, {})
+  persist()
+  return m
+}
+
+export function updateTeamMember(id, updates) {
+  const idx = state.teamMembers?.findIndex((m) => m.id === id)
+  if (idx === -1) return null
+  state.teamMembers[idx] = { ...state.teamMembers[idx], ...updates }
+  if (state.teamMembers[idx].projectId) updateProject(state.teamMembers[idx].projectId, {})
+  persist()
+  return state.teamMembers[idx]
+}
+
+export function deleteTeamMember(id) {
+  const member = state.teamMembers?.find((m) => m.id === id)
+  state.teamMembers = (state.teamMembers || []).filter((m) => m.id !== id)
+  if (member?.projectId) updateProject(member.projectId, {})
+  persist()
+}
+
 // --- Relations (bez kaskádového mazání) ---
 
 export function linkStakeholderRequirement(stakeholderId, requirementId) {
@@ -603,5 +639,6 @@ export function exportProjectData(projectId) {
     scenarios: (data.scenarios || []).filter((s) => s.projectId === projectId),
     requirements: (data.requirements || []).filter((r) => r.projectId === projectId),
     activities: (data.activities || []).filter((a) => a.projectId === projectId),
+    teamMembers: (data.teamMembers || []).filter((m) => m.projectId === projectId),
   })
 }

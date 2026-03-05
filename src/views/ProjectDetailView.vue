@@ -243,6 +243,7 @@ const sections = computed(() => {
   const pid = projectId.value
   return [
     { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
+    { id: 'team', route: 'team', count: store.getTeamMembers(pid).length },
     { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
     { id: 'competition', route: 'competition', count: store.getCompetitions(pid).length },
     { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },

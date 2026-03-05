@@ -30,6 +30,18 @@ const routes = [
     meta: { title: 'Cíl' },
   },
   {
+    path: '/project/:id/team',
+    name: 'team',
+    component: () => import('../views/TeamView.vue'),
+    meta: { title: 'Tým' },
+  },
+  {
+    path: '/project/:id/team/:memberId',
+    name: 'teamMemberDetail',
+    component: () => import('../views/TeamMemberDetailView.vue'),
+    meta: { title: 'Člen týmu' },
+  },
+  {
     path: '/project/:id/stakeholders',
     name: 'stakeholders',
     component: () => import('../views/StakeholdersView.vue'),

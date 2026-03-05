@@ -98,6 +98,14 @@
               :projectId="(r) => r.projectId"
               @close="showSearch = false"
             />
+            <SearchResultsSection
+              v-if="results.teamMemberIds?.length"
+              :title="t.teamMember.label"
+              :items="teamMemberItems"
+              section="team"
+              :projectId="(m) => m.projectId"
+              @close="showSearch = false"
+            />
           </div>
         </div>
       </div>
@@ -127,7 +135,7 @@ const hasResults = computed(() => {
   const r = results.value
   return r.projectIds.length || r.goalIds.length || r.stakeholderIds.length ||
     r.competitionIds.length || r.hypothesisIds.length || r.personaIds.length ||
-    r.scenarioIds.length || r.requirementIds.length
+    r.scenarioIds.length || r.requirementIds.length || r.teamMemberIds?.length
 })
 
 const projectItems = computed(() =>
@@ -153,6 +161,9 @@ const scenarioItems = computed(() =>
 )
 const requirementItems = computed(() =>
   (results.value?.requirementIds || []).map((id) => store.getRequirement(id)).filter(Boolean)
+)
+const teamMemberItems = computed(() =>
+  (results.value?.teamMemberIds || []).map((id) => store.getTeamMember(id)).filter(Boolean)
 )
 
 let debounceTimer

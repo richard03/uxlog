@@ -139,6 +139,7 @@ export function createPersona(projectId, overrides = {}) {
     needs: '',
     problems: '',
     context: '',
+    recruitmentCriteria: '',
     targetGroupSize: '',
     targetGroupValue: '',
     scenarioIds: [],
@@ -191,6 +192,25 @@ export function createActivity(projectId, overrides = {}) {
     status: 'pending',
     dismissed: false,
     sortOrder: 9999,
+    ...overrides,
+  }
+}
+
+/**
+ * Vytvoří nového člena týmu.
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createTeamMember(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    name: '',
+    role: '',
+    email: '',
+    phone: '',
+    note: '',
     ...overrides,
   }
 }

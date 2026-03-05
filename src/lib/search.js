@@ -47,10 +47,11 @@ const SEARCH_FIELDS = {
   stakeholder: ['name', 'description', 'influenceLevel', 'interestLevel'],
   competition: ['name', 'description', 'strengths', 'weaknesses', 'inspiration'],
   hypothesis: ['code', 'name', 'description', 'explanation'],
-  persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'],
+  persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue'],
   scenario: ['code', 'name', 'type', 'description', 'frequency', 'value'],
   requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation'],
   activity: ['name', 'description'],
+  teamMember: ['name', 'role', 'email', 'phone', 'note'],
 }
 
 /**
@@ -72,6 +73,7 @@ export function searchAll(data, query, projectId) {
     scenarioIds: [],
     requirementIds: [],
     activityIds: [],
+    teamMemberIds: [],
   }
 
   const filterByProject = (entity) => !projectId || entity.projectId === projectId
@@ -119,6 +121,11 @@ export function searchAll(data, query, projectId) {
   if (data.activities) {
     result.activityIds = data.activities
       .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.activity, q))
+      .map((e) => e.id)
+  }
+  if (data.teamMembers) {
+    result.teamMemberIds = data.teamMembers
+      .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.teamMember, q))
       .map((e) => e.id)
   }
 

@@ -98,6 +98,7 @@ const allFields = [
   { key: 'needs', label: t.persona.needs, type: 'textarea' },
   { key: 'problems', label: t.persona.problems, type: 'textarea' },
   { key: 'context', label: t.persona.context, type: 'textarea' },
+  { key: 'recruitmentCriteria', label: t.persona.recruitmentCriteria, type: 'textarea' },
   { key: 'targetGroupSize', label: t.persona.targetGroupSize, type: 'text' },
   { key: 'targetGroupValue', label: t.persona.targetGroupValue, type: 'text' },
 ]
