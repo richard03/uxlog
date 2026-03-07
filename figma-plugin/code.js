@@ -5,11 +5,113 @@
  *   persona, hypothesis, scenario, stakeholder, goal, competition, requirement
  */
 
-figma.showUI(__html__, { width: 440, height: 660, title: 'UXLog' });
+// ---------------------------------------------------------------------------
+// Textové konstanty
+// ---------------------------------------------------------------------------
+
+/** Název pluginu v UI */
+const TITLE_PLUGIN = 'UXLog';
+
+/** Názvy typů entit */
+const TYPE_HYPOTHESIS = 'HYPOTÉZA';
+const TYPE_SCENARIO = 'SCÉNÁŘ';
+const TYPE_STAKEHOLDER = 'STAKEHOLDER';
+const TYPE_GOAL = 'CÍL';
+const TYPE_COMPETITION = 'KONKURENT';
+const TYPE_REQUIREMENT = 'POŽADAVEK';
+const TYPE_PERSONA = 'PERSONA';
+const TYPE_PROTOPERSONA = 'PROTOPERSONA';
+
+/** Názvy bloků karet */
+const BLOCK_POPIS = 'POPIS';
+const BLOCK_VYSLEDEK = 'VÝSLEDEK';
+const BLOCK_METRIKY = 'METRIKY';
+const BLOCK_MOTIVACE = 'MOTIVACE';
+const BLOCK_POTREBY = 'POTŘEBY';
+const BLOCK_PROBLEMY = 'PROBLÉMY';
+const BLOCK_PROCNE = 'PROČ NE';
+const BLOCK_SILNE_STRANKY = 'SILNÉ STRÁNKY';
+const BLOCK_SLABE_STRANKY = 'SLABÉ STRÁNKY';
+const BLOCK_INSPIRACE = 'INSPIRACE';
+
+/** Placeholder texty (hinty) pro bloky */
+const HINT_HYPOTHESIS_DESC = 'Popište hypotézu…';
+const HINT_HYPOTHESIS_EXPL = 'Výsledek testování nebo vyvrácení…';
+const HINT_SCENARIO = 'Popište scénář…';
+const HINT_STAKEHOLDER = 'Popište stakeholdera…';
+const HINT_GOAL_DESC = 'Popište cíl…';
+const HINT_GOAL_METRICS = 'Jak poznáme, že jsme cíle dosáhli?';
+const HINT_COMPETITION_DESC = 'Popište konkurenta…';
+const HINT_COMPETITION_STRENGTHS = 'Co dělají dobře?';
+const HINT_COMPETITION_WEAKNESSES = 'Co dělají špatně?';
+const HINT_COMPETITION_INSPIRATION = 'Co si od nich vzít?';
+const HINT_REQUIREMENT_DESC = 'Popište požadavek…';
+const HINT_REQUIREMENT_MOTIVATION = 'Co se stane, pokud požadavek nesplníme?';
+const HINT_REQUIREMENT_WONT = 'Proč tento požadavek nebudeme implementovat?';
+const HINT_PERSONA_DESC = 'Popište personu…';
+const HINT_PERSONA_MOTIVATION = 'Co personu motivuje?';
+const HINT_PERSONA_NEEDS = 'Potřeby a očekávání…';
+const HINT_PERSONA_PROBLEMS = 'Problémy a frustrující věci…';
+
+/** Texty pro badges (statusy) */
+const BADGE_UNTESTED = 'Neověřená';
+const BADGE_TESTED = 'Ověřená';
+const BADGE_REFUTED = 'Vyvrácená';
+const BADGE_MAIN = 'Hlavní';
+const BADGE_ALTERNATIVE = 'Alternativní';
+const BADGE_MUST_HAVE = 'Must have';
+const BADGE_SHOULD_HAVE = 'Should have';
+const BADGE_COULD_HAVE = 'Could have';
+const BADGE_WONT_HAVE = "Won't have";
+const BADGE_INFLUENCE_HIGH = 'Vliv: Vysoký';
+const BADGE_INFLUENCE_MEDIUM = 'Vliv: Střední';
+const BADGE_INFLUENCE_LOW = 'Vliv: Nízký';
+const BADGE_INTEREST_HIGH = 'Zájem: Vysoký';
+const BADGE_INTEREST_MEDIUM = 'Zájem: Střední';
+const BADGE_INTEREST_LOW = 'Zájem: Nízký';
+const BADGE_PROTOPERSONA = 'Protopersona';
+const BADGE_PERSONA = 'Persona';
+
+/** Popisky statistik */
+const STAT_FREKVENCE = 'Frekvence';
+const STAT_HODNOTA = 'Hodnota';
+const STAT_UZIVATELU = 'Uživatelů';
+const STAT_VELIKOST = 'Velikost';
+const STAT_CILOVA_SKUPINA = 'CÍLOVÁ SKUPINA';
+
+/** Výchozí hodnoty při prázdných datech */
+const FALLBACK_NO_NAME = 'Bez jména';
+const FALLBACK_NO_TITLE = 'Bez názvu';
+const FALLBACK_EMPTY = '—';
+const FALLBACK_PERSONA = 'Persona';
+
+/** Názvy uzlů Figma (pro findChild / findDescendant) */
+const NODE_HORNI_SEKCE = 'Horní sekce';
+const NODE_INFO = 'Info';
+const NODE_META = 'Meta';
+const NODE_HODNOTY = 'Hodnoty';
+const NODE_BLOKY = 'Bloky';
+const NODE_RADA_1 = 'Řada 1';
+const NODE_RADA_2 = 'Řada 2';
+const NODE_TEXT = 'Text';
+const NODE_ODDELOVAC = 'Oddělovač';
+const NODE_HEADER = 'Hlavička';
+const NODE_NAZEV = 'Název';
+const NODE_STATISTIKY = 'Statistiky';
+const NODE_ACCENT_BAR = 'AccentBar';
+const NODE_FOTO = 'Foto';
+const NODE_SPACER = 'Spacer';
+const NODE_BADGE = 'Badge';
+
+/** Chybové zprávy */
+const ERR_FONT_LOAD = 'Nepodařilo se načíst žádný font. Ujistěte se, že máte v dokumentu dostupný font Inter, Roboto nebo Open Sans.';
+const ERR_UNKNOWN_ENTITY = 'Neznámý typ entity: ';
 
 // ---------------------------------------------------------------------------
 // Definice barev pro Figma objekty
 // ---------------------------------------------------------------------------
+
+figma.showUI(__html__, { width: 440, height: 660, title: TITLE_PLUGIN });
 const COLOR_BLACK = '#1E293B';
 const COLOR_GREY = '#94A3B8';
 const COLOR_RED = '#EF4444';
@@ -158,104 +260,104 @@ const DROP_SHADOW = {
 const ENTITY_CONFIGS = {
   hypothesis: {
     yamlKey:     'hypotheses',
-    typeName:    'HYPOTÉZA',
+    typeName:    TYPE_HYPOTHESIS,
     accentHex:   COLOR_ACCENT_HYPOTHESIS,
     headerBgHex: COLOR_HEADER_HYPOTHESIS,
     cardW: 1000, cardH: 700,
     blockLayout: '2col',
     blocks: [
-      { name: 'POPIS',    field: 'description', hint: 'Popište hypotézu…', colorHex: COLOR_BLOCK_HYPOTHESIS_DESCRIPTION },
-      { name: 'VÝSLEDEK', field: 'explanation',  hint: 'Výsledek testování nebo vyvrácení…', colorHex: COLOR_BLOCK_HYPOTHESIS_EXPLANATION },
+      { name: BLOCK_POPIS,    field: 'description', hint: HINT_HYPOTHESIS_DESC, colorHex: COLOR_BLOCK_HYPOTHESIS_DESCRIPTION },
+      { name: BLOCK_VYSLEDEK, field: 'explanation',  hint: HINT_HYPOTHESIS_EXPL, colorHex: COLOR_BLOCK_HYPOTHESIS_EXPLANATION },
     ],
     badges: [
       {
         field: 'status',
-        map:      { untested: 'Neověřená', tested: 'Ověřená', refuted: 'Vyvrácená' },
+        map:      { untested: BADGE_UNTESTED, tested: BADGE_TESTED, refuted: BADGE_REFUTED },
         colorMap: { untested: COLOR_BADGE_UNTESTED, tested: COLOR_BADGE_TESTED, refuted: COLOR_BADGE_REFUTED },
       },
     ],
   },
   scenario: {
     yamlKey:     'scenarios',
-    typeName:    'SCÉNÁŘ',
+    typeName:    TYPE_SCENARIO,
     accentHex:   COLOR_ACCENT_SCENARIO,
     headerBgHex: COLOR_HEADER_SCENARIO,
     cardW: 1000, cardH: 780,
     blockLayout: '1col',
     blocks: [
-      { name: 'POPIS', field: 'description', hint: 'Popište scénář…', colorHex: COLOR_BLOCK_SCENARIO_DESCRIPTION },
+      { name: BLOCK_POPIS, field: 'description', hint: HINT_SCENARIO, colorHex: COLOR_BLOCK_SCENARIO_DESCRIPTION },
     ],
     badges: [
       { field: 'type',
-        map: { main: 'Hlavní', alternative: 'Alternativní' } },
+        map: { main: BADGE_MAIN, alternative: BADGE_ALTERNATIVE } },
       { field: 'priority',
-        map:      { must: 'Must have', should: 'Should have', could: 'Could have', wont: "Won't have" },
+        map:      { must: BADGE_MUST_HAVE, should: BADGE_SHOULD_HAVE, could: BADGE_COULD_HAVE, wont: BADGE_WONT_HAVE },
         colorMap: { must: COLOR_BADGE_MUST, should: COLOR_BADGE_SHOULD, could: COLOR_BADGE_COULD, wont: COLOR_BADGE_WONT } },
     ],
     stats: [
-      { label: 'Frekvence', fieldA: 'frequencyValue', fieldB: 'frequencyUnit' },
-      { label: 'Hodnota',   fieldA: 'valueAmount',    fieldB: 'valueUnit'     },
-      { label: 'Uživatelů', fieldA: 'userCount',      fieldB: 'userCountUnit' },
+      { label: STAT_FREKVENCE, fieldA: 'frequencyValue', fieldB: 'frequencyUnit' },
+      { label: STAT_HODNOTA,   fieldA: 'valueAmount',    fieldB: 'valueUnit'     },
+      { label: STAT_UZIVATELU, fieldA: 'userCount',      fieldB: 'userCountUnit' },
     ],
   },
   stakeholder: {
     yamlKey:     'stakeholders',
-    typeName:    'STAKEHOLDER',
+    typeName:    TYPE_STAKEHOLDER,
     accentHex:   COLOR_ACCENT_STAKEHOLDER,
     headerBgHex: COLOR_HEADER_STAKEHOLDER,
     cardW: 1000, cardH: 600,
     blockLayout: '1col',
     blocks: [
-      { name: 'POPIS', field: 'description', hint: 'Popište stakeholdera…', colorHex: COLOR_BLOCK_STAKEHOLDER_DESCRIPTION },
+      { name: BLOCK_POPIS, field: 'description', hint: HINT_STAKEHOLDER, colorHex: COLOR_BLOCK_STAKEHOLDER_DESCRIPTION },
     ],
     badges: [
       { field: 'influenceLevel',
-        map: { high: 'Vliv: Vysoký', medium: 'Vliv: Střední', low: 'Vliv: Nízký' } },
+        map: { high: BADGE_INFLUENCE_HIGH, medium: BADGE_INFLUENCE_MEDIUM, low: BADGE_INFLUENCE_LOW } },
       { field: 'interestLevel',
-        map: { high: 'Zájem: Vysoký', medium: 'Zájem: Střední', low: 'Zájem: Nízký' } },
+        map: { high: BADGE_INTEREST_HIGH, medium: BADGE_INTEREST_MEDIUM, low: BADGE_INTEREST_LOW } },
     ],
   },
   goal: {
     yamlKey:     'goals',
-    typeName:    'CÍL',
+    typeName:    TYPE_GOAL,
     accentHex:   COLOR_ACCENT_GOAL,
     headerBgHex: COLOR_HEADER_GOAL,
     cardW: 1000, cardH: 650,
     blockLayout: '2col',
     blocks: [
-      { name: 'POPIS',   field: 'description', hint: 'Popište cíl…', colorHex: COLOR_BLOCK_GOAL_DESCRIPTION },
-      { name: 'METRIKY', field: 'metrics',      hint: 'Jak poznáme, že jsme cíle dosáhli?', colorHex: COLOR_BLOCK_GOAL_METRICS },
+      { name: BLOCK_POPIS,   field: 'description', hint: HINT_GOAL_DESC, colorHex: COLOR_BLOCK_GOAL_DESCRIPTION },
+      { name: BLOCK_METRIKY, field: 'metrics',      hint: HINT_GOAL_METRICS, colorHex: COLOR_BLOCK_GOAL_METRICS },
     ],
   },
   competition: {
     yamlKey:     'competitions',
-    typeName:    'KONKURENT',
+    typeName:    TYPE_COMPETITION,
     accentHex:   COLOR_ACCENT_COMPETITION,
     headerBgHex: COLOR_HEADER_COMPETITION,
     cardW: 1200, cardH: 860,
     blockLayout: '1+3',
     blocks: [
-      { name: 'POPIS',         field: 'description', hint: 'Popište konkurenta…', colorHex: COLOR_BLOCK_COMPETITION_DESCRIPTION },
-      { name: 'SILNÉ STRÁNKY', field: 'strengths',   hint: 'Co dělají dobře?', colorHex: COLOR_BLOCK_COMPETITION_STRENGTHS },
-      { name: 'SLABÉ STRÁNKY', field: 'weaknesses',  hint: 'Co dělají špatně?', colorHex: COLOR_BLOCK_COMPETITION_WEAKNESSES },
-      { name: 'INSPIRACE',     field: 'inspiration', hint: 'Co si od nich vzít?', colorHex: COLOR_BLOCK_COMPETITION_INSPIRATION },
+      { name: BLOCK_POPIS,         field: 'description', hint: HINT_COMPETITION_DESC, colorHex: COLOR_BLOCK_COMPETITION_DESCRIPTION },
+      { name: BLOCK_SILNE_STRANKY, field: 'strengths',   hint: HINT_COMPETITION_STRENGTHS, colorHex: COLOR_BLOCK_COMPETITION_STRENGTHS },
+      { name: BLOCK_SLABE_STRANKY, field: 'weaknesses',  hint: HINT_COMPETITION_WEAKNESSES, colorHex: COLOR_BLOCK_COMPETITION_WEAKNESSES },
+      { name: BLOCK_INSPIRACE,     field: 'inspiration', hint: HINT_COMPETITION_INSPIRATION, colorHex: COLOR_BLOCK_COMPETITION_INSPIRATION },
     ],
   },
   requirement: {
     yamlKey:     'requirements',
-    typeName:    'POŽADAVEK',
+    typeName:    TYPE_REQUIREMENT,
     accentHex:   COLOR_ACCENT_REQUIREMENT,
     headerBgHex: COLOR_HEADER_REQUIREMENT,
     cardW: 1000, cardH: 700,
     blockLayout: '3col',
     blocks: [
-      { name: 'POPIS',    field: 'description',         hint: 'Popište požadavek…', colorHex: COLOR_BLOCK_REQUIREMENT_DESCRIPTION },
-      { name: 'MOTIVACE', field: 'motivation',           hint: 'Co se stane, pokud požadavek nesplníme?', colorHex: COLOR_BLOCK_REQUIREMENT_MOTIVATION },
-      { name: 'PROČ NE',  field: 'wontHaveExplanation', hint: 'Proč tento požadavek nebudeme implementovat?', colorHex: COLOR_BLOCK_REQUIREMENT_WONT_HAVE },
+      { name: BLOCK_POPIS,    field: 'description',         hint: HINT_REQUIREMENT_DESC, colorHex: COLOR_BLOCK_REQUIREMENT_DESCRIPTION },
+      { name: BLOCK_MOTIVACE, field: 'motivation',           hint: HINT_REQUIREMENT_MOTIVATION, colorHex: COLOR_BLOCK_REQUIREMENT_MOTIVATION },
+      { name: BLOCK_PROCNE,  field: 'wontHaveExplanation', hint: HINT_REQUIREMENT_WONT, colorHex: COLOR_BLOCK_REQUIREMENT_WONT_HAVE },
     ],
     badges: [
       { field: 'priority',
-        map:      { must: 'Must have', should: 'Should have', could: 'Could have', wont: "Won't have" },
+        map:      { must: BADGE_MUST_HAVE, should: BADGE_SHOULD_HAVE, could: BADGE_COULD_HAVE, wont: BADGE_WONT_HAVE },
         colorMap: { must: COLOR_BADGE_MUST, should: COLOR_BADGE_SHOULD, could: COLOR_BADGE_COULD, wont: COLOR_BADGE_WONT } },
     ],
   },
@@ -309,7 +411,7 @@ function extractGenericFromCard(card, entityType, base) {
   for (const { name, field } of (config.blocks || [])) {
     const block = findDescendant(card, n => n.name === name && n.type === 'FRAME');
     if (!block) continue;
-    const textNode = findDescendant(block, n => n.name === 'Text' && n.type === 'TEXT');
+    const textNode = findDescendant(block, n => n.name === NODE_TEXT && n.type === 'TEXT');
     if (!textNode) continue;
     const chars = textNode.characters || '';
     extracted[field] = HINTS.has(chars) ? '' : chars;
@@ -326,8 +428,8 @@ function extractPersonaFromCard(card) {
   } catch (_) {}
 
   const HINTS = new Set([
-    'Popište personu…', 'Co personu motivuje?',
-    'Potřeby a očekávání…', 'Problémy a frustrující věci…',
+    HINT_PERSONA_DESC, HINT_PERSONA_MOTIVATION,
+    HINT_PERSONA_NEEDS, HINT_PERSONA_PROBLEMS,
   ]);
 
   function readText(node) {
@@ -336,22 +438,22 @@ function extractPersonaFromCard(card) {
     return HINTS.has(chars) ? '' : chars;
   }
 
-  const topSection  = findChild(card, n => n.name === 'Horní sekce');
-  const infoCol     = findChild(topSection, n => n.name === 'Info');
-  const metaFrame   = findChild(infoCol, n => n.name === 'Meta');
-  const valuesFrame = findChild(infoCol, n => n.name === 'Hodnoty');
+  const topSection  = findChild(card, n => n.name === NODE_HORNI_SEKCE);
+  const infoCol     = findChild(topSection, n => n.name === NODE_INFO);
+  const metaFrame   = findChild(infoCol, n => n.name === NODE_META);
+  const valuesFrame = findChild(infoCol, n => n.name === NODE_HODNOTY);
 
   const nameNode = findChild(infoCol, n => n.type === 'TEXT');
   const rawName  = nameNode ? nameNode.characters : null;
-  const name     = (rawName !== null && rawName !== 'Bez jména') ? rawName : (base.name || '');
+  const name     = (rawName !== null && rawName !== FALLBACK_NO_NAME) ? rawName : (base.name || '');
 
   const codeNode = findChild(metaFrame, n => n.type === 'TEXT');
   const code     = codeNode !== null ? codeNode.characters : (base.code || '');
 
-  const badge     = findChild(metaFrame, n => n.name === 'Badge');
+  const badge     = findChild(metaFrame, n => n.name === NODE_BADGE);
   const badgeText = findChild(badge, n => n.type === 'TEXT');
   const status    = badgeText
-    ? (badgeText.characters === 'Protopersona' ? 'protopersona' : 'persona')
+    ? (badgeText.characters === BADGE_PROTOPERSONA ? 'protopersona' : 'persona')
     : (base.status || 'protopersona');
 
   function getStatValue(statName) {
@@ -359,27 +461,27 @@ function extractPersonaFromCard(card) {
     if (!statFrame) return null;
     const valNode = (statFrame.children || []).find(n => n.type === 'TEXT' && n.fontSize === 30);
     if (!valNode) return null;
-    return valNode.characters === '—' ? '' : valNode.characters;
+    return valNode.characters === FALLBACK_EMPTY ? '' : valNode.characters;
   }
 
-  const _tgs = getStatValue('Velikost'); const targetGroupSize  = _tgs !== null ? _tgs : (base.targetGroupSize  || '');
-  const _tgv = getStatValue('Hodnota');  const targetGroupValue = _tgv !== null ? _tgv : (base.targetGroupValue || '');
+  const _tgs = getStatValue(STAT_VELIKOST); const targetGroupSize  = _tgs !== null ? _tgs : (base.targetGroupSize  || '');
+  const _tgv = getStatValue(STAT_HODNOTA);  const targetGroupValue = _tgv !== null ? _tgv : (base.targetGroupValue || '');
 
-  const bloky = findChild(card, n => n.name === 'Bloky');
+  const bloky = findChild(card, n => n.name === NODE_BLOKY);
 
   function getBlockText(rowName, blockName) {
     const row   = findChild(bloky, n => n.name === rowName);
     const block = findChild(row,   n => n.name === blockName);
     if (!block) return null;
-    return readText(findChild(block, n => n.name === 'Text'));
+    return readText(findChild(block, n => n.name === NODE_TEXT));
   }
 
   return Object.assign({}, base, {
     name, code, status,
-    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText('Řada 1', 'POPIS')),
-    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText('Řada 1', 'MOTIVACE')),
-    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText('Řada 2', 'POTŘEBY')),
-    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText('Řada 2', 'PROBLÉMY')),
+    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText(NODE_RADA_1, BLOCK_POPIS)),
+    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText(NODE_RADA_1, BLOCK_MOTIVACE)),
+    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText(NODE_RADA_2, BLOCK_POTREBY)),
+    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText(NODE_RADA_2, BLOCK_PROBLEMY)),
     targetGroupSize,
     targetGroupValue,
   });
@@ -477,10 +579,7 @@ async function loadFonts() {
       return;
     } catch (_) {}
   }
-  throw new Error(
-    'Nepodařilo se načíst žádný font. ' +
-    'Ujistěte se, že máte v dokumentu dostupný font Inter, Roboto nebo Open Sans.'
-  );
+  throw new Error(ERR_FONT_LOAD);
 }
 
 // ---------------------------------------------------------------------------
@@ -526,7 +625,7 @@ const PAD      = 28;
 
 function buildDivider() {
   const div = figma.createRectangle();
-  div.name  = 'Oddělovač';
+  div.name  = NODE_ODDELOVAC;
   div.resize(1, 1);
   div.fills = [solid(C.border)];
   return div;
@@ -559,7 +658,7 @@ function buildStat(label, value, lightText) {
 
   const valT = figma.createText();
   valT.fontName   = { family: FONTS.family, style: FONTS.semibold };
-  valT.characters = String(value || '—');
+  valT.characters = String(value || FALLBACK_EMPTY);
   valT.fontSize   = 30;
   valT.fills      = [solid(valueColor)];
   stat.appendChild(valT);
@@ -592,7 +691,7 @@ function buildColorBlock(label, value, hint, bgColor) {
 
   const isEmpty = !value || !value.trim();
   const textNode = figma.createText();
-  textNode.name       = 'Text';
+  textNode.name       = NODE_TEXT;
   textNode.fontName   = { family: FONTS.family, style: FONTS.regular };
   textNode.characters = isEmpty ? hint : value.trim();
   textNode.fontSize   = 28;
@@ -606,14 +705,11 @@ function buildColorBlock(label, value, hint, bgColor) {
 /**
  * Badge s textem a barevným pozadím.
  * @param {string} label - Text badge
- * @param {object} accentColor - RGB barva (0–1)
- * @param {number} [bgOpacity] - Průhlednost pozadí
- * @param {boolean} [onDarkHeader=false] - Pokud true, bílý text na poloprůhledném bílém pozadí (pro tmavá záhlaví)
  */
-function buildBadge(label, accentColor, bgOpacity, onDarkHeader) {
-  const op = bgOpacity !== undefined ? bgOpacity : 0.14;
+function buildBadge(label) {
+  const opacity = 0.14;
   const badge = figma.createFrame();
-  badge.name                  = 'Badge';
+  badge.name                  = NODE_BADGE;
   badge.layoutMode            = 'HORIZONTAL';
   badge.primaryAxisSizingMode = 'AUTO';
   badge.counterAxisSizingMode = 'AUTO';
@@ -622,13 +718,13 @@ function buildBadge(label, accentColor, bgOpacity, onDarkHeader) {
   badge.paddingTop            = 3;
   badge.paddingBottom         = 3;
   badge.cornerRadius          = 20;
-  badge.fills                 = [solid(onDarkHeader ? C.white : accentColor, onDarkHeader ? 0.25 : op)];
+  badge.fills                 = [solid(C.white, opacity)];
 
   const text = figma.createText();
   text.fontName   = { family: FONTS.family, style: FONTS.medium };
   text.characters = label;
   text.fontSize   = 20;
-  text.fills     = [solid(onDarkHeader ? C.headerText : accentColor)];
+  text.fills     = [solid(C.headerText)];
   badge.appendChild(text);
 
   return badge;
@@ -648,7 +744,7 @@ function buildBadge(label, accentColor, bgOpacity, onDarkHeader) {
 function buildGenericHeader(entity, config, accent) {
   const headerBg = config.headerBgHex ? hex(config.headerBgHex) : hex(COLOR_HEADER_HYPOTHESIS);
   const header = figma.createFrame();
-  header.name                  = 'Hlavička';
+  header.name                  = NODE_HEADER;
   header.layoutMode            = 'VERTICAL';
   header.primaryAxisSizingMode = 'AUTO';
   header.counterAxisSizingMode = 'FIXED';
@@ -670,9 +766,9 @@ function buildGenericHeader(entity, config, accent) {
 
   // Jméno
   const nameText = figma.createText();
-  nameText.name       = 'Název';
+  nameText.name       = NODE_NAZEV;
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
-  nameText.characters = entity.name || 'Bez názvu';
+  nameText.characters = entity.name || FALLBACK_NO_TITLE;
   nameText.fontSize   = 44;
   nameText.fills      = [solid(C.headerText)];
   fl(header, nameText, 'FILL');
@@ -683,7 +779,7 @@ function buildGenericHeader(entity, config, accent) {
 
   if (hasCode || hasBadges) {
     const metaRow = figma.createFrame();
-    metaRow.name                  = 'Meta';
+    metaRow.name                  = NODE_META;
     metaRow.layoutMode            = 'HORIZONTAL';
     metaRow.primaryAxisSizingMode = 'AUTO';
     metaRow.counterAxisSizingMode = 'AUTO';
@@ -706,7 +802,7 @@ function buildGenericHeader(entity, config, accent) {
       const label      = (badgeConf.map && badgeConf.map[val]) || val;
       const colorHex   = badgeConf.colorMap && badgeConf.colorMap[val];
       const badgeColor = colorHex ? hex(colorHex) : accent;
-      metaRow.appendChild(buildBadge(label, badgeColor, 0.14, true));
+      metaRow.appendChild(buildBadge(label));
     }
 
     fl(header, metaRow, 'HUG', 'HUG');
@@ -715,7 +811,7 @@ function buildGenericHeader(entity, config, accent) {
   // Statistiky (scénář: frekvence, hodnota, uživatelé)
   if (config.stats && config.stats.length > 0) {
     const statsRow = figma.createFrame();
-    statsRow.name                  = 'Statistiky';
+    statsRow.name                  = NODE_STATISTIKY;
     statsRow.layoutMode            = 'HORIZONTAL';
     statsRow.primaryAxisSizingMode = 'AUTO';
     statsRow.counterAxisSizingMode = 'AUTO';
@@ -723,7 +819,7 @@ function buildGenericHeader(entity, config, accent) {
     statsRow.fills                 = [];
 
     for (const s of config.stats) {
-      const valA = entity[s.fieldA] || '—';
+      const valA = entity[s.fieldA] || FALLBACK_EMPTY;
       const valB = entity[s.fieldB] ? (' ' + entity[s.fieldB]) : '';
       statsRow.appendChild(buildStat(s.label, valA + valB, true));
     }
@@ -744,7 +840,7 @@ function getBlockBgColor(block) {
 
 function buildBlocksArea(entity, config, CWIDTH) {
   const container = figma.createFrame();
-  container.name                  = 'Bloky';
+  container.name                  = NODE_BLOKY;
   container.layoutMode            = 'VERTICAL';
   container.primaryAxisSizingMode = 'FIXED';
   container.counterAxisSizingMode = 'FIXED';
@@ -760,7 +856,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
   } else if (layout === '2col') {
     const row = figma.createFrame();
-    row.name                  = 'Řada 1';
+    row.name                  = NODE_RADA_1;
     row.layoutMode            = 'HORIZONTAL';
     row.primaryAxisSizingMode = 'FIXED';
     row.counterAxisSizingMode = 'FIXED';
@@ -774,7 +870,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
   } else if (layout === '3col') {
     const row = figma.createFrame();
-    row.name                  = 'Řada 1';
+    row.name                  = NODE_RADA_1;
     row.layoutMode            = 'HORIZONTAL';
     row.primaryAxisSizingMode = 'FIXED';
     row.counterAxisSizingMode = 'FIXED';
@@ -798,7 +894,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
     // Tři bloky pod ním
     const row = figma.createFrame();
-    row.name                  = 'Řada 2';
+    row.name                  = NODE_RADA_2;
     row.layoutMode            = 'HORIZONTAL';
     row.primaryAxisSizingMode = 'FIXED';
     row.counterAxisSizingMode = 'FIXED';
@@ -836,7 +932,7 @@ function buildGenericCard(entity, entityType, config) {
 
   // Barevný pruh
   const bar = figma.createRectangle();
-  bar.name  = 'AccentBar';
+  bar.name  = NODE_ACCENT_BAR;
   bar.resize(CWIDTH, 6);
   bar.fills = [solid(accent)];
   fl(card, bar, 'FILL', 'FIXED');
@@ -860,7 +956,7 @@ function buildGenericCard(entity, entityType, config) {
 async function generateGenericCards(entities, entityType, projects) {
   await loadFonts();
   const config = ENTITY_CONFIGS[entityType];
-  if (!config) throw new Error('Neznámý typ entity: ' + entityType);
+  if (!config) throw new Error(ERR_UNKNOWN_ENTITY + entityType);
 
   const projectMap = {};
   for (const p of (projects || [])) {
@@ -944,7 +1040,7 @@ function buildCard(persona) {
   const accent  = isProto ? ACCENT.protopersona : ACCENT.persona;
 
   const card = figma.createFrame();
-  card.name                  = [persona.code, persona.name].filter(Boolean).join(' — ') || 'Persona';
+  card.name                  = [persona.code, persona.name].filter(Boolean).join(' — ') || FALLBACK_PERSONA;
   card.layoutMode            = 'VERTICAL';
   card.primaryAxisSizingMode = 'FIXED';
   card.counterAxisSizingMode = 'FIXED';
@@ -959,14 +1055,14 @@ function buildCard(persona) {
   card.effects               = [DROP_SHADOW];
 
   const bar = figma.createRectangle();
-  bar.name  = 'AccentBar';
+  bar.name  = NODE_ACCENT_BAR;
   bar.resize(CARD_W, 6);
   bar.fills = [solid(accent)];
   fl(card, bar, 'FILL', 'FIXED');
 
-  fl(card, buildTopSection(persona, accent), 'FILL', 'HUG');
+  fl(card, buildTopSection(persona), 'FILL', 'HUG');
   fl(card, buildDivider(), 'FILL', 'FIXED');
-  fl(card, buildBlockGrid(persona, accent), 'FILL', 'FILL', 1);
+  fl(card, buildBlockGrid(persona), 'FILL', 'FILL', 1);
 
   return card;
 }
@@ -974,15 +1070,14 @@ function buildCard(persona) {
 /**
  * Vytvoří horní sekci karty persony s tmavým pozadím a inverzním textem.
  * @param {Object} persona - data persony
- * @param {Object} accent - accent barva (RGB 0–1)
  * @returns {FrameNode} horní sekce
  */
-function buildTopSection(persona, accent) {
-  const headerBgHex = persona.status === 'protopersona' ? COLOR_HEADER_PROTOPERSONA : COLOR_HEADER_PERSONA;
+function buildTopSection(persona) {
+  const headerBgHex = COLOR_TEXT;
   const headerBg   = hex(headerBgHex);
 
   const top = figma.createFrame();
-  top.name                  = 'Horní sekce';
+  top.name                  = NODE_HORNI_SEKCE;
   top.layoutMode            = 'HORIZONTAL';
   top.primaryAxisSizingMode = 'FIXED';
   top.counterAxisSizingMode = 'AUTO';
@@ -993,19 +1088,19 @@ function buildTopSection(persona, accent) {
   top.itemSpacing           = PAD;
   top.fills                 = [solid(headerBg)];
 
-  fl(top, buildPhoto(persona, accent), 'FIXED', 'FIXED');
-  fl(top, buildInfoColumn(persona, accent, true), 'FILL', 'FILL', 1);
+  fl(top, buildPhoto(persona), 'FIXED', 'FIXED');
+  fl(top, buildInfoColumn(persona, true), 'FILL', 'FILL', 1);
 
   return top;
 }
 
-function buildPhoto(persona, accent) {
+function buildPhoto(persona) {
   const img = figma.createFrame();
-  img.name                  = 'Foto';
+  img.name                  = NODE_FOTO;
   img.resize(PHOTO_SZ, PHOTO_SZ);
   img.cornerRadius          = 12;
-  img.fills                 = [solid(accent, 0.10)];
-  img.strokes               = [solid(accent, 0.20)];
+  img.fills                 = [solid(C.white, 0.10)];
+  img.strokes               = [solid(C.white, 0.20)];
   img.strokeWeight          = 2;
   img.strokeAlign           = 'INSIDE';
   img.layoutMode            = 'HORIZONTAL';
@@ -1018,7 +1113,7 @@ function buildPhoto(persona, accent) {
   initText.fontName   = { family: FONTS.family, style: FONTS.bold };
   initText.characters = getInitials(persona.name);
   initText.fontSize   = 176;
-  initText.fills      = [solid(accent, 0.45)];
+  initText.fills      = [solid(C.white, 0.45)];
   img.appendChild(initText);
 
   return img;
@@ -1027,16 +1122,14 @@ function buildPhoto(persona, accent) {
 /**
  * Vytvoří sloupec s informacemi o personě (jméno, kód, badge, cílovou skupinu).
  * @param {Object} persona - data persony
- * @param {Object} accent - accent barva (RGB 0–1)
- * @param {boolean} [onDarkHeader=false] - Pokud true, světlý text pro tmavé pozadí záhlaví
  */
-function buildInfoColumn(persona, accent, onDarkHeader) {
-  const textColor = onDarkHeader ? C.headerText : C.text;
-  const mutedColor = onDarkHeader ? C.headerMuted : C.muted;
-  const borderColor = onDarkHeader ? C.headerMuted : C.border;
+function buildInfoColumn(persona) {
+  const textColor = C.headerText;
+  const mutedColor = C.headerMuted;
+  const borderColor = C.headerMuted;
 
   const col = figma.createFrame();
-  col.name                  = 'Info';
+  col.name                  = NODE_INFO;
   col.layoutMode            = 'VERTICAL';
   col.primaryAxisSizingMode = 'FIXED';
   col.counterAxisSizingMode = 'FIXED';
@@ -1048,7 +1141,7 @@ function buildInfoColumn(persona, accent, onDarkHeader) {
   // Typ entity (zvětšený pro lepší čitelnost, jako u generických karet)
   const typeLabel = figma.createText();
   typeLabel.fontName      = { family: FONTS.family, style: FONTS.semibold };
-  typeLabel.characters    = persona.status === 'protopersona' ? 'PROTOPERSONA' : 'PERSONA';
+  typeLabel.characters    = persona.status === 'protopersona' ? TYPE_PROTOPERSONA : TYPE_PERSONA;
   typeLabel.fontSize      = 26;
   typeLabel.fills         = [solid(textColor)];
   typeLabel.letterSpacing = { value: 1.2, unit: 'PIXELS' };
@@ -1056,13 +1149,13 @@ function buildInfoColumn(persona, accent, onDarkHeader) {
 
   const nameText = figma.createText();
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
-  nameText.characters = persona.name || 'Bez jména';
+  nameText.characters = persona.name || FALLBACK_NO_NAME;
   nameText.fontSize   = 52;
   nameText.fills      = [solid(textColor)];
   fl(col, nameText, 'FILL');
 
   const meta = figma.createFrame();
-  meta.name                  = 'Meta';
+  meta.name                  = NODE_META;
   meta.layoutMode            = 'HORIZONTAL';
   meta.primaryAxisSizingMode = 'AUTO';
   meta.counterAxisSizingMode = 'AUTO';
@@ -1080,12 +1173,12 @@ function buildInfoColumn(persona, accent, onDarkHeader) {
     fl(meta, codeText, 'HUG', 'HUG');
   }
 
-  const badgeLabel = persona.status === 'protopersona' ? 'Protopersona' : 'Persona';
-  meta.appendChild(buildBadge(badgeLabel, accent, 0.14, onDarkHeader));
+  const badgeLabel = persona.status === 'protopersona' ? BADGE_PROTOPERSONA : BADGE_PERSONA;
+  meta.appendChild(buildBadge(badgeLabel));
 
   // Spacer
   const spacer = figma.createFrame();
-  spacer.name   = 'Spacer';
+  spacer.name   = NODE_SPACER;
   spacer.fills  = [];
   spacer.resize(1, 1);
   spacer.layoutMode            = 'HORIZONTAL';
@@ -1094,21 +1187,21 @@ function buildInfoColumn(persona, accent, onDarkHeader) {
   fl(col, spacer, 'FILL', undefined, 1);
 
   const divLine = figma.createRectangle();
-  divLine.name   = 'Oddělovač';
+  divLine.name   = NODE_ODDELOVAC;
   divLine.resize(1, 1);
   divLine.fills  = [solid(borderColor)];
   fl(col, divLine, 'FILL', 'FIXED');
 
   const tgLabel = figma.createText();
   tgLabel.fontName      = { family: FONTS.family, style: FONTS.semibold };
-  tgLabel.characters    = 'CÍLOVÁ SKUPINA';
+  tgLabel.characters    = STAT_CILOVA_SKUPINA;
   tgLabel.fontSize      = 20;
   tgLabel.fills         = [solid(textColor)];
   tgLabel.letterSpacing = { value: 1.2, unit: 'PIXELS' };
   fl(col, tgLabel, 'FILL');
 
   const statsRow = figma.createFrame();
-  statsRow.name                  = 'Hodnoty';
+  statsRow.name                  = NODE_HODNOTY;
   statsRow.layoutMode            = 'HORIZONTAL';
   statsRow.primaryAxisSizingMode = 'AUTO';
   statsRow.counterAxisSizingMode = 'AUTO';
@@ -1116,23 +1209,23 @@ function buildInfoColumn(persona, accent, onDarkHeader) {
   statsRow.fills                 = [];
   fl(col, statsRow, 'HUG', 'HUG');
 
-  statsRow.appendChild(buildStat('Velikost', persona.targetGroupSize  || '—', onDarkHeader));
-  statsRow.appendChild(buildStat('Hodnota',  persona.targetGroupValue || '—', onDarkHeader));
+  statsRow.appendChild(buildStat(STAT_VELIKOST, persona.targetGroupSize  || FALLBACK_EMPTY));
+  statsRow.appendChild(buildStat(STAT_HODNOTA,  persona.targetGroupValue || FALLBACK_EMPTY));
 
   return col;
 }
 
 /** Mřížka barevných bloků persony — barvy z konstant COLOR_BLOCK_PERSONA_* */
-function buildBlockGrid(persona, accent) {
+function buildBlockGrid(persona) {
   const sections = [
-    { label: 'POPIS',    value: persona.description, hint: 'Popište personu…',             color: hex(COLOR_BLOCK_PERSONA_DESCRIPTION) },
-    { label: 'MOTIVACE', value: persona.motivation,  hint: 'Co personu motivuje?',          color: hex(COLOR_BLOCK_PERSONA_MOTIVATION) },
-    { label: 'POTŘEBY',  value: persona.needs,       hint: 'Potřeby a očekávání…',          color: hex(COLOR_BLOCK_PERSONA_NEEDS) },
-    { label: 'PROBLÉMY', value: persona.problems,    hint: 'Problémy a frustrující věci…',  color: hex(COLOR_BLOCK_PERSONA_PROBLEMS) },
+    { label: BLOCK_POPIS,    value: persona.description, hint: HINT_PERSONA_DESC,       color: hex(COLOR_BLOCK_PERSONA_DESCRIPTION) },
+    { label: BLOCK_MOTIVACE, value: persona.motivation,  hint: HINT_PERSONA_MOTIVATION, color: hex(COLOR_BLOCK_PERSONA_MOTIVATION) },
+    { label: BLOCK_POTREBY,  value: persona.needs,       hint: HINT_PERSONA_NEEDS,       color: hex(COLOR_BLOCK_PERSONA_NEEDS) },
+    { label: BLOCK_PROBLEMY,  value: persona.problems,     hint: HINT_PERSONA_PROBLEMS,    color: hex(COLOR_BLOCK_PERSONA_PROBLEMS) },
   ];
 
   const grid = figma.createFrame();
-  grid.name                  = 'Bloky';
+  grid.name                  = NODE_BLOKY;
   grid.layoutMode            = 'VERTICAL';
   grid.primaryAxisSizingMode = 'FIXED';
   grid.counterAxisSizingMode = 'FIXED';
