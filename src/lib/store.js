@@ -619,6 +619,59 @@ export function search(query, projectId) {
   return searchAll(getData(), query, projectId)
 }
 
+// --- Import ---
+
+import { buildImportData } from './importLogic.js'
+
+/**
+ * Aplikuje importovaná data do store.
+ * @param {{ projectUpdates, newProjectData, upserts, effectiveProjectId }} importData - Výstup buildImportData
+ */
+export function importProjectData(importData) {
+  const { projectUpdates, newProjectData, upserts, effectiveProjectId } = importData
+  console.log('[UXLog] importProjectData, effectiveProjectId:', effectiveProjectId)
+
+  if (newProjectData) {
+    state.projects = state.projects || []
+    state.projects.push(newProjectData)
+    console.log('[UXLog] created new project:', newProjectData.name)
+  } else if (projectUpdates) {
+    const idx = state.projects?.findIndex((p) => p.id === effectiveProjectId)
+    if (idx !== undefined && idx >= 0) {
+      state.projects[idx] = {
+        ...state.projects[idx],
+        ...projectUpdates,
+        lastWorkedAt: new Date().toISOString(),
+      }
+    }
+  }
+
+  const entityKeys = [
+    'goals', 'stakeholders', 'competitions', 'hypotheses',
+    'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
+  ]
+  let totalUpserted = 0
+  for (const key of entityKeys) {
+    state[key] = state[key] || []
+    for (const { finalId, prepared, existingId } of (upserts[key] || [])) {
+      const idx = state[key].findIndex(
+        (e) => e.id === finalId || (existingId && e.id === existingId)
+      )
+      if (idx >= 0) {
+        console.log(`[UXLog] updated ${key}: ${prepared.code || prepared.name || finalId}`)
+        state[key][idx] = prepared
+      } else {
+        console.log(`[UXLog] created ${key}: ${prepared.code || prepared.name || finalId}`)
+        state[key].push(prepared)
+      }
+      totalUpserted++
+    }
+  }
+
+  console.log(`[UXLog] importProjectData done, ${totalUpserted} entities upserted`)
+  persist()
+}
+
 // --- Export ---
 
 import { toYaml } from './yaml.js'

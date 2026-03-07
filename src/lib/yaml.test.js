@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { toYaml } from './yaml.js'
+import { toYaml, parseYaml } from './yaml.js'
 
 describe('toYaml', () => {
   it('serializuje primitiva', () => {
@@ -89,5 +89,31 @@ describe('toYaml', () => {
     expect(result).toContain('goals:')
     expect(result).toContain('    code: GOL-001')
     expect(result).toContain('stakeholders: []')
+  })
+})
+
+describe('parseYaml', () => {
+  it('parsuje YAML s projects: [] a personas', () => {
+    const yaml = [
+      'projects: []',
+      'personas:',
+      '  - id: 82eb8457-4003-4f64-b0c2-c322fdae722e',
+      '    projectId: eccd3ac6-a99c-48b6-b617-5b04a860c7d0',
+      '    code: PER-001',
+      '    name: designer Richard',
+      '    status: protopersona',
+      '    description: "UX designér, pracuje v bance pod NDA"',
+      '    scenarioIds: []',
+      '    requirementIds: []',
+    ].join('\n')
+    const parsed = parseYaml(yaml)
+    expect(parsed).toBeTruthy()
+    expect(parsed.projects).toEqual([])
+    expect(Array.isArray(parsed.personas)).toBe(true)
+    expect(parsed.personas.length).toBe(1)
+    expect(parsed.personas[0].id).toBe('82eb8457-4003-4f64-b0c2-c322fdae722e')
+    expect(parsed.personas[0].projectId).toBe('eccd3ac6-a99c-48b6-b617-5b04a860c7d0')
+    expect(parsed.personas[0].code).toBe('PER-001')
+    expect(parsed.personas[0].name).toBe('designer Richard')
   })
 })

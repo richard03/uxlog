@@ -2,9 +2,14 @@
   <div class="container">
     <header class="page-header">
       <h1>{{ t.nav.projects }}</h1>
-      <button type="button" class="btn btn-primary" @click="openForm">
-        {{ t.project.add }}
-      </button>
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" @click="showImport = true">
+          {{ t.project.import }}
+        </button>
+        <button type="button" class="btn btn-primary" @click="openForm">
+          {{ t.project.add }}
+        </button>
+      </div>
     </header>
 
     <div v-if="projects.length === 0" class="empty-state">
@@ -29,6 +34,12 @@
         </router-link>
       </li>
     </ul>
+
+    <ImportModal
+      v-if="showImport"
+      @close="showImport = false"
+      @imported="handleImported"
+    />
 
     <Modal v-if="showForm" :title="editing ? t.project.edit : t.project.add" @close="closeForm">
       <form @submit.prevent="saveProject">
@@ -70,12 +81,16 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { formatDate } from '../utils/formatDate.js'
 import { isActivityOverdue } from '../lib/activity.js'
+import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
+import ImportModal from '../components/ImportModal.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
+const router = useRouter()
 
 const showForm = ref(false)
+const showImport = ref(false)
 const editing = ref(null)
 
 const form = ref({
@@ -107,6 +122,14 @@ function closeForm() {
   editing.value = null
 }
 
+function handleImported({ projectId }) {
+  showImport.value = false
+  alert(t.import.success)
+  if (projectId) {
+    router.push({ name: 'project', params: { id: projectId } })
+  }
+}
+
 function saveProject() {
   const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority }
   const projectToEdit = editing.value
@@ -129,6 +152,11 @@ function saveProject() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-lg);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-xs);
 }
 
 .project-list {

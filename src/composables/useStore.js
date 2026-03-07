@@ -67,6 +67,7 @@ export function useStore() {
     search: store.search,
     exportData: store.exportData,
     exportProjectData: store.exportProjectData,
+    importProjectData: store.importProjectData,
     // Relations
     linkStakeholderRequirement: store.linkStakeholderRequirement,
     unlinkStakeholderRequirement: store.unlinkStakeholderRequirement,

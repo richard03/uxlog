@@ -7,6 +7,7 @@
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="openForm">{{ t.common.edit }}</button>
           <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
       </div>
@@ -120,6 +121,13 @@
       </form>
     </Modal>
 
+    <ImportModal
+      v-if="showImport"
+      :project-id="projectId"
+      @close="showImport = false"
+      @imported="handleImported"
+    />
+
     <ConfirmDialog
       v-if="showConfirm"
       :title="t.project.delete"
@@ -142,6 +150,7 @@ import { formatDate } from '../utils/formatDate.js'
 import { ACTIVITY_TYPES, getActivityType } from '../lib/activityTypes.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import ImportModal from '../components/ImportModal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
@@ -151,6 +160,7 @@ const { t, tPath } = useI18n()
 
 const showForm = ref(false)
 const showConfirm = ref(false)
+const showImport = ref(false)
 
 const form = ref({
   name: '',
@@ -296,6 +306,14 @@ function saveActivity() {
 
 function dismissActivity(id) {
   store.updateActivity(id, { dismissed: true })
+}
+
+function handleImported({ projectId: importedProjectId }) {
+  showImport.value = false
+  alert(t.import.success)
+  if (importedProjectId && importedProjectId !== projectId.value) {
+    router.push({ name: 'project', params: { id: importedProjectId } })
+  }
 }
 </script>
 

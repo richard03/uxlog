@@ -39,8 +39,10 @@ const titleId = 'modal-title-' + Math.random().toString(36).slice(2)
 
 /**
  * Zachytí kliknutí mimo modal.
+ * Ignoruje kliknutí na elementy, které byly odstraněny z DOM (např. při přepnutí obsahu).
  */
 function handleClick(e) {
+  if (!e.target.isConnected) return
   if (modalRef.value && !modalRef.value.contains(e.target)) {
     emit('close')
   }
