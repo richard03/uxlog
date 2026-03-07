@@ -35,23 +35,23 @@ const BLOCK_SLABE_STRANKY = 'SLABÉ STRÁNKY';
 const BLOCK_INSPIRACE = 'INSPIRACE';
 
 /** Placeholder texty (hinty) pro bloky */
-const HINT_HYPOTHESIS_DESC = 'Popište hypotézu…';
-const HINT_HYPOTHESIS_EXPL = 'Výsledek testování nebo vyvrácení…';
+const HINT_HYPOTHESIS_DESC = 'Co by mohlo selhat?';
+const HINT_HYPOTHESIS_EXPL = 'Výsledek testování. Podařilo se hypotézu vyvrátit?';
 const HINT_SCENARIO = 'Popište scénář…';
-const HINT_STAKEHOLDER = 'Popište stakeholdera…';
+const HINT_STAKEHOLDER = 'Kdo to je?';
 const HINT_GOAL_DESC = 'Popište cíl…';
-const HINT_GOAL_METRICS = 'Jak poznáme, že jsme cíle dosáhli?';
-const HINT_COMPETITION_DESC = 'Popište konkurenta…';
-const HINT_COMPETITION_STRENGTHS = 'Co dělají dobře?';
-const HINT_COMPETITION_WEAKNESSES = 'Co dělají špatně?';
-const HINT_COMPETITION_INSPIRATION = 'Co si od nich vzít?';
-const HINT_REQUIREMENT_DESC = 'Popište požadavek…';
-const HINT_REQUIREMENT_MOTIVATION = 'Co se stane, pokud požadavek nesplníme?';
+const HINT_GOAL_METRICS = 'Jak a kdy poznáme, že jsme cíle dosáhli?';
+const HINT_COMPETITION_DESC = 'Kdo to je?';
+const HINT_COMPETITION_STRENGTHS = 'Co dělá dobře?';
+const HINT_COMPETITION_WEAKNESSES = 'Co dělá špatně?';
+const HINT_COMPETITION_INSPIRATION = 'V čem se od něj můžeme poučit?';
+const HINT_REQUIREMENT_DESC = 'Popište požadavek, případně i svou představu řešení.';
+const HINT_REQUIREMENT_MOTIVATION = 'K jakým problémům dojde, pokud požadavek nebude splněn?';
 const HINT_REQUIREMENT_WONT = 'Proč tento požadavek nebudeme implementovat?';
-const HINT_PERSONA_DESC = 'Popište personu…';
-const HINT_PERSONA_MOTIVATION = 'Co personu motivuje?';
-const HINT_PERSONA_NEEDS = 'Potřeby a očekávání…';
-const HINT_PERSONA_PROBLEMS = 'Problémy a frustrující věci…';
+const HINT_PERSONA_DESC = 'Kdo to je, čím se liší od ostatních?';
+const HINT_PERSONA_MOTIVATION = 'O co jí jde?';
+const HINT_PERSONA_NEEDS = 'Co potřebuje a co chce?';
+const HINT_PERSONA_PROBLEMS = 'Jaké má problémy a co ji frustruje?';
 
 /** Texty pro badges (statusy) */
 const BADGE_UNTESTED = 'Neověřená';
@@ -125,7 +125,7 @@ const COLOR_GREY_3 = '#64748B';
 const COLOR_LT_GREY = '#E2E8F0';
 const COLOR_LT_BLUE = '#d9edf8';
 const COLOR_LT_YELLOW = '#fdffb6';
-const COLOR_LT_GREEN = '#e4f1ee';
+const COLOR_LT_GREEN = '#d4f1de';
 const COLOR_LT_ORANGE = '#ffd6a5';
 const COLOR_LT_PINK = '#fde8ef';
 const COLOR_LT_VIOLET = '#B8B6FF';
@@ -192,7 +192,7 @@ const COLOR_BLOCK_PERSONA_MOTIVATION = COLOR_LT_YELLOW;
 const COLOR_BLOCK_PERSONA_NEEDS = COLOR_LT_GREEN;
 const COLOR_BLOCK_PERSONA_PROBLEMS = COLOR_LT_ORANGE;
 
-const COLOR_BLOCK_HYPOTHESIS_DESCRIPTION = COLOR_LT_MINT;
+const COLOR_BLOCK_HYPOTHESIS_DESCRIPTION = COLOR_LT_ORANGE;
 const COLOR_BLOCK_HYPOTHESIS_EXPLANATION = COLOR_LT_TEAL;
 
 const COLOR_BLOCK_SCENARIO_DESCRIPTION = COLOR_LT_SKY;
