@@ -46,12 +46,29 @@ const COLOR_LT_BEIGE = '#f5f5dc';
 const COLOR_LT_MIST = '#f0f4f8'; 
 const COLOR_LT_CLAY = '#e8e8e8';
 
+const COLOR_DK_BLUE = '#1e3a8a';
+const COLOR_DK_GREEN = '#065f46';
+const COLOR_DK_ORANGE = '#9a3412';
+const COLOR_DK_VIOLET = '#4c1d95';
+const COLOR_DK_RED = '#991b1b';
+const COLOR_DK_TEAL = '#155e75';
+
 const COLOR_ACCENT_HYPOTHESIS = COLOR_GREEN;
 const COLOR_ACCENT_SCENARIO = COLOR_BLUE;
 const COLOR_ACCENT_STAKEHOLDER = COLOR_ORANGE;
 const COLOR_ACCENT_GOAL = COLOR_VIOLET;
 const COLOR_ACCENT_COMPETITION = COLOR_RED;
 const COLOR_ACCENT_REQUIREMENT = COLOR_TEAL;
+
+/** Syté tmavé barvy pro pozadí záhlaví karet (jedna pro každou entitu) */
+const COLOR_HEADER_HYPOTHESIS = COLOR_DK_BLUE;
+const COLOR_HEADER_SCENARIO = COLOR_DK_GREEN;
+const COLOR_HEADER_STAKEHOLDER = COLOR_DK_ORANGE;
+const COLOR_HEADER_GOAL = COLOR_DK_VIOLET;
+const COLOR_HEADER_COMPETITION = COLOR_DK_RED;
+const COLOR_HEADER_REQUIREMENT = COLOR_DK_TEAL;
+const COLOR_HEADER_PERSONA = COLOR_DK_BLUE;
+const COLOR_HEADER_PROTOPERSONA = COLOR_DK_BLUE;
 
 /** Hex barvy pro badges (statusy) */
 const COLOR_BADGE_UNTESTED = COLOR_GREY;
@@ -121,6 +138,9 @@ const C = {
   border: hex(COLOR_BORDER),
   text:   hex(COLOR_TEXT),
   muted:  hex(COLOR_MUTED),
+  /** Světlý text pro tmavá záhlaví */
+  headerText:   { r: 1, g: 1, b: 1 },
+  headerMuted: { r: 0.85, g: 0.9, b: 0.95 },
 };
 
 /** Stín karet. */
@@ -139,6 +159,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'hypotheses',
     typeName:    'HYPOTÉZA',
     accentHex:   COLOR_ACCENT_HYPOTHESIS,
+    headerBgHex: COLOR_HEADER_HYPOTHESIS,
     cardW: 1000, cardH: 700,
     blockLayout: '2col',
     blocks: [
@@ -157,6 +178,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'scenarios',
     typeName:    'SCÉNÁŘ',
     accentHex:   COLOR_ACCENT_SCENARIO,
+    headerBgHex: COLOR_HEADER_SCENARIO,
     cardW: 1000, cardH: 780,
     blockLayout: '1col',
     blocks: [
@@ -179,6 +201,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'stakeholders',
     typeName:    'STAKEHOLDER',
     accentHex:   COLOR_ACCENT_STAKEHOLDER,
+    headerBgHex: COLOR_HEADER_STAKEHOLDER,
     cardW: 1000, cardH: 600,
     blockLayout: '1col',
     blocks: [
@@ -195,6 +218,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'goals',
     typeName:    'CÍL',
     accentHex:   COLOR_ACCENT_GOAL,
+    headerBgHex: COLOR_HEADER_GOAL,
     cardW: 1000, cardH: 650,
     blockLayout: '2col',
     blocks: [
@@ -206,6 +230,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'competitions',
     typeName:    'KONKURENT',
     accentHex:   COLOR_ACCENT_COMPETITION,
+    headerBgHex: COLOR_HEADER_COMPETITION,
     cardW: 1200, cardH: 860,
     blockLayout: '1+3',
     blocks: [
@@ -219,6 +244,7 @@ const ENTITY_CONFIGS = {
     yamlKey:     'requirements',
     typeName:    'POŽADAVEK',
     accentHex:   COLOR_ACCENT_REQUIREMENT,
+    headerBgHex: COLOR_HEADER_REQUIREMENT,
     cardW: 1000, cardH: 700,
     blockLayout: '3col',
     blocks: [
@@ -505,7 +531,13 @@ function buildDivider() {
   return div;
 }
 
-function buildStat(label, value) {
+/**
+ * Vytvoří statistikový blok (popisek + hodnota).
+ * @param {string} label - Popisek statistiky
+ * @param {string} value - Hodnota
+ * @param {boolean} [lightText=false] - Pokud true, použije světlý text (pro tmavá záhlaví)
+ */
+function buildStat(label, value, lightText) {
   const stat = figma.createFrame();
   stat.name                  = label;
   stat.layoutMode            = 'VERTICAL';
@@ -514,18 +546,21 @@ function buildStat(label, value) {
   stat.itemSpacing           = 2;
   stat.fills                 = [];
 
+  const labelColor = lightText ? C.headerMuted : C.muted;
+  const valueColor = lightText ? C.headerText : C.text;
+
   const labelT = figma.createText();
   labelT.fontName   = { family: FONTS.family, style: FONTS.regular };
   labelT.characters = label;
   labelT.fontSize   = 22;
-  labelT.fills      = [solid(C.muted)];
+  labelT.fills      = [solid(labelColor)];
   stat.appendChild(labelT);
 
   const valT = figma.createText();
   valT.fontName   = { family: FONTS.family, style: FONTS.semibold };
   valT.characters = String(value || '—');
   valT.fontSize   = 30;
-  valT.fills      = [solid(C.text)];
+  valT.fills      = [solid(valueColor)];
   stat.appendChild(valT);
 
   return stat;
@@ -567,8 +602,14 @@ function buildColorBlock(label, value, hint, bgColor) {
   return block;
 }
 
-/** Badge s textem a barevným pozadím */
-function buildBadge(label, accentColor, bgOpacity) {
+/**
+ * Badge s textem a barevným pozadím.
+ * @param {string} label - Text badge
+ * @param {object} accentColor - RGB barva (0–1)
+ * @param {number} [bgOpacity] - Průhlednost pozadí
+ * @param {boolean} [onDarkHeader=false] - Pokud true, bílý text na poloprůhledném bílém pozadí (pro tmavá záhlaví)
+ */
+function buildBadge(label, accentColor, bgOpacity, onDarkHeader) {
   const op = bgOpacity !== undefined ? bgOpacity : 0.14;
   const badge = figma.createFrame();
   badge.name                  = 'Badge';
@@ -580,13 +621,13 @@ function buildBadge(label, accentColor, bgOpacity) {
   badge.paddingTop            = 3;
   badge.paddingBottom         = 3;
   badge.cornerRadius          = 20;
-  badge.fills                 = [solid(accentColor, op)];
+  badge.fills                 = [solid(onDarkHeader ? C.white : accentColor, onDarkHeader ? 0.25 : op)];
 
   const text = figma.createText();
   text.fontName   = { family: FONTS.family, style: FONTS.medium };
   text.characters = label;
   text.fontSize   = 20;
-  text.fills      = [solid(accentColor)];
+  text.fills     = [solid(onDarkHeader ? C.headerText : accentColor)];
   badge.appendChild(text);
 
   return badge;
@@ -596,7 +637,15 @@ function buildBadge(label, accentColor, bgOpacity) {
 // Generická karta (pro všechny entity kromě persony)
 // ---------------------------------------------------------------------------
 
+/**
+ * Vytvoří hlavičku generické karty s tmavým pozadím a inverzním textem.
+ * @param {Object} entity - data entity
+ * @param {Object} config - konfigurace typu entity (typeName, headerBgHex, badges, stats)
+ * @param {Object} accent - accent barva (RGB 0–1)
+ * @returns {FrameNode} hlavička karty
+ */
 function buildGenericHeader(entity, config, accent) {
+  const headerBg = config.headerBgHex ? hex(config.headerBgHex) : hex(COLOR_HEADER_HYPOTHESIS);
   const header = figma.createFrame();
   header.name                  = 'Hlavička';
   header.layoutMode            = 'VERTICAL';
@@ -607,14 +656,14 @@ function buildGenericHeader(entity, config, accent) {
   header.paddingTop            = PAD;
   header.paddingBottom         = PAD;
   header.itemSpacing           = 8;
-  header.fills                 = [];
+  header.fills                 = [solid(headerBg)];
 
-  // Typ entity (malý popisek)
+  // Typ entity (zvětšený pro lepší čitelnost)
   const typeLabel = figma.createText();
   typeLabel.fontName      = { family: FONTS.family, style: FONTS.semibold };
   typeLabel.characters    = config.typeName;
-  typeLabel.fontSize      = 18;
-  typeLabel.fills         = [solid(accent)];
+  typeLabel.fontSize      = 26;
+  typeLabel.fills         = [solid(C.headerText)];
   typeLabel.letterSpacing = { value: 1.5, unit: 'PIXELS' };
   fl(header, typeLabel, 'FILL');
 
@@ -624,7 +673,7 @@ function buildGenericHeader(entity, config, accent) {
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
   nameText.characters = entity.name || 'Bez názvu';
   nameText.fontSize   = 44;
-  nameText.fills      = [solid(C.text)];
+  nameText.fills      = [solid(C.headerText)];
   fl(header, nameText, 'FILL');
 
   // Meta řádek: kód + badges
@@ -646,7 +695,7 @@ function buildGenericHeader(entity, config, accent) {
       codeText.fontName   = { family: FONTS.family, style: FONTS.medium };
       codeText.characters = entity.code;
       codeText.fontSize   = 22;
-      codeText.fills      = [solid(C.muted)];
+      codeText.fills      = [solid(C.headerMuted)];
       metaRow.appendChild(codeText);
     }
 
@@ -656,7 +705,7 @@ function buildGenericHeader(entity, config, accent) {
       const label      = (badgeConf.map && badgeConf.map[val]) || val;
       const colorHex   = badgeConf.colorMap && badgeConf.colorMap[val];
       const badgeColor = colorHex ? hex(colorHex) : accent;
-      metaRow.appendChild(buildBadge(label, badgeColor));
+      metaRow.appendChild(buildBadge(label, badgeColor, 0.14, true));
     }
 
     fl(header, metaRow, 'HUG', 'HUG');
@@ -675,7 +724,7 @@ function buildGenericHeader(entity, config, accent) {
     for (const s of config.stats) {
       const valA = entity[s.fieldA] || '—';
       const valB = entity[s.fieldB] ? (' ' + entity[s.fieldB]) : '';
-      statsRow.appendChild(buildStat(s.label, valA + valB));
+      statsRow.appendChild(buildStat(s.label, valA + valB, true));
     }
 
     fl(header, statsRow, 'HUG', 'HUG');
@@ -923,7 +972,16 @@ function buildCard(persona) {
   return card;
 }
 
+/**
+ * Vytvoří horní sekci karty persony s tmavým pozadím a inverzním textem.
+ * @param {Object} persona - data persony
+ * @param {Object} accent - accent barva (RGB 0–1)
+ * @returns {FrameNode} horní sekce
+ */
 function buildTopSection(persona, accent) {
+  const headerBgHex = persona.status === 'protopersona' ? COLOR_HEADER_PROTOPERSONA : COLOR_HEADER_PERSONA;
+  const headerBg   = hex(headerBgHex);
+
   const top = figma.createFrame();
   top.name                  = 'Horní sekce';
   top.layoutMode            = 'HORIZONTAL';
@@ -934,10 +992,10 @@ function buildTopSection(persona, accent) {
   top.paddingTop            = PAD;
   top.paddingBottom         = PAD;
   top.itemSpacing           = PAD;
-  top.fills                 = [];
+  top.fills                 = [solid(headerBg)];
 
   fl(top, buildPhoto(persona, accent), 'FIXED', 'FIXED');
-  fl(top, buildInfoColumn(persona, accent), 'FILL', 'FILL', 1);
+  fl(top, buildInfoColumn(persona, accent, true), 'FILL', 'FILL', 1);
 
   return top;
 }
@@ -967,7 +1025,17 @@ function buildPhoto(persona, accent) {
   return img;
 }
 
-function buildInfoColumn(persona, accent) {
+/**
+ * Vytvoří sloupec s informacemi o personě (jméno, kód, badge, cílovou skupinu).
+ * @param {Object} persona - data persony
+ * @param {Object} accent - accent barva (RGB 0–1)
+ * @param {boolean} [onDarkHeader=false] - Pokud true, světlý text pro tmavé pozadí záhlaví
+ */
+function buildInfoColumn(persona, accent, onDarkHeader) {
+  const textColor = onDarkHeader ? C.headerText : C.text;
+  const mutedColor = onDarkHeader ? C.headerMuted : C.muted;
+  const borderColor = onDarkHeader ? C.headerMuted : C.border;
+
   const col = figma.createFrame();
   col.name                  = 'Info';
   col.layoutMode            = 'VERTICAL';
@@ -978,11 +1046,20 @@ function buildInfoColumn(persona, accent) {
   col.itemSpacing           = 10;
   col.fills                 = [];
 
+  // Typ entity (zvětšený pro lepší čitelnost, jako u generických karet)
+  const typeLabel = figma.createText();
+  typeLabel.fontName      = { family: FONTS.family, style: FONTS.semibold };
+  typeLabel.characters    = persona.status === 'protopersona' ? 'PROTOPERSONA' : 'PERSONA';
+  typeLabel.fontSize      = 26;
+  typeLabel.fills         = [solid(textColor)];
+  typeLabel.letterSpacing = { value: 1.2, unit: 'PIXELS' };
+  fl(col, typeLabel, 'FILL');
+
   const nameText = figma.createText();
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
   nameText.characters = persona.name || 'Bez jména';
   nameText.fontSize   = 52;
-  nameText.fills      = [solid(C.text)];
+  nameText.fills      = [solid(textColor)];
   fl(col, nameText, 'FILL');
 
   const meta = figma.createFrame();
@@ -1000,29 +1077,12 @@ function buildInfoColumn(persona, accent) {
     codeText.fontName   = { family: FONTS.family, style: FONTS.medium };
     codeText.characters = persona.code;
     codeText.fontSize   = 28;
-    codeText.fills      = [solid(C.muted)];
+    codeText.fills      = [solid(mutedColor)];
     fl(meta, codeText, 'HUG', 'HUG');
   }
 
-  const badge = figma.createFrame();
-  badge.name                  = 'Badge';
-  badge.layoutMode            = 'HORIZONTAL';
-  badge.primaryAxisSizingMode = 'AUTO';
-  badge.counterAxisSizingMode = 'AUTO';
-  badge.paddingLeft           = 12;
-  badge.paddingRight          = 12;
-  badge.paddingTop            = 4;
-  badge.paddingBottom         = 4;
-  badge.cornerRadius          = 20;
-  badge.fills                 = [solid(accent, 0.14)];
-  fl(meta, badge, 'HUG', 'HUG');
-
-  const badgeText = figma.createText();
-  badgeText.fontName   = { family: FONTS.family, style: FONTS.medium };
-  badgeText.characters = persona.status === 'protopersona' ? 'Protopersona' : 'Persona';
-  badgeText.fontSize   = 24;
-  badgeText.fills      = [solid(accent)];
-  badge.appendChild(badgeText);
+  const badgeLabel = persona.status === 'protopersona' ? 'Protopersona' : 'Persona';
+  meta.appendChild(buildBadge(badgeLabel, accent, 0.14, onDarkHeader));
 
   // Spacer
   const spacer = figma.createFrame();
@@ -1037,14 +1097,14 @@ function buildInfoColumn(persona, accent) {
   const divLine = figma.createRectangle();
   divLine.name   = 'Oddělovač';
   divLine.resize(1, 1);
-  divLine.fills  = [solid(C.border)];
+  divLine.fills  = [solid(borderColor)];
   fl(col, divLine, 'FILL', 'FIXED');
 
   const tgLabel = figma.createText();
   tgLabel.fontName      = { family: FONTS.family, style: FONTS.semibold };
   tgLabel.characters    = 'CÍLOVÁ SKUPINA';
   tgLabel.fontSize      = 20;
-  tgLabel.fills         = [solid(accent)];
+  tgLabel.fills         = [solid(textColor)];
   tgLabel.letterSpacing = { value: 1.2, unit: 'PIXELS' };
   fl(col, tgLabel, 'FILL');
 
@@ -1057,8 +1117,8 @@ function buildInfoColumn(persona, accent) {
   statsRow.fills                 = [];
   fl(col, statsRow, 'HUG', 'HUG');
 
-  statsRow.appendChild(buildStat('Velikost', persona.targetGroupSize  || '—'));
-  statsRow.appendChild(buildStat('Hodnota',  persona.targetGroupValue || '—'));
+  statsRow.appendChild(buildStat('Velikost', persona.targetGroupSize  || '—', onDarkHeader));
+  statsRow.appendChild(buildStat('Hodnota',  persona.targetGroupValue || '—', onDarkHeader));
 
   return col;
 }
