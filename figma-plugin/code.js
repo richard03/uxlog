@@ -52,6 +52,7 @@ const COLOR_DK_ORANGE = '#9a3412';
 const COLOR_DK_VIOLET = '#4c1d95';
 const COLOR_DK_RED = '#991b1b';
 const COLOR_DK_TEAL = '#155e75';
+const COLOR_DK_BROWN = '#412601';
 
 const COLOR_ACCENT_HYPOTHESIS = COLOR_GREEN;
 const COLOR_ACCENT_SCENARIO = COLOR_BLUE;
@@ -66,9 +67,9 @@ const COLOR_HEADER_SCENARIO = COLOR_DK_GREEN;
 const COLOR_HEADER_STAKEHOLDER = COLOR_DK_ORANGE;
 const COLOR_HEADER_GOAL = COLOR_DK_VIOLET;
 const COLOR_HEADER_COMPETITION = COLOR_DK_RED;
-const COLOR_HEADER_REQUIREMENT = COLOR_DK_TEAL;
-const COLOR_HEADER_PERSONA = COLOR_DK_BLUE;
-const COLOR_HEADER_PROTOPERSONA = COLOR_DK_BLUE;
+const COLOR_HEADER_REQUIREMENT = COLOR_DK_BROWN;
+const COLOR_HEADER_PERSONA = COLOR_DK_TEAL;
+const COLOR_HEADER_PROTOPERSONA = COLOR_DK_TEAL;
 
 /** Hex barvy pro badges (statusy) */
 const COLOR_BADGE_UNTESTED = COLOR_GREY;
@@ -890,8 +891,7 @@ async function generateGenericCards(entities, entityType, projects) {
     cards[i].y = startY;
   }
 
-  figma.viewport.scrollAndZoomIntoView(cards);
-  figma.currentPage.selection = cards;
+  // Výběr neprovádíme — Figma by jinak posunula výhled na nové karty
 }
 
 // ---------------------------------------------------------------------------
@@ -932,8 +932,7 @@ async function generatePersonaCards(personas, projects) {
     cards[i].y = startY;
   }
 
-  figma.viewport.scrollAndZoomIntoView(cards);
-  figma.currentPage.selection = cards;
+  // Výběr neprovádíme — Figma by jinak posunula výhled na nové karty
 }
 
 // ---------------------------------------------------------------------------
