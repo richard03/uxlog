@@ -8,6 +8,129 @@
 figma.showUI(__html__, { width: 440, height: 660, title: 'UXLog' });
 
 // ---------------------------------------------------------------------------
+// Definice barev pro Figma objekty
+// ---------------------------------------------------------------------------
+const COLOR_BLACK = '#1E293B';
+const COLOR_GREY = '#94A3B8';
+const COLOR_RED = '#EF4444';
+const COLOR_ORANGE = '#F97316';
+const COLOR_GREEN = '#10B981';
+const COLOR_BLUE = '#3B82F6';
+const COLOR_VIOLET = '#7C3AED';
+const COLOR_TEAL = '#06B6D4';
+const COLOR_GREY_3 = '#64748B';
+
+const COLOR_LT_GREY = '#E2E8F0';
+const COLOR_LT_BLUE = '#d9edf8';
+const COLOR_LT_YELLOW = '#fdffb6';
+const COLOR_LT_GREEN = '#e4f1ee';
+const COLOR_LT_ORANGE = '#ffd6a5';
+const COLOR_LT_PINK = '#fde8ef';
+const COLOR_LT_VIOLET = '#B8B6FF';
+const COLOR_LT_MINT = '#caffbf'; 
+const COLOR_LT_TEAL = '#9cf6fb'; 
+const COLOR_LT_EMERALD = '#d1f2eb'; 
+const COLOR_LT_SKY = '#a0c4ff'; 
+const COLOR_LT_ICE = '#e1f5fe'; 
+const COLOR_LT_NAVY = '#dbeafe'; 
+const COLOR_LT_LAVENDER = '#e2d1f9'; 
+const COLOR_LT_MAUVE = '#f3e5f5'; 
+const COLOR_LT_LILAC = '#dfccf1'; 
+const COLOR_LT_ROSE = '#ffc8dd'; 
+const COLOR_LT_SALMON = '#ffcad4'; 
+const COLOR_LT_PEACH = '#ffd8be'; 
+const COLOR_LT_APRICOT = '#ffe5d9'; 
+const COLOR_LT_LEMON = '#ffffd1'; 
+const COLOR_LT_SAND = '#fdfd96'; 
+const COLOR_LT_BEIGE = '#f5f5dc'; 
+const COLOR_LT_MIST = '#f0f4f8'; 
+const COLOR_LT_CLAY = '#e8e8e8';
+
+const COLOR_ACCENT_HYPOTHESIS = COLOR_GREEN;
+const COLOR_ACCENT_SCENARIO = COLOR_BLUE;
+const COLOR_ACCENT_STAKEHOLDER = COLOR_ORANGE;
+const COLOR_ACCENT_GOAL = COLOR_VIOLET;
+const COLOR_ACCENT_COMPETITION = COLOR_RED;
+const COLOR_ACCENT_REQUIREMENT = COLOR_TEAL;
+
+/** Hex barvy pro badges (statusy) */
+const COLOR_BADGE_UNTESTED = COLOR_GREY;
+const COLOR_BADGE_TESTED = COLOR_GREEN;
+const COLOR_BADGE_REFUTED = COLOR_RED;
+const COLOR_BADGE_MUST = COLOR_RED;
+const COLOR_BADGE_SHOULD = COLOR_ORANGE;
+const COLOR_BADGE_COULD = COLOR_BLUE;
+const COLOR_BADGE_WONT = COLOR_GREY;
+
+/** Hex barvy pro persony */
+const COLOR_PERSONA = COLOR_BLUE;
+const COLOR_PROTOPERSONA = COLOR_VIOLET;
+
+/** Hex barvy pro pastelové pozadí bloků — podle entity a typu bloku */
+const COLOR_BLOCK_PERSONA_DESCRIPTION = COLOR_LT_BLUE;
+const COLOR_BLOCK_PERSONA_MOTIVATION = COLOR_LT_YELLOW;
+const COLOR_BLOCK_PERSONA_NEEDS = COLOR_LT_GREEN;
+const COLOR_BLOCK_PERSONA_PROBLEMS = COLOR_LT_ORANGE;
+
+const COLOR_BLOCK_HYPOTHESIS_DESCRIPTION = COLOR_LT_MINT;
+const COLOR_BLOCK_HYPOTHESIS_EXPLANATION = COLOR_LT_TEAL;
+
+const COLOR_BLOCK_SCENARIO_DESCRIPTION = COLOR_LT_SKY;
+
+const COLOR_BLOCK_STAKEHOLDER_DESCRIPTION = COLOR_LT_PEACH;
+
+const COLOR_BLOCK_GOAL_DESCRIPTION = COLOR_LT_LAVENDER;
+const COLOR_BLOCK_GOAL_METRICS = COLOR_LT_LILAC;
+
+const COLOR_BLOCK_COMPETITION_DESCRIPTION = COLOR_LT_ROSE;
+const COLOR_BLOCK_COMPETITION_STRENGTHS = COLOR_LT_SALMON;
+const COLOR_BLOCK_COMPETITION_WEAKNESSES = COLOR_LT_APRICOT;
+const COLOR_BLOCK_COMPETITION_INSPIRATION = COLOR_LT_LEMON;
+
+const COLOR_BLOCK_REQUIREMENT_DESCRIPTION = COLOR_LT_EMERALD;
+const COLOR_BLOCK_REQUIREMENT_MOTIVATION = COLOR_LT_ICE;
+const COLOR_BLOCK_REQUIREMENT_WONT_HAVE = COLOR_LT_MAUVE;
+
+/** Hex barvy pro UI prvky */
+const COLOR_BORDER = COLOR_GREY;
+const COLOR_TEXT = COLOR_BLACK;
+const COLOR_MUTED = COLOR_GREY_3;
+ 
+
+/** Barva stínu karet (RGBA 0–1) */
+const COLOR_SHADOW = { r: 0.06, g: 0.09, b: 0.16, a: 0.12 };
+
+/** Převede hex řetězec na Figma RGB objekt (0–1). */
+function hex(h) {
+  return {
+    r: parseInt(h.slice(1, 3), 16) / 255,
+    g: parseInt(h.slice(3, 5), 16) / 255,
+    b: parseInt(h.slice(5, 7), 16) / 255,
+  };
+}
+
+/** Accent barvy pro persony (převod z hex). */
+const ACCENT = {
+  persona:      hex(COLOR_PERSONA),
+  protopersona: hex(COLOR_PROTOPERSONA),
+};
+
+/** Společné barvy pro text, ohraničení atd. */
+const C = {
+  white:  { r: 1, g: 1, b: 1 },
+  border: hex(COLOR_BORDER),
+  text:   hex(COLOR_TEXT),
+  muted:  hex(COLOR_MUTED),
+};
+
+/** Stín karet. */
+const DROP_SHADOW = {
+  type: 'DROP_SHADOW', visible: true, blendMode: 'NORMAL',
+  color: COLOR_SHADOW,
+  offset: { x: 0, y: 8 }, radius: 32, spread: -4,
+};
+
+// ---------------------------------------------------------------------------
 // Konfigurace typů entit
 // ---------------------------------------------------------------------------
 
@@ -15,36 +138,36 @@ const ENTITY_CONFIGS = {
   hypothesis: {
     yamlKey:     'hypotheses',
     typeName:    'HYPOTÉZA',
-    accentHex:   '#10B981',
+    accentHex:   COLOR_ACCENT_HYPOTHESIS,
     cardW: 1000, cardH: 700,
     blockLayout: '2col',
     blocks: [
-      { name: 'POPIS',    field: 'description', hint: 'Popište hypotézu…' },
-      { name: 'VÝSLEDEK', field: 'explanation',  hint: 'Výsledek testování nebo vyvrácení…' },
+      { name: 'POPIS',    field: 'description', hint: 'Popište hypotézu…', colorHex: COLOR_BLOCK_HYPOTHESIS_DESCRIPTION },
+      { name: 'VÝSLEDEK', field: 'explanation',  hint: 'Výsledek testování nebo vyvrácení…', colorHex: COLOR_BLOCK_HYPOTHESIS_EXPLANATION },
     ],
     badges: [
       {
         field: 'status',
         map:      { untested: 'Neověřená', tested: 'Ověřená', refuted: 'Vyvrácená' },
-        colorMap: { untested: '#94A3B8',   tested: '#10B981',  refuted: '#EF4444'   },
+        colorMap: { untested: COLOR_BADGE_UNTESTED, tested: COLOR_BADGE_TESTED, refuted: COLOR_BADGE_REFUTED },
       },
     ],
   },
   scenario: {
     yamlKey:     'scenarios',
     typeName:    'SCÉNÁŘ',
-    accentHex:   '#3B82F6',
+    accentHex:   COLOR_ACCENT_SCENARIO,
     cardW: 1000, cardH: 780,
     blockLayout: '1col',
     blocks: [
-      { name: 'POPIS', field: 'description', hint: 'Popište scénář…' },
+      { name: 'POPIS', field: 'description', hint: 'Popište scénář…', colorHex: COLOR_BLOCK_SCENARIO_DESCRIPTION },
     ],
     badges: [
       { field: 'type',
         map: { main: 'Hlavní', alternative: 'Alternativní' } },
       { field: 'priority',
         map:      { must: 'Must have', should: 'Should have', could: 'Could have', wont: "Won't have" },
-        colorMap: { must: '#EF4444',   should: '#F97316',     could: '#3B82F6',    wont: '#94A3B8'    } },
+        colorMap: { must: COLOR_BADGE_MUST, should: COLOR_BADGE_SHOULD, could: COLOR_BADGE_COULD, wont: COLOR_BADGE_WONT } },
     ],
     stats: [
       { label: 'Frekvence', fieldA: 'frequencyValue', fieldB: 'frequencyUnit' },
@@ -55,11 +178,11 @@ const ENTITY_CONFIGS = {
   stakeholder: {
     yamlKey:     'stakeholders',
     typeName:    'STAKEHOLDER',
-    accentHex:   '#F59E0B',
+    accentHex:   COLOR_ACCENT_STAKEHOLDER,
     cardW: 1000, cardH: 600,
     blockLayout: '1col',
     blocks: [
-      { name: 'POPIS', field: 'description', hint: 'Popište stakeholdera…' },
+      { name: 'POPIS', field: 'description', hint: 'Popište stakeholdera…', colorHex: COLOR_BLOCK_STAKEHOLDER_DESCRIPTION },
     ],
     badges: [
       { field: 'influenceLevel',
@@ -71,42 +194,42 @@ const ENTITY_CONFIGS = {
   goal: {
     yamlKey:     'goals',
     typeName:    'CÍL',
-    accentHex:   '#7C3AED',
+    accentHex:   COLOR_ACCENT_GOAL,
     cardW: 1000, cardH: 650,
     blockLayout: '2col',
     blocks: [
-      { name: 'POPIS',   field: 'description', hint: 'Popište cíl…' },
-      { name: 'METRIKY', field: 'metrics',      hint: 'Jak poznáme, že jsme cíle dosáhli?' },
+      { name: 'POPIS',   field: 'description', hint: 'Popište cíl…', colorHex: COLOR_BLOCK_GOAL_DESCRIPTION },
+      { name: 'METRIKY', field: 'metrics',      hint: 'Jak poznáme, že jsme cíle dosáhli?', colorHex: COLOR_BLOCK_GOAL_METRICS },
     ],
   },
   competition: {
     yamlKey:     'competitions',
     typeName:    'KONKURENT',
-    accentHex:   '#F43F5E',
+    accentHex:   COLOR_ACCENT_COMPETITION,
     cardW: 1200, cardH: 860,
     blockLayout: '1+3',
     blocks: [
-      { name: 'POPIS',         field: 'description', hint: 'Popište konkurenta…' },
-      { name: 'SILNÉ STRÁNKY', field: 'strengths',   hint: 'Co dělají dobře?' },
-      { name: 'SLABÉ STRÁNKY', field: 'weaknesses',  hint: 'Co dělají špatně?' },
-      { name: 'INSPIRACE',     field: 'inspiration', hint: 'Co si od nich vzít?' },
+      { name: 'POPIS',         field: 'description', hint: 'Popište konkurenta…', colorHex: COLOR_BLOCK_COMPETITION_DESCRIPTION },
+      { name: 'SILNÉ STRÁNKY', field: 'strengths',   hint: 'Co dělají dobře?', colorHex: COLOR_BLOCK_COMPETITION_STRENGTHS },
+      { name: 'SLABÉ STRÁNKY', field: 'weaknesses',  hint: 'Co dělají špatně?', colorHex: COLOR_BLOCK_COMPETITION_WEAKNESSES },
+      { name: 'INSPIRACE',     field: 'inspiration', hint: 'Co si od nich vzít?', colorHex: COLOR_BLOCK_COMPETITION_INSPIRATION },
     ],
   },
   requirement: {
     yamlKey:     'requirements',
     typeName:    'POŽADAVEK',
-    accentHex:   '#06B6D4',
+    accentHex:   COLOR_ACCENT_REQUIREMENT,
     cardW: 1000, cardH: 700,
     blockLayout: '3col',
     blocks: [
-      { name: 'POPIS',    field: 'description',         hint: 'Popište požadavek…' },
-      { name: 'MOTIVACE', field: 'motivation',           hint: 'Co se stane, pokud požadavek nesplníme?' },
-      { name: 'PROČ NE',  field: 'wontHaveExplanation', hint: 'Proč tento požadavek nebudeme implementovat?' },
+      { name: 'POPIS',    field: 'description',         hint: 'Popište požadavek…', colorHex: COLOR_BLOCK_REQUIREMENT_DESCRIPTION },
+      { name: 'MOTIVACE', field: 'motivation',           hint: 'Co se stane, pokud požadavek nesplníme?', colorHex: COLOR_BLOCK_REQUIREMENT_MOTIVATION },
+      { name: 'PROČ NE',  field: 'wontHaveExplanation', hint: 'Proč tento požadavek nebudeme implementovat?', colorHex: COLOR_BLOCK_REQUIREMENT_WONT_HAVE },
     ],
     badges: [
       { field: 'priority',
         map:      { must: 'Must have', should: 'Should have', could: 'Could have', wont: "Won't have" },
-        colorMap: { must: '#EF4444',   should: '#F97316',     could: '#3B82F6',    wont: '#94A3B8'    } },
+        colorMap: { must: COLOR_BADGE_MUST, should: COLOR_BADGE_SHOULD, could: COLOR_BADGE_COULD, wont: COLOR_BADGE_WONT } },
     ],
   },
 };
@@ -334,40 +457,6 @@ async function loadFonts() {
 }
 
 // ---------------------------------------------------------------------------
-// Barvy
-// ---------------------------------------------------------------------------
-
-function hex(h) {
-  return {
-    r: parseInt(h.slice(1, 3), 16) / 255,
-    g: parseInt(h.slice(3, 5), 16) / 255,
-    b: parseInt(h.slice(5, 7), 16) / 255,
-  };
-}
-
-// Barvy accent pro persony
-const ACCENT = {
-  persona:      hex('#6366F1'),
-  protopersona: hex('#8B5CF6'),
-};
-
-// Pastelové barvy pro bloky
-const BLOCK_BG = [
-  hex('#d9edf8'), // modrá
-  hex('#fdffb6'), // žlutá
-  hex('#e4f1ee'), // zelená
-  hex('#ffd6a5'), // oranžová
-  hex('#fde8ef'), // růžová
-];
-
-const C = {
-  white:  { r: 1, g: 1, b: 1 },
-  border: hex('#E2E8F0'),
-  text:   hex('#1E293B'),
-  muted:  hex('#64748B'),
-};
-
-// ---------------------------------------------------------------------------
 // Pomocné funkce
 // ---------------------------------------------------------------------------
 
@@ -392,12 +481,6 @@ function fl(parent, child, h, v, grow) {
   if (grow !== undefined) child.layoutGrow             = grow;
   return child;
 }
-
-const DROP_SHADOW = {
-  type: 'DROP_SHADOW', visible: true, blendMode: 'NORMAL',
-  color: { r: 0.06, g: 0.09, b: 0.16, a: 0.12 },
-  offset: { x: 0, y: 8 }, radius: 32, spread: -4,
-};
 
 // ---------------------------------------------------------------------------
 // Rozměry (persona)
@@ -601,6 +684,14 @@ function buildGenericHeader(entity, config, accent) {
   return header;
 }
 
+/**
+ * Vrátí barvu bloku z konfigurace (hex → RGB).
+ * Každý blok má definovanou barvu v ENTITY_CONFIGS nebo u persony v konstantách.
+ */
+function getBlockBgColor(block) {
+  return block.colorHex ? hex(block.colorHex) : hex(COLOR_LT_GREY);
+}
+
 function buildBlocksArea(entity, config, CWIDTH) {
   const container = figma.createFrame();
   container.name                  = 'Bloky';
@@ -615,7 +706,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
   if (layout === '1col') {
     const b = blocks[0];
-    fl(container, buildColorBlock(b.name, entity[b.field] || '', b.hint, BLOCK_BG[0]), 'FILL', 'FILL');
+    fl(container, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
 
   } else if (layout === '2col') {
     const row = figma.createFrame();
@@ -627,7 +718,8 @@ function buildBlocksArea(entity, config, CWIDTH) {
     row.fills                 = [];
     fl(container, row, 'FILL', 'FILL', 1);
     for (let i = 0; i < Math.min(blocks.length, 2); i++) {
-      fl(row, buildColorBlock(blocks[i].name, entity[blocks[i].field] || '', blocks[i].hint, BLOCK_BG[i]), 'FILL', 'FILL');
+      const b = blocks[i];
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
     }
 
   } else if (layout === '3col') {
@@ -643,13 +735,14 @@ function buildBlocksArea(entity, config, CWIDTH) {
       b.field !== 'wontHaveExplanation' || entity.priority === 'wont'
     );
     for (let i = 0; i < Math.min(visibleBlocks.length, 3); i++) {
-      fl(row, buildColorBlock(visibleBlocks[i].name, entity[visibleBlocks[i].field] || '', visibleBlocks[i].hint, BLOCK_BG[i % BLOCK_BG.length]), 'FILL', 'FILL');
+      const b = visibleBlocks[i];
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
     }
 
   } else if (layout === '1+3') {
     // První blok: celá šířka, pevná výška
     const b0   = blocks[0];
-    const topB = buildColorBlock(b0.name, entity[b0.field] || '', b0.hint, BLOCK_BG[0]);
+    const topB = buildColorBlock(b0.name, entity[b0.field] || '', b0.hint, getBlockBgColor(b0));
     fl(container, topB, 'FILL', 'FIXED');
     topB.resize(CWIDTH, 280);
 
@@ -663,7 +756,8 @@ function buildBlocksArea(entity, config, CWIDTH) {
     row.fills                 = [];
     fl(container, row, 'FILL', 'FILL', 1);
     for (let i = 1; i < Math.min(blocks.length, 4); i++) {
-      fl(row, buildColorBlock(blocks[i].name, entity[blocks[i].field] || '', blocks[i].hint, BLOCK_BG[i % BLOCK_BG.length]), 'FILL', 'FILL');
+      const b = blocks[i];
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
     }
   }
 
@@ -727,7 +821,8 @@ async function generateGenericCards(entities, entityType, projects) {
   const CWIDTH = config.cardW || 1000;
   const cards  = [];
 
-  for (const entity of entities) {
+  for (let i = 0; i < entities.length; i++) {
+    const entity = entities[i];
     const card = buildGenericCard(entity, entityType, config);
     card.setPluginData('uxlogEntityType', entityType);
     card.setPluginData('uxlogEntity',     JSON.stringify(entity));
@@ -765,7 +860,8 @@ async function generatePersonaCards(personas, projects) {
   const GAP   = 48;
   const cards = [];
 
-  for (const persona of personas) {
+  for (let i = 0; i < personas.length; i++) {
+    const persona = personas[i];
     const card = buildCard(persona);
     // Nové klíče pro jednotnou extrakci
     card.setPluginData('uxlogEntityType', 'persona');
@@ -967,12 +1063,13 @@ function buildInfoColumn(persona, accent) {
   return col;
 }
 
+/** Mřížka barevných bloků persony — barvy z konstant COLOR_BLOCK_PERSONA_* */
 function buildBlockGrid(persona, accent) {
   const sections = [
-    { label: 'POPIS',    value: persona.description, hint: 'Popište personu…',             color: BLOCK_BG[0] },
-    { label: 'MOTIVACE', value: persona.motivation,  hint: 'Co personu motivuje?',          color: BLOCK_BG[1] },
-    { label: 'POTŘEBY',  value: persona.needs,       hint: 'Potřeby a očekávání…',          color: BLOCK_BG[2] },
-    { label: 'PROBLÉMY', value: persona.problems,    hint: 'Problémy a frustrující věci…',  color: BLOCK_BG[3] },
+    { label: 'POPIS',    value: persona.description, hint: 'Popište personu…',             color: hex(COLOR_BLOCK_PERSONA_DESCRIPTION) },
+    { label: 'MOTIVACE', value: persona.motivation,  hint: 'Co personu motivuje?',          color: hex(COLOR_BLOCK_PERSONA_MOTIVATION) },
+    { label: 'POTŘEBY',  value: persona.needs,       hint: 'Potřeby a očekávání…',          color: hex(COLOR_BLOCK_PERSONA_NEEDS) },
+    { label: 'PROBLÉMY', value: persona.problems,    hint: 'Problémy a frustrující věci…',  color: hex(COLOR_BLOCK_PERSONA_PROBLEMS) },
   ];
 
   const grid = figma.createFrame();
