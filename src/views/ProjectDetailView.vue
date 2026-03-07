@@ -6,7 +6,7 @@
         <h1>{{ project.name }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="openForm">{{ t.common.edit }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
@@ -152,6 +152,7 @@ import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import ExportButton from '../components/ExportButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -207,29 +208,6 @@ function saveProject() {
   closeForm()
 }
 
-/**
- * Exportuje data projektu – zkusí clipboard, jinak uloží soubor.
- */
-async function handleExport() {
-  const yaml = store.exportProjectData(projectId.value)
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(yaml)
-      alert(t.project.exportCopied)
-      return
-    } catch {
-      // clipboard selhal, pokračuj stažením souboru
-    }
-  }
-  const name = (project.value?.name ?? 'projekt').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-')
-  const blob = new Blob([yaml], { type: 'application/yaml' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${name}.yaml`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 /**
  * Zobrazí dialog pro potvrzení smazání projektu.

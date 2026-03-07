@@ -4,7 +4,7 @@
  * Používá Vue reactive pro automatickou reaktivitu.
  */
 
-import { reactive, toRaw } from 'vue'
+import { reactive, toRaw, unref } from 'vue'
 import { loadData, saveData, getEmptyData } from './storage.js'
 import {
   createProject,
@@ -680,9 +680,30 @@ export function exportData() {
   return toYaml(getData())
 }
 
+/**
+ * Exportuje data jedné sekce projektu (např. scénáře, cíle).
+ * Používá stejné gettery jako zobrazení seznamu pro konzistenci.
+ * @param {string} projectId - ID projektu (může být Ref, bude rozbaleno)
+ * @param {string} storeKey - klíč sekce (goals, scenarios, …)
+ * @returns {string} YAML řetězec
+ */
 export function exportSectionData(projectId, storeKey) {
-  const data = getData()
-  return toYaml({ [storeKey]: (data[storeKey] || []).filter(e => e.projectId === projectId) })
+  const pid = unref(projectId)
+  const getters = {
+    goals: getGoals,
+    stakeholders: getStakeholders,
+    competitions: getCompetitions,
+    hypotheses: getHypotheses,
+    personas: getPersonas,
+    scenarios: getScenarios,
+    requirements: getRequirements,
+    activities: getAllActivities,
+    teamMembers: getTeamMembers,
+  }
+  const getter = getters[storeKey]
+  if (!getter) return toYaml({ [storeKey]: [] })
+  const items = getter(pid)
+  return toYaml({ [storeKey]: items })
 }
 
 export function exportEntityData(storeKey, entityId) {

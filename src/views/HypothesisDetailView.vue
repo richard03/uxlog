@@ -18,7 +18,7 @@
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportEntityData('hypotheses', item?.id)" :filename="item?.name || t.hypothesis.label" />
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
       </div>
@@ -67,7 +67,7 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 
 const route = useRoute()
@@ -91,10 +91,6 @@ const showImport = ref(false)
 const editingField = ref(null)
 const editValue = ref('')
 
-async function handleExport() {
-  const yaml = store.exportEntityData('hypotheses', item.value?.id)
-  await downloadOrCopyYaml(yaml, item.value?.name || t.hypothesis.label)
-}
 
 const allFields = [
   { key: 'code', label: t.hypothesis.code, type: 'text' },

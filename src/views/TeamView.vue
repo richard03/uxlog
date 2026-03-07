@@ -6,7 +6,7 @@
         <h1>{{ t.sections.team }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'teamMembers')" :filename="t.sections.team" />
           <button type="button" class="btn btn-primary" @click="openForm()">{{ t.teamMember.add }}</button>
         </div>
       </div>
@@ -70,7 +70,7 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 
 const route = useRoute()
 const store = useStore()
@@ -90,10 +90,6 @@ const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ name: '', role: '', email: '', phone: '', note: '' })
 
-async function handleExport() {
-  const yaml = store.exportSectionData(projectId.value, 'teamMembers')
-  await downloadOrCopyYaml(yaml, t.sections.team)
-}
 
 function openForm() {
   form.value = { name: '', role: '', email: '', phone: '', note: '' }

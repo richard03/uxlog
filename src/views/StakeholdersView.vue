@@ -6,7 +6,7 @@
         <h1>{{ t.sections.stakeholders }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'stakeholders')" :filename="t.sections.stakeholders" />
           <button type="button" class="btn btn-primary" @click="openForm()">{{ t.stakeholder.add }}</button>
         </div>
       </div>
@@ -70,7 +70,7 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 
 const route = useRoute()
 const store = useStore()
@@ -90,10 +90,6 @@ const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ name: '', description: '', influenceLevel: '', interestLevel: '' })
 
-async function handleExport() {
-  const yaml = store.exportSectionData(projectId.value, 'stakeholders')
-  await downloadOrCopyYaml(yaml, t.sections.stakeholders)
-}
 
 function openForm() {
   form.value = { name: '', description: '', influenceLevel: '', interestLevel: '' }

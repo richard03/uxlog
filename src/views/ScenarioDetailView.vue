@@ -26,7 +26,7 @@
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportEntityData('scenarios', scenario?.id)" :filename="scenario?.name || t.scenario.label" />
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
       </div>
@@ -110,7 +110,7 @@ import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -135,10 +135,6 @@ const editingField = ref(null)
 const editValue = ref('')
 const editUnit = ref('daily')
 
-async function handleExport() {
-  const yaml = store.exportEntityData('scenarios', scenario.value?.id)
-  await downloadOrCopyYaml(yaml, scenario.value?.name || t.scenario.label)
-}
 
 const units = [
   { value: 'daily', label: t.scenario.unit.daily },

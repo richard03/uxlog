@@ -18,7 +18,7 @@
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
       </div>
@@ -66,7 +66,7 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 
@@ -90,10 +90,7 @@ const showConfirm = ref(false)
 const showImport = ref(false)
 const editingField = ref(null)
 
-async function handleExport() {
-  const yaml = store.exportEntityData('requirements', item.value?.id)
-  await downloadOrCopyYaml(yaml, item.value?.name || t.requirement.label)
-}
+
 const editValue = ref('')
 
 const allFields = [

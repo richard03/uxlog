@@ -6,7 +6,7 @@
         <h1>{{ t.sections.goals }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'goals')" :filename="t.sections.goals" />
           <button type="button" class="btn btn-primary" @click="openForm()">{{ t.goal.add }}</button>
         </div>
       </div>
@@ -59,7 +59,7 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -80,10 +80,6 @@ const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', metrics: '' })
 
-async function handleExport() {
-  const yaml = store.exportSectionData(projectId.value, 'goals')
-  await downloadOrCopyYaml(yaml, t.sections.goals)
-}
 
 function openForm() {
   form.value = { code: generateNextCode('GOL', goals.value), name: '', description: '', metrics: '' }

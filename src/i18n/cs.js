@@ -26,6 +26,8 @@ export default {
     edit: 'Upravit projekt',
     export: 'Export',
     exportCopied: 'Data projektu zkopírována do schránky.',
+    exportClipboard: 'Kopírovat do schránky',
+    exportDownload: 'Stáhnout soubor',
     delete: 'Smazat projekt',
     deleteConfirm: 'Opravdu smazat projekt?',
     import: 'Import',

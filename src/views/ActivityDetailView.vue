@@ -12,7 +12,7 @@
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
           <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
         </div>
       </div>
@@ -79,7 +79,7 @@ import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
-import { downloadOrCopyYaml } from '../utils/exportHelper.js'
+import ExportButton from '../components/ExportButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -101,10 +101,7 @@ const showConfirm = ref(false)
 const showImport = ref(false)
 const editingField = ref(null)
 
-async function handleExport() {
-  const yaml = store.exportEntityData('activities', item.value?.id)
-  await downloadOrCopyYaml(yaml, item.value?.name || t.activity.label)
-}
+
 const editValue = ref('')
 
 const fieldLabels = {
