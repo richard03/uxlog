@@ -16,7 +16,11 @@
           </div>
           <p class="entity-type">{{ t.requirement.label }}</p>
         </div>
-        <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        <div class="header-actions">
+          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        </div>
       </div>
     </header>
 
@@ -48,6 +52,7 @@
     </Modal>
 
     <ConfirmDialog v-if="showConfirm" :title="t.requirement.delete" :message="t.requirement.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
+    <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
   </div>
   <div v-else-if="project && !item" class="container">
     <p>{{ t.common.loading }}</p>
@@ -60,6 +65,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import ImportModal from '../components/ImportModal.vue'
+import { downloadOrCopyYaml } from '../utils/exportHelper.js'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 
@@ -80,7 +87,13 @@ const breadcrumbs = computed(() => [
 ])
 
 const showConfirm = ref(false)
+const showImport = ref(false)
 const editingField = ref(null)
+
+async function handleExport() {
+  const yaml = store.exportEntityData('requirements', item.value?.id)
+  await downloadOrCopyYaml(yaml, item.value?.name || t.requirement.label)
+}
 const editValue = ref('')
 
 const allFields = [
@@ -100,7 +113,9 @@ const allFields = [
   { key: 'wontHaveExplanation', label: t.requirement.wontHaveExplanation, type: 'textarea' },
 ]
 
-const fields = allFields.slice(2)
+const fields = computed(() =>
+  allFields.slice(2).filter((f) => f.key !== 'wontHaveExplanation' || item.value?.priority === 'wont')
+)
 
 const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
 const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
@@ -146,6 +161,7 @@ function doDelete() {
 <style scoped>
 .page-header { margin-bottom: var(--space-lg); }
 .header-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
+.header-actions { display: flex; gap: var(--space-xs); }
 .header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
 .header-title-main { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; }
 .entity-type { margin: 0; font-size: 0.8rem; color: var(--text-muted); }

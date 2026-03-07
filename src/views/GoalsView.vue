@@ -4,9 +4,11 @@
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
         <h1>{{ t.sections.goals }}</h1>
-        <button type="button" class="btn btn-primary" @click="openForm()">
-          {{ t.goal.add }}
-        </button>
+        <div class="header-actions">
+          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <button type="button" class="btn btn-primary" @click="openForm()">{{ t.goal.add }}</button>
+        </div>
       </div>
     </header>
 
@@ -23,6 +25,8 @@
         </router-link>
       </li>
     </ul>
+
+    <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
 
     <Modal v-if="showForm" :title="t.goal.add" @close="closeForm">
       <form @submit.prevent="save">
@@ -54,6 +58,8 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import ImportModal from '../components/ImportModal.vue'
+import { downloadOrCopyYaml } from '../utils/exportHelper.js'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -71,7 +77,13 @@ const breadcrumbs = computed(() => [
 ])
 
 const showForm = ref(false)
+const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', metrics: '' })
+
+async function handleExport() {
+  const yaml = store.exportSectionData(projectId.value, 'goals')
+  await downloadOrCopyYaml(yaml, t.sections.goals)
+}
 
 function openForm() {
   form.value = { code: generateNextCode('GOL', goals.value), name: '', description: '', metrics: '' }
@@ -89,6 +101,7 @@ function save() {
 <style scoped>
 .page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
 .header-row { display: flex; align-items: center; justify-content: space-between; }
+.header-actions { display: flex; gap: var(--space-xs); }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-title { margin: var(--space-xs) 0; font-size: 1rem; }

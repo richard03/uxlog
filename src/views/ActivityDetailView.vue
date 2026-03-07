@@ -10,7 +10,11 @@
           </button>
           <p class="entity-type">{{ t.activity.label }}</p>
         </div>
-        <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        <div class="header-actions">
+          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        </div>
       </div>
       <div class="status-badge-row">
         <span class="status-dot" :class="`status-${item.status}`" aria-hidden="true"></span>
@@ -58,6 +62,7 @@
     </Modal>
 
     <ConfirmDialog v-if="showConfirm" :title="t.activity.delete" :message="t.activity.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
+    <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
   </div>
   <div v-else-if="project && !item" class="container">
     <p>{{ t.common.loading }}</p>
@@ -73,6 +78,8 @@ import { getActivityType } from '../lib/activityTypes.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import ImportModal from '../components/ImportModal.vue'
+import { downloadOrCopyYaml } from '../utils/exportHelper.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,7 +98,13 @@ const breadcrumbs = computed(() => [
 ])
 
 const showConfirm = ref(false)
+const showImport = ref(false)
 const editingField = ref(null)
+
+async function handleExport() {
+  const yaml = store.exportEntityData('activities', item.value?.id)
+  await downloadOrCopyYaml(yaml, item.value?.name || t.activity.label)
+}
 const editValue = ref('')
 
 const fieldLabels = {
@@ -133,6 +146,7 @@ function doDelete() {
 <style scoped>
 .page-header { margin-bottom: var(--space-lg); }
 .header-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
+.header-actions { display: flex; gap: var(--space-xs); }
 .header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
 .entity-type { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
 .editable-name { display: inline-flex; align-items: baseline; gap: 0.3em; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font-family: inherit; }

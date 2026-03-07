@@ -66,6 +66,8 @@ export function useStore() {
     deleteActivity: store.deleteActivity,
     search: store.search,
     exportData: store.exportData,
+    exportSectionData: store.exportSectionData,
+    exportEntityData: store.exportEntityData,
     exportProjectData: store.exportProjectData,
     importProjectData: store.importProjectData,
     // Relations

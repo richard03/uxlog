@@ -680,6 +680,17 @@ export function exportData() {
   return toYaml(getData())
 }
 
+export function exportSectionData(projectId, storeKey) {
+  const data = getData()
+  return toYaml({ [storeKey]: (data[storeKey] || []).filter(e => e.projectId === projectId) })
+}
+
+export function exportEntityData(storeKey, entityId) {
+  const data = getData()
+  const entity = (data[storeKey] || []).find(e => e.id === entityId) ?? null
+  return toYaml({ [storeKey]: entity ? [entity] : [] })
+}
+
 export function exportProjectData(projectId) {
   const data = getData()
   return toYaml({

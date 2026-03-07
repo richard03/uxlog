@@ -24,11 +24,11 @@ export default {
     lastActivity: 'Poslední aktivita',
     add: 'Přidat projekt',
     edit: 'Upravit projekt',
-    export: 'Exportovat projekt',
+    export: 'Export',
     exportCopied: 'Data projektu zkopírována do schránky.',
     delete: 'Smazat projekt',
     deleteConfirm: 'Opravdu smazat projekt?',
-    import: 'Importovat',
+    import: 'Import',
   },
   import: {
     title: 'Import dat',

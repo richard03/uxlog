@@ -24,7 +24,11 @@
           </div>
           <p class="entity-type">{{ t.scenario.label }}</p>
         </div>
-        <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        <div class="header-actions">
+          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <button type="button" class="btn btn-ghost" @click="handleExport">{{ t.project.export }}</button>
+          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+        </div>
       </div>
     </header>
 
@@ -83,6 +87,7 @@
       </form>
     </Modal>
 
+    <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <ConfirmDialog
       v-if="showConfirm"
       :title="t.scenario.delete"
@@ -104,6 +109,8 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import ImportModal from '../components/ImportModal.vue'
+import { downloadOrCopyYaml } from '../utils/exportHelper.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,9 +130,15 @@ const breadcrumbs = computed(() => [
 ])
 
 const showConfirm = ref(false)
+const showImport = ref(false)
 const editingField = ref(null)
 const editValue = ref('')
 const editUnit = ref('daily')
+
+async function handleExport() {
+  const yaml = store.exportEntityData('scenarios', scenario.value?.id)
+  await downloadOrCopyYaml(yaml, scenario.value?.name || t.scenario.label)
+}
 
 const units = [
   { value: 'daily', label: t.scenario.unit.daily },
@@ -267,6 +280,7 @@ function doDelete() {
   margin-bottom: var(--space-lg);
 }
 
+.header-actions { display: flex; gap: var(--space-xs); }
 .header-title-row {
   display: flex;
   align-items: flex-start;
