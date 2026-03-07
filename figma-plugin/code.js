@@ -8,17 +8,160 @@
  *   [POTŘEBY 400×400 | PROBLÉMY 400×400]
  */
 
-figma.showUI(__html__, { width: 440, height: 560, title: 'UXLog — Persony' });
+figma.showUI(__html__, { width: 440, height: 600, title: 'UXLog — Persony' });
+
+// ---------------------------------------------------------------------------
+// Notifikace o výběru (pro záložku Export)
+// ---------------------------------------------------------------------------
+
+function notifySelection() {
+  const sel = figma.currentPage.selection;
+  const total = sel.length;
+  let uxlog = 0;
+  for (const node of sel) {
+    try { if (node.getPluginData('uxlogPersona')) uxlog++; } catch (_) {}
+  }
+  figma.ui.postMessage({ type: 'selectionChanged', total, uxlog });
+}
+
+notifySelection();
+figma.on('selectionchange', notifySelection);
+
+// ---------------------------------------------------------------------------
+// Extrakce persony z karty — čte aktuální texty z uzlů Figmy,
+// nedostupné informace doplňuje z plugin dat (id, projectId, atd.)
+// ---------------------------------------------------------------------------
+
+function extractPersonaFromCard(card) {
+  // Základ — neviditelná metadata uložená při generování
+  let base = {};
+  try {
+    const pData = card.getPluginData('uxlogPersona');
+    if (pData) base = JSON.parse(pData);
+  } catch (_) {}
+
+  // Placeholder texty, které značí prázdné pole
+  const HINTS = new Set([
+    'Popište personu…',
+    'Co personu motivuje?',
+    'Potřeby a očekávání…',
+    'Problémy a frustrující věci…',
+  ]);
+
+  function findChild(parent, pred) {
+    return (parent && parent.children ? parent.children.find(pred) : null) || null;
+  }
+
+  function readText(node) {
+    if (!node || node.type !== 'TEXT') return null;
+    const chars = node.characters || '';
+    return HINTS.has(chars) ? '' : chars;
+  }
+
+  // ---- Horní sekce ----
+  const topSection  = findChild(card, n => n.name === 'Horní sekce');
+  const infoCol     = findChild(topSection, n => n.name === 'Info');
+  const metaFrame   = findChild(infoCol, n => n.name === 'Meta');
+  const valuesFrame = findChild(infoCol, n => n.name === 'Hodnoty');
+
+  // Jméno — první TEXT v Info (fontSize 52)
+  const nameNode = findChild(infoCol, n => n.type === 'TEXT');
+  const rawName  = nameNode ? nameNode.characters : null;
+  const name     = (rawName !== null && rawName !== 'Bez jména') ? rawName : (base.name || '');
+
+  // Kód — TEXT přímo v Meta (Badge je FRAME, ne TEXT)
+  const codeNode = findChild(metaFrame, n => n.type === 'TEXT');
+  const code     = codeNode !== null ? codeNode.characters : (base.code || '');
+
+  // Status — z textu Badge
+  const badge     = findChild(metaFrame, n => n.name === 'Badge');
+  const badgeText = findChild(badge, n => n.type === 'TEXT');
+  const status    = badgeText
+    ? (badgeText.characters === 'Protopersona' ? 'protopersona' : 'persona')
+    : (base.status || 'protopersona');
+
+  // Cílová skupina — stat rámečky mají label (fontSize 22) + value (fontSize 30)
+  function getStatValue(statName) {
+    const statFrame = findChild(valuesFrame, n => n.name === statName);
+    if (!statFrame) return null;
+    const valNode = (statFrame.children || []).find(n => n.type === 'TEXT' && n.fontSize === 30);
+    if (!valNode) return null;
+    return valNode.characters === '—' ? '' : valNode.characters;
+  }
+
+  const rawSize  = getStatValue('Velikost');
+  const rawValue = getStatValue('Hodnota');
+  const targetGroupSize  = rawSize  !== null ? rawSize  : (base.targetGroupSize  || '');
+  const targetGroupValue = rawValue !== null ? rawValue : (base.targetGroupValue || '');
+
+  // ---- Bloky 2×2 ----
+  const bloky = findChild(card, n => n.name === 'Bloky');
+
+  function getBlockText(rowName, blockName) {
+    const row   = findChild(bloky, n => n.name === rowName);
+    const block = findChild(row,   n => n.name === blockName);
+    if (!block) return null;
+    const textNode = findChild(block, n => n.name === 'Text');
+    return readText(textNode);
+  }
+
+  const rawDesc   = getBlockText('Řada 1', 'POPIS');
+  const rawMotiv  = getBlockText('Řada 1', 'MOTIVACE');
+  const rawNeeds  = getBlockText('Řada 2', 'POTŘEBY');
+  const rawProb   = getBlockText('Řada 2', 'PROBLÉMY');
+
+  const description = rawDesc  !== null ? rawDesc  : (base.description || '');
+  const motivation  = rawMotiv !== null ? rawMotiv : (base.motivation  || '');
+  const needs       = rawNeeds !== null ? rawNeeds : (base.needs       || '');
+  const problems    = rawProb  !== null ? rawProb  : (base.problems    || '');
+
+  // Sloučení: viditelná pole z Figmy, metadata z plugin dat
+  return Object.assign({}, base, {
+    name: name,
+    code: code,
+    status: status,
+    description: description,
+    motivation: motivation,
+    needs: needs,
+    problems: problems,
+    targetGroupSize: targetGroupSize,
+    targetGroupValue: targetGroupValue,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Zprávy z UI
+// ---------------------------------------------------------------------------
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'generate') {
     try {
-      await generatePersonaCards(msg.personas, msg.projectName);
+      await generatePersonaCards(msg.personas, msg.projects || []);
       figma.ui.postMessage({ type: 'success', count: msg.personas.length });
     } catch (err) {
       console.error(err);
       figma.ui.postMessage({ type: 'error', message: String(err) });
     }
+  } else if (msg.type === 'readSelection') {
+    const personas = [];
+    const projectsMap = {};
+    for (const node of figma.currentPage.selection) {
+      try {
+        if (!node.getPluginData('uxlogPersona')) continue;
+        const persona = extractPersonaFromCard(node);
+        personas.push(persona);
+        const prData = node.getPluginData('uxlogProject');
+        if (prData) {
+          const proj = JSON.parse(prData);
+          if (proj && proj.id) projectsMap[proj.id] = proj;
+        }
+      } catch (_) {}
+    }
+    figma.ui.postMessage({
+      type: 'selectionData',
+      personas,
+      projects: Object.values(projectsMap),
+    });
   } else if (msg.type === 'close') {
     figma.closePlugin();
   }
@@ -141,14 +284,28 @@ const PAD       = 28;   // vnitřní odsazení top sekce
 // Hlavní generátor — karty přímo na plátno, bez obalu
 // ---------------------------------------------------------------------------
 
-async function generatePersonaCards(personas, projectName) {
+async function generatePersonaCards(personas, projects) {
   await loadFonts();
+
+  // Vyhledávání projektu podle projectId
+  const projectMap = {};
+  for (const p of projects) {
+    if (p && p.id) projectMap[p.id] = p;
+  }
 
   const GAP   = 48;
   const cards = [];
 
   for (const persona of personas) {
     const card = buildCard(persona);
+
+    // Uložení dat persony pro pozdější export
+    card.setPluginData('uxlogPersona', JSON.stringify(persona));
+    const proj = persona.projectId ? projectMap[persona.projectId] : null;
+    if (proj) {
+      card.setPluginData('uxlogProject', JSON.stringify(proj));
+    }
+
     figma.currentPage.appendChild(card);
     cards.push(card);
   }

@@ -21,7 +21,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     .logo {
       width: 32px;
@@ -47,6 +47,36 @@
       color: #475569;
       margin-top: 1px;
     }
+
+    /* Záložky */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: #1E293B;
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: #64748B;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      width: auto;
+      letter-spacing: 0;
+    }
+    .tab-btn:hover:not(:disabled) { background: #334155; color: #94A3B8; }
+    .tab-btn.active {
+      background: #6366F1;
+      color: #fff;
+    }
+    .tab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Formulář */
     .field { margin-bottom: 14px; }
@@ -77,6 +107,7 @@
     }
     textarea:focus { border-color: #6366F1; }
     textarea::placeholder { color: #334155; font-family: inherit; font-size: 11px; }
+    textarea[readonly] { cursor: default; color: #94A3B8; }
 
     select {
       width: 100%;
@@ -151,6 +182,18 @@
     button:hover:not(:disabled) { background: #4F46E5; }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* Sekundární tlačítko */
+    .btn-secondary {
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #94A3B8;
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 8px;
+      padding: 8px 16px;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #334155; color: #E2E8F0; }
+
     /* Stav */
     .status {
       margin-top: 12px;
@@ -162,6 +205,26 @@
     .status-ok   { color: #4ADE80; }
     .status-err  { color: #F87171; }
 
+    /* Export – info o výběru */
+    .sel-info {
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.5;
+    }
+    .sel-info strong { color: #E2E8F0; }
+    .sel-count {
+      font-size: 20px;
+      font-weight: 700;
+      color: #6366F1;
+      display: block;
+      margin-bottom: 2px;
+    }
+
     /* Skrytý projekt select */
     .field-hidden { display: none; }
   </style>
@@ -171,31 +234,63 @@
   <div class="header">
     <div class="logo">U</div>
     <div class="header-text">
-      <h1>Import person</h1>
-      <p>UXLog → Figma</p>
+      <h1>UXLog — Persony</h1>
+      <p>Figma plugin</p>
     </div>
   </div>
 
-  <div class="field">
-    <label for="json">Exportovaná data (YAML z UXLog)</label>
-    <textarea id="json" spellcheck="false"
-      placeholder="projects:
+  <div class="tabs">
+    <button class="tab-btn active" id="tabImportBtn">Import (YAML → Figma)</button>
+    <button class="tab-btn" id="tabExportBtn">Export (Figma → YAML)</button>
+  </div>
+
+  <!-- ====== ZÁLOŽKA: IMPORT ====== -->
+  <div id="tab-import">
+
+    <div class="field">
+      <label for="json">Exportovaná data (YAML z UXLog)</label>
+      <textarea id="json" spellcheck="false"
+        placeholder="projects:
   - id: ...
 personas:
   - id: ...
     name: ..."></textarea>
+    </div>
+
+    <div class="field field-hidden" id="projectField">
+      <label for="project">Projekt</label>
+      <select id="project"></select>
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <button id="btn" disabled>Generovat persony</button>
+
+    <div class="status status-info" id="status">Vložte YAML exportovaný z UXLog.</div>
+
   </div>
 
-  <div class="field field-hidden" id="projectField">
-    <label for="project">Projekt</label>
-    <select id="project"></select>
+  <!-- ====== ZÁLOŽKA: EXPORT ====== -->
+  <div id="tab-export" style="display:none">
+
+    <div class="sel-info" id="selInfo">
+      <span class="sel-count" id="selCount">0</span>
+      karet person vybráno ve Figmě
+    </div>
+
+    <button id="exportBtn" disabled>Exportovat do YAML</button>
+
+    <div class="field" id="exportYamlField" style="display:none; margin-top:14px">
+      <label for="exportYaml">YAML (zkopírujte do UXLog nebo sdílejte)</label>
+      <textarea id="exportYaml" readonly style="height:200px"></textarea>
+      <button class="btn-secondary" id="copyBtn">Kopírovat do schránky</button>
+    </div>
+
+    <div class="status status-info" id="exportStatus">
+      Ve Figmě vyberte karty person vygenerované tímto pluginem.
+    </div>
+
   </div>
-
-  <div class="preview" id="preview"></div>
-
-  <button id="btn" disabled>Generovat persony</button>
-
-  <div class="status status-info" id="status">Vložte YAML exportovaný z UXLog.</div>
 
   <script>
     'use strict';
@@ -349,6 +444,93 @@ personas:
     }
 
     // -----------------------------------------------------------------------
+    // YAML serializer — pro export (zrcadlo yaml.js z UXLog)
+    // -----------------------------------------------------------------------
+
+    function yamlEscape(str) {
+      if (str === '') return "''";
+      if (str.includes('\n')) {
+        return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"';
+      }
+      const specialStart = /^[\-?:,\[\]{}#&*!|>'"%@`~]/.test(str);
+      const hasSpecial = /[:#,\[\]{}]/.test(str);
+      const isReserved = ['true','false','null','yes','no','on','off'].includes(str.toLowerCase());
+      if (specialStart || hasSpecial || isReserved) {
+        return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return str;
+    }
+
+    function serializeKV(key, value, depth) {
+      const indent = '  '.repeat(depth);
+      if (value === null || value === undefined) return `${indent}${key}: null`;
+      if (typeof value === 'boolean' || typeof value === 'number') return `${indent}${key}: ${value}`;
+      if (typeof value === 'string') return `${indent}${key}: ${yamlEscape(value)}`;
+      if (Array.isArray(value)) {
+        if (value.length === 0) return `${indent}${key}: []`;
+        return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
+      }
+      const entries = Object.entries(value);
+      if (entries.length === 0) return `${indent}${key}: {}`;
+      return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
+    }
+
+    function serializeArrayItem(item, depth) {
+      const indent = '  '.repeat(depth);
+      if (item === null || item === undefined) return `${indent}- null`;
+      if (typeof item === 'boolean' || typeof item === 'number') return `${indent}- ${item}`;
+      if (typeof item === 'string') return `${indent}- ${yamlEscape(item)}`;
+      if (Array.isArray(item)) {
+        if (item.length === 0) return `${indent}- []`;
+        return `${indent}-\n${toYaml(item, depth + 1)}`;
+      }
+      const entries = Object.entries(item);
+      if (entries.length === 0) return `${indent}- {}`;
+      const lines = [];
+      entries.forEach(([k, v], i) => {
+        const prefix = i === 0 ? `${indent}- ` : `${indent}  `;
+        if (v === null || v === undefined) {
+          lines.push(`${prefix}${k}: null`);
+        } else if (typeof v === 'boolean' || typeof v === 'number') {
+          lines.push(`${prefix}${k}: ${v}`);
+        } else if (typeof v === 'string') {
+          lines.push(`${prefix}${k}: ${yamlEscape(v)}`);
+        } else if (Array.isArray(v)) {
+          if (v.length === 0) {
+            lines.push(`${prefix}${k}: []`);
+          } else {
+            lines.push(`${prefix}${k}:`);
+            lines.push(toYaml(v, depth + 2));
+          }
+        } else {
+          const subEntries = Object.entries(v);
+          if (subEntries.length === 0) {
+            lines.push(`${prefix}${k}: {}`);
+          } else {
+            lines.push(`${prefix}${k}:`);
+            lines.push(toYaml(v, depth + 2));
+          }
+        }
+      });
+      return lines.join('\n');
+    }
+
+    function toYaml(value, depth = 0) {
+      if (value === null || value === undefined) return 'null';
+      if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+      if (typeof value === 'string') return yamlEscape(value);
+      if (Array.isArray(value)) {
+        if (value.length === 0) return '[]';
+        return value.map(item => serializeArrayItem(item, depth)).join('\n');
+      }
+      const entries = Object.entries(value);
+      if (entries.length === 0) return '{}';
+      return entries.map(([k, v]) => serializeKV(k, v, depth)).join('\n');
+    }
+
+    // -----------------------------------------------------------------------
+    // Stav parseru
+    // -----------------------------------------------------------------------
 
     let parsedData     = null;
     let selectedPersonas = [];
@@ -360,6 +542,31 @@ personas:
     const btn          = document.getElementById('btn');
     const statusEl     = document.getElementById('status');
 
+    // -----------------------------------------------------------------------
+    // Záložky
+    // -----------------------------------------------------------------------
+
+    const tabImportBtn = document.getElementById('tabImportBtn');
+    const tabExportBtn = document.getElementById('tabExportBtn');
+    const tabImport    = document.getElementById('tab-import');
+    const tabExport    = document.getElementById('tab-export');
+
+    tabImportBtn.addEventListener('click', () => {
+      tabImportBtn.classList.add('active');
+      tabExportBtn.classList.remove('active');
+      tabImport.style.display = 'block';
+      tabExport.style.display = 'none';
+    });
+
+    tabExportBtn.addEventListener('click', () => {
+      tabExportBtn.classList.add('active');
+      tabImportBtn.classList.remove('active');
+      tabExport.style.display = 'block';
+      tabImport.style.display = 'none';
+    });
+
+    // -----------------------------------------------------------------------
+    // Pomocné funkce (import)
     // -----------------------------------------------------------------------
 
     function setStatus(msg, type = 'info') {
@@ -378,7 +585,7 @@ personas:
     }
 
     // -----------------------------------------------------------------------
-    // Parsování JSON
+    // Parsování YAML (import)
     // -----------------------------------------------------------------------
 
     function parseJSON() {
@@ -493,7 +700,7 @@ personas:
     }
 
     // -----------------------------------------------------------------------
-    // Odeslání do Figmy
+    // Odeslání do Figmy (import)
     // -----------------------------------------------------------------------
 
     btn.addEventListener('click', () => {
@@ -501,8 +708,11 @@ personas:
 
       const pid      = projectSel.value;
       const projects = parsedData.projects || [];
-      const proj     = pid === '__all__' ? null : projects.find(p => p.id === pid);
-      const projectName = proj ? proj.name : (projects[0] ? projects[0].name : '');
+
+      // Shromáždíme relevantní projekty pro uložení do plugin dat karet
+      const relevantProjects = pid === '__all__'
+        ? projects
+        : projects.filter(p => p.id === pid);
 
       btn.disabled    = true;
       setStatus('Generuji karty person ve Figmě…', 'info');
@@ -511,9 +721,66 @@ personas:
         pluginMessage: {
           type: 'generate',
           personas: selectedPersonas,
-          projectName,
+          projects: relevantProjects,
         }
       }, '*');
+    });
+
+    // -----------------------------------------------------------------------
+    // Export: stav výběru
+    // -----------------------------------------------------------------------
+
+    const selCountEl      = document.getElementById('selCount');
+    const selInfoEl       = document.getElementById('selInfo');
+    const exportBtn       = document.getElementById('exportBtn');
+    const exportYamlField = document.getElementById('exportYamlField');
+    const exportYamlTA    = document.getElementById('exportYaml');
+    const copyBtn         = document.getElementById('copyBtn');
+    const exportStatusEl  = document.getElementById('exportStatus');
+
+    let currentUxlogCount = 0;
+
+    function setExportStatus(msg, type = 'info') {
+      exportStatusEl.textContent = msg;
+      exportStatusEl.className   = `status status-${type}`;
+    }
+
+    function updateSelectionUI(total, uxlog) {
+      currentUxlogCount = uxlog;
+      selCountEl.textContent = uxlog;
+
+      if (uxlog === 0) {
+        exportBtn.disabled = true;
+        if (total === 0) {
+          setExportStatus('Ve Figmě vyberte karty person vygenerované tímto pluginem.', 'info');
+        } else {
+          setExportStatus(`Vybráno ${total} prvků, ale žádný neobsahuje data persony.`, 'err');
+        }
+      } else {
+        exportBtn.disabled = false;
+        const suffix = uxlog === 1 ? 'a' : uxlog < 5 ? 'y' : '';
+        setExportStatus(`Připraveno k exportu ${uxlog} person${suffix}.`, 'ok');
+      }
+    }
+
+    // Kliknutí na Export
+    exportBtn.addEventListener('click', () => {
+      exportBtn.disabled = true;
+      exportYamlField.style.display = 'none';
+      setExportStatus('Čtu data z vybraných karet…', 'info');
+      parent.postMessage({ pluginMessage: { type: 'readSelection' } }, '*');
+    });
+
+    // Kopírování do schránky
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(exportYamlTA.value);
+        copyBtn.textContent = '✓ Zkopírováno!';
+        setTimeout(() => { copyBtn.textContent = 'Kopírovat do schránky'; }, 2000);
+      } catch (_) {
+        exportYamlTA.select();
+        document.execCommand('copy');
+      }
     });
 
     // -----------------------------------------------------------------------
@@ -529,9 +796,34 @@ personas:
         const cnt = msg.count;
         const suffix = cnt === 1 ? 'a' : cnt < 5 ? 'y' : '';
         setStatus(`✓ Vytvořen${suffix} ${cnt} kart${cnt === 1 ? 'a' : cnt < 5 ? 'y' : ''} person.`, 'ok');
+
       } else if (msg.type === 'error') {
         btn.disabled = false;
         setStatus('Chyba: ' + msg.message, 'err');
+
+      } else if (msg.type === 'selectionChanged') {
+        updateSelectionUI(msg.total, msg.uxlog);
+
+      } else if (msg.type === 'selectionData') {
+        exportBtn.disabled = currentUxlogCount === 0;
+
+        if (!msg.personas || msg.personas.length === 0) {
+          setExportStatus('Vybrané karty neobsahují data persony.', 'err');
+          return;
+        }
+
+        // Generujeme YAML ve stejném formátu jako UXLog exportData()
+        const yaml = toYaml({
+          projects: msg.projects || [],
+          personas: msg.personas,
+        });
+
+        exportYamlTA.value = yaml;
+        exportYamlField.style.display = 'block';
+
+        const cnt = msg.personas.length;
+        const suffix = cnt === 1 ? 'y' : cnt < 5 ? '' : '';
+        setExportStatus(`✓ Exportováno ${cnt} person${suffix}. YAML je připraven ke zkopírování.`, 'ok');
       }
     };
 
