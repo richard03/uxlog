@@ -238,7 +238,7 @@ export default {
     description: 'Poznámky',
     status: 'Stav',
     statusOptions: {
-      pending: 'Nespuštěno',
+      pending: 'Nezačalo',
       in_progress: 'Probíhá',
       done: 'Hotovo',
     },
@@ -260,6 +260,11 @@ export default {
     checklist: 'Checklist',
     checklistProgress: (done, total) => `${done} / ${total}`,
     checklistDone: 'Vše splněno',
+    editChecklistLabel: 'Upravit text položky',
+    resetChecklistLabel: 'Obnovit výchozí text',
+    addChecklistItem: 'Přidat krok',
+    addChecklistItemPlaceholder: 'Popis nového kroku…',
+    removeChecklistItem: 'Odebrat položku',
   },
   moscow: {
     must: 'Must have',

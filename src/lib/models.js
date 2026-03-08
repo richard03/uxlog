@@ -194,6 +194,9 @@ export function createActivity(projectId, overrides = {}) {
     dismissed: false,
     sortOrder: 9999,
     checkedItems: [],
+    checklistLabels: {},
+    customChecklistItems: [],
+    removedChecklistItems: [],
     ...overrides,
   }
 }

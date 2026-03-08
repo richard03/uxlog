@@ -20,6 +20,7 @@ import {
 } from './models.js'
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
+import { generateId } from './id.js'
 
 /** Reaktivní stav – Vue automaticky sleduje změny */
 export const state = reactive(
@@ -406,15 +407,75 @@ export function deleteActivity(id) {
   persist()
 }
 
+function effectiveChecklist(activity) {
+  const type = ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)
+  const removed = new Set(activity.removedChecklistItems || [])
+  const defaults = (type?.checklist || []).filter((ci) => !removed.has(ci.id))
+  return [...defaults, ...(activity.customChecklistItems || [])]
+}
+
+function recalcStatus(activity, checkedItems) {
+  const total = effectiveChecklist(activity).length
+  if (total === 0) return activity.status
+  if (checkedItems.length === total) return 'done'
+  if (checkedItems.length === 0) return 'pending'
+  return 'in_progress'
+}
+
 export function toggleChecklistItem(activityId, itemId) {
   const idx = state.activities?.findIndex((a) => a.id === activityId)
   if (idx === undefined || idx === -1) return
   const a = state.activities[idx]
   const checked = a.checkedItems || []
-  const newChecked = checked.includes(itemId)
+  const isCurrentlyChecked = checked.includes(itemId)
+  const newChecked = isCurrentlyChecked
     ? checked.filter((id) => id !== itemId)
     : [...checked, itemId]
-  state.activities[idx] = { ...a, checkedItems: newChecked }
+  state.activities[idx] = { ...a, checkedItems: newChecked, status: recalcStatus(a, newChecked) }
+  persist()
+}
+
+export function addCustomChecklistItem(activityId, label) {
+  const idx = state.activities?.findIndex((a) => a.id === activityId)
+  if (idx === undefined || idx === -1) return
+  const a = state.activities[idx]
+  const newItem = { id: generateId(), label: label.trim() }
+  const updated = { ...a, customChecklistItems: [...(a.customChecklistItems || []), newItem] }
+  updated.status = recalcStatus(updated, updated.checkedItems || [])
+  state.activities[idx] = updated
+  persist()
+}
+
+export function removeChecklistItem(activityId, itemId) {
+  const idx = state.activities?.findIndex((a) => a.id === activityId)
+  if (idx === undefined || idx === -1) return
+  const a = state.activities[idx]
+  const type = ACTIVITY_TYPES.find((t) => t.key === a.typeKey)
+  const isDefault = type?.checklist?.some((ci) => ci.id === itemId)
+  const customChecklistItems = (a.customChecklistItems || []).filter((ci) => ci.id !== itemId)
+  const removedChecklistItems = isDefault
+    ? [...new Set([...(a.removedChecklistItems || []), itemId])]
+    : (a.removedChecklistItems || [])
+  const checkedItems = (a.checkedItems || []).filter((id) => id !== itemId)
+  const checklistLabels = { ...(a.checklistLabels || {}) }
+  delete checklistLabels[itemId]
+  const updated = { ...a, customChecklistItems, removedChecklistItems, checkedItems, checklistLabels }
+  updated.status = recalcStatus(updated, checkedItems)
+  state.activities[idx] = updated
+  persist()
+}
+
+export function updateChecklistLabel(activityId, itemId, label) {
+  const idx = state.activities?.findIndex((a) => a.id === activityId)
+  if (idx === undefined || idx === -1) return
+  const a = state.activities[idx]
+  const labels = { ...(a.checklistLabels || {}) }
+  if (label && label.trim()) {
+    labels[itemId] = label.trim()
+  } else {
+    delete labels[itemId]
+  }
+  state.activities[idx] = { ...a, checklistLabels: labels }
   persist()
 }
 

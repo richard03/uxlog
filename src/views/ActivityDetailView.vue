@@ -37,27 +37,86 @@
       </dl>
     </section>
 
-    <section v-if="activityType?.checklist?.length" class="checklist-section" aria-labelledby="checklist-heading">
+    <section v-if="activityType || activityItem?.customChecklistItems?.length" class="checklist-section" aria-labelledby="checklist-heading">
       <div class="checklist-header">
         <h2 id="checklist-heading" class="checklist-title">{{ t.activity.checklist }}</h2>
         <span class="checklist-progress" :class="{ 'checklist-done': checklistDone }" aria-live="polite">
-          {{ checklistDone ? t.activity.checklistDone : t.activity.checklistProgress(checkedCount, activityType.checklist.length) }}
+          {{ checklistDone ? t.activity.checklistDone : t.activity.checklistProgress(checkedCount, effectiveChecklist.length) }}
         </span>
       </div>
       <ul class="checklist-list" role="list">
-        <li v-for="ci in activityType.checklist" :key="ci.id" class="checklist-item">
-          <label class="checklist-label">
+        <li v-for="ci in effectiveChecklist" :key="ci.id" class="checklist-item">
+          <div v-if="editingLabelId !== ci.id" class="checklist-row">
+            <label class="checklist-label">
+              <input
+                type="checkbox"
+                class="checklist-checkbox"
+                :checked="isChecked(ci.id)"
+                @change="store.toggleChecklistItem(activityItem.id, ci.id)"
+                :aria-label="getItemLabel(ci)"
+              />
+              <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ getItemLabel(ci) }}</span>
+            </label>
+            <button
+              class="checklist-item-edit-btn"
+              @click="startEditLabel(ci)"
+              :aria-label="t.activity.editChecklistLabel"
+              :title="t.activity.editChecklistLabel"
+            >
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button
+              class="checklist-item-remove-btn"
+              @click="store.removeChecklistItem(activityItem.id, ci.id)"
+              :aria-label="t.activity.removeChecklistItem"
+              :title="t.activity.removeChecklistItem"
+            >
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div v-else class="checklist-item-editing">
             <input
-              type="checkbox"
-              class="checklist-checkbox"
-              :checked="isChecked(ci.id)"
-              @change="store.toggleChecklistItem(activityItem.id, ci.id)"
-              :aria-label="ci.label"
+              type="text"
+              class="form-control checklist-edit-input"
+              v-model="editingLabelValue"
+              @keydown.enter.prevent="saveLabel(ci)"
+              @keydown.escape="cancelEditLabel"
             />
-            <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ ci.label }}</span>
-          </label>
+            <div class="checklist-edit-actions">
+              <button
+                v-if="activityItem.checklistLabels?.[ci.id]"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                @click="resetLabel(ci)"
+                :title="t.activity.resetChecklistLabel"
+              >{{ t.activity.resetChecklistLabel }}</button>
+              <button type="button" class="btn btn-secondary btn-sm" @click="cancelEditLabel">{{ t.common.cancel }}</button>
+              <button type="button" class="btn btn-primary btn-sm" @click="saveLabel(ci)">{{ t.common.save }}</button>
+            </div>
+          </div>
         </li>
       </ul>
+      <div class="checklist-add-row" v-if="!addingItem">
+        <button class="btn btn-ghost btn-sm checklist-add-btn" @click="addingItem = true">
+          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {{ t.activity.addChecklistItem }}
+        </button>
+      </div>
+      <div class="checklist-add-form" v-else>
+        <input
+          type="text"
+          class="form-control checklist-edit-input"
+          v-model="newItemLabel"
+          :placeholder="t.activity.addChecklistItemPlaceholder"
+          @keydown.enter.prevent="submitNewItem"
+          @keydown.escape="cancelNewItem"
+          ref="newItemInput"
+        />
+        <div class="checklist-edit-actions">
+          <button type="button" class="btn btn-secondary btn-sm" @click="cancelNewItem">{{ t.common.cancel }}</button>
+          <button type="button" class="btn btn-primary btn-sm" :disabled="!newItemLabel.trim()" @click="submitNewItem">{{ t.common.save }}</button>
+        </div>
+      </div>
     </section>
 
     <section v-if="activityType" class="type-info-section" aria-label="t.activity.typeInfo">
@@ -115,14 +174,66 @@ const item = activityItem
 const project = computed(() => store.getProject(projectId.value))
 const activityType = computed(() => activityItem.value?.typeKey ? getActivityType(activityItem.value.typeKey) : null)
 
+const effectiveChecklist = computed(() => {
+  if (!activityItem.value) return []
+  const removed = new Set(activityItem.value.removedChecklistItems || [])
+  const defaults = (activityType.value?.checklist || []).filter((ci) => !removed.has(ci.id))
+  return [...defaults, ...(activityItem.value.customChecklistItems || [])]
+})
+
 const checkedCount = computed(() => (activityItem.value?.checkedItems || []).length)
 const checklistDone = computed(() =>
-  activityType.value?.checklist?.length > 0 &&
-  checkedCount.value === activityType.value.checklist.length
+  effectiveChecklist.value.length > 0 &&
+  checkedCount.value === effectiveChecklist.value.length
 )
 
 function isChecked(itemId) {
   return (activityItem.value?.checkedItems || []).includes(itemId)
+}
+
+function getItemLabel(ci) {
+  return activityItem.value?.checklistLabels?.[ci.id] || ci.label
+}
+
+const editingLabelId = ref(null)
+const editingLabelValue = ref('')
+
+function startEditLabel(ci) {
+  editingLabelId.value = ci.id
+  editingLabelValue.value = getItemLabel(ci)
+}
+
+function saveLabel(ci) {
+  store.updateChecklistLabel(activityItem.value.id, ci.id, editingLabelValue.value)
+  editingLabelId.value = null
+  editingLabelValue.value = ''
+}
+
+function resetLabel(ci) {
+  store.updateChecklistLabel(activityItem.value.id, ci.id, '')
+  editingLabelId.value = null
+  editingLabelValue.value = ''
+}
+
+function cancelEditLabel() {
+  editingLabelId.value = null
+  editingLabelValue.value = ''
+}
+
+const addingItem = ref(false)
+const newItemLabel = ref('')
+const newItemInput = ref(null)
+
+function submitNewItem() {
+  if (!newItemLabel.value.trim()) return
+  store.addCustomChecklistItem(activityItem.value.id, newItemLabel.value)
+  newItemLabel.value = ''
+  addingItem.value = false
+}
+
+function cancelNewItem() {
+  newItemLabel.value = ''
+  addingItem.value = false
 }
 
 const breadcrumbs = computed(() => [
@@ -211,7 +322,21 @@ function doDelete() {
 .checklist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .checklist-item { border-bottom: 1px solid var(--border); }
 .checklist-item:last-child { border-bottom: none; }
-.checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; }
+.checklist-row { display: flex; align-items: flex-start; gap: var(--space-xs); }
+.checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; flex: 1; min-width: 0; }
 .checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--color-primary, #3b82f6); width: 1rem; height: 1rem; cursor: pointer; }
 .checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
+.checklist-item-edit-btn, .checklist-item-remove-btn { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: var(--space-xs) 0.25rem; opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; margin-top: 2px; border-radius: var(--radius-sm); }
+.checklist-item:hover .checklist-item-edit-btn, .checklist-item:focus-within .checklist-item-edit-btn,
+.checklist-item:hover .checklist-item-remove-btn, .checklist-item:focus-within .checklist-item-remove-btn { opacity: 1; }
+.checklist-item-edit-btn:hover { color: var(--text); background: var(--bg-hover, rgba(0,0,0,0.05)); }
+.checklist-item-remove-btn:hover { color: var(--color-danger, #ef4444); background: var(--bg-hover, rgba(0,0,0,0.05)); }
+.checklist-add-row { padding: var(--space-xs) 0; }
+.checklist-add-btn { display: flex; align-items: center; gap: 0.4em; color: var(--text-muted); }
+.checklist-add-btn:hover { color: var(--color-primary, #3b82f6); }
+.checklist-add-form { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+.checklist-item-editing { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+.checklist-edit-input { font-size: 0.95rem; padding: 0.3rem 0.5rem; }
+.checklist-edit-actions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
+.btn-sm { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
 </style>
