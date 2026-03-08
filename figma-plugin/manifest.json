@@ -1,6 +1,6 @@
 {
-  "name": "UXLog — Persony",
-  "id": "uxlog-persona-importer",
+  "name": "UXLog",
+  "id": "uxlog-support-plugin",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
