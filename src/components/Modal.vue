@@ -6,7 +6,7 @@
     :aria-labelledby="titleId"
     @keydown.esc="emit('close')"
   >
-    <div class="modal" ref="modalRef">
+    <div class="modal" :class="{ 'modal-large': size === 'large' }" ref="modalRef">
       <header class="modal-header">
         <h2 :id="titleId">{{ title }}</h2>
         <button
@@ -30,6 +30,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   title: { type: String, default: '' },
+  size: { type: String, default: 'normal' }, // 'normal' | 'large'
 })
 
 const emit = defineEmits(['close'])
@@ -85,6 +86,22 @@ onUnmounted(() => {
   min-width: 320px;
   max-width: 500px;
   margin: auto;
+}
+
+.modal-large {
+  width: calc(100vw - 48px);
+  max-width: calc(100vw - 48px);
+  height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-large .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {

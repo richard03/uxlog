@@ -41,6 +41,7 @@ export function createProject(overrides = {}) {
     priority: 'medium',
     phase: 'research',
     lastWorkedAt: new Date().toISOString(),
+    notebook: '',
     ...overrides,
   }
 }

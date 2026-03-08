@@ -21,9 +21,19 @@
         >
           {{ t.common.search }}
         </button>
+        <button
+          type="button"
+          class="btn btn-ghost icon-btn"
+          :aria-label="t.nav.settings"
+          :title="t.nav.settings"
+          @click="showSettings = true"
+        >
+          ⚙
+        </button>
       </nav>
     </div>
     <SearchModal v-if="showSearch" @close="showSearch = false" />
+    <SettingsModal v-if="showSettings" @close="showSettings = false" />
   </header>
 </template>
 
@@ -32,10 +42,12 @@ import { ref, computed } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
 import SearchModal from './SearchModal.vue'
+import SettingsModal from './SettingsModal.vue'
 
 const theme = useTheme()
 const { t } = useI18n()
 const showSearch = ref(false)
+const showSettings = ref(false)
 
 const isDark = computed(() => theme.isDark.value)
 </script>

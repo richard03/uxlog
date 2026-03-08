@@ -30,6 +30,12 @@
       </router-link>
     </nav>
 
+    <!-- Notebook card -->
+    <button type="button" class="notebook-card" @click="showNotebook = true" :aria-label="t.notebook.title">
+      <span class="notebook-card-title">{{ t.notebook.open }}</span>
+      <span class="notebook-card-preview">{{ notebookPreview }}</span>
+    </button>
+
     <!-- Activities panel -->
     <section class="activities-panel" aria-labelledby="activities-heading">
       <div class="activities-header">
@@ -62,6 +68,18 @@
         <span class="text-muted">{{ t.activity.emptyStateHint }}</span>
       </p>
     </section>
+
+    <!-- Notebook modal -->
+    <Modal v-if="showNotebook" :title="t.notebook.title" size="large" @close="closeNotebook">
+      <textarea
+        id="notebook"
+        v-model="notebookText"
+        class="notebook-textarea"
+        :placeholder="t.notebook.placeholder"
+        :aria-label="t.notebook.title"
+        autofocus
+      ></textarea>
+    </Modal>
 
     <!-- Add activity modal -->
     <Modal v-if="showAddActivity" :title="t.activity.add" @close="closeAddActivity">
@@ -142,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
@@ -286,6 +304,28 @@ function dismissActivity(id) {
   store.updateActivity(id, { dismissed: true })
 }
 
+// --- Notebook ---
+
+const showNotebook = ref(false)
+const notebookText = ref('')
+
+watch(project, (p) => {
+  notebookText.value = p?.notebook || ''
+}, { immediate: true })
+
+const notebookPreview = computed(() => {
+  const text = notebookText.value?.trim()
+  if (!text) return t.notebook.placeholder
+  return text.length > 120 ? text.slice(0, 120) + '…' : text
+})
+
+function closeNotebook() {
+  if (project.value) {
+    store.updateProject(project.value.id, { notebook: notebookText.value })
+  }
+  showNotebook.value = false
+}
+
 function handleImported({ projectId: importedProjectId }) {
   showImport.value = false
   alert(t.import.success)
@@ -393,6 +433,7 @@ function handleImported({ projectId: importedProjectId }) {
   margin-bottom: var(--space-md);
 }
 
+
 .activities-title {
   margin: 0;
   font-size: 1rem;
@@ -450,5 +491,69 @@ function handleImported({ projectId: importedProjectId }) {
 .text-muted {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* Notebook card */
+.notebook-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-xl);
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.notebook-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.notebook-card-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.notebook-card-preview {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Notebook modal textarea */
+.notebook-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color var(--transition);
+}
+
+.notebook-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 </style>

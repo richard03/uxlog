@@ -12,6 +12,7 @@ export default {
     search: 'Vyhledat',
     darkMode: 'Tmavý režim',
     lightMode: 'Světlý režim',
+    settings: 'Nastavení',
   },
   project: {
     label: 'Projekt',
@@ -262,6 +263,20 @@ export default {
     should: 'Should have',
     could: 'Could have',
     wont: "Won't have",
+  },
+  notebook: {
+    title: 'Zápisník',
+    open: 'Zápisník',
+    placeholder: 'Sem pište libovolné poznámky – maily, kontakty, záznamy z porad…',
+    saved: 'Uloženo',
+    close: 'Zavřít',
+  },
+  settings: {
+    title: 'Nastavení API klíčů',
+    hint: 'Klíče jsou uloženy pouze ve vašem prohlížeči a nejsou součástí exportu dat.',
+    showKey: 'Zobrazit klíč',
+    hideKey: 'Skrýt klíč',
+    saved: 'Uloženo.',
   },
   common: {
     skipToContent: 'Přeskočit na obsah',
