@@ -31,6 +31,11 @@
         <router-link :to="{ name: 'personaDetail', params: { id: projectId, personaId: p.id } }" class="card-body" draggable="false">
           <span v-if="p.code" class="badge badge-accent">{{ p.code }}</span>
           <span class="badge">{{ tPath(`personaStatus.${p.status}`) }}</span>
+          <span
+            class="badge completeness-badge"
+            :class="{ 'completeness-done': getEntityCompleteness(p, 'persona').filled === getEntityCompleteness(p, 'persona').total }"
+            :aria-label="t.completeness.ariaLabel(getEntityCompleteness(p, 'persona').filled, getEntityCompleteness(p, 'persona').total)"
+          >{{ getEntityCompleteness(p, 'persona').filled }}/{{ getEntityCompleteness(p, 'persona').total }}</span>
           <h3 class="card-title">{{ p.name || t.persona.name }}</h3>
           <p v-if="p.description" class="card-desc">{{ p.description }}</p>
         </router-link>
@@ -80,6 +85,7 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
+import { getEntityCompleteness } from '../lib/completeness.js'
 
 const route = useRoute()
 const store = useStore()

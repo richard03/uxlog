@@ -376,6 +376,9 @@ export default {
     modelLabel: 'Model',
     modelHint: 'Ponechte prázdné pro výchozí model.',
   },
+  completeness: {
+    ariaLabel: (filled, total) => `Vyplněno ${filled} z ${total} polí`,
+  },
   common: {
     skipToContent: 'Přeskočit na obsah',
     save: 'Uložit',

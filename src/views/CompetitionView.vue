@@ -29,6 +29,11 @@
         @dragend="dnd.onDragEnd()"
       >
         <router-link :to="{ name: 'competitionDetail', params: { id: projectId, competitionId: c.id } }" class="card-body" draggable="false">
+          <span
+            class="badge completeness-badge"
+            :class="{ 'completeness-done': getEntityCompleteness(c, 'competition').filled === getEntityCompleteness(c, 'competition').total }"
+            :aria-label="t.completeness.ariaLabel(getEntityCompleteness(c, 'competition').filled, getEntityCompleteness(c, 'competition').total)"
+          >{{ getEntityCompleteness(c, 'competition').filled }}/{{ getEntityCompleteness(c, 'competition').total }}</span>
           <h3 class="card-title">{{ c.name || t.competition.name }}</h3>
           <p v-if="c.description" class="card-desc">{{ c.description }}</p>
         </router-link>
@@ -66,6 +71,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
+import { getEntityCompleteness } from '../lib/completeness.js'
 
 const route = useRoute()
 const store = useStore()
