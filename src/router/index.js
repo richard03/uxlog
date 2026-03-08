@@ -119,6 +119,30 @@ const routes = [
     component: () => import('../views/ActivityDetailView.vue'),
     meta: { title: 'Aktivita' },
   },
+  {
+    path: '/project/:id/tasks',
+    name: 'tasks',
+    component: () => import('../views/TasksView.vue'),
+    meta: { title: 'Úkoly' },
+  },
+  {
+    path: '/project/:id/tasks/:taskId',
+    name: 'taskDetail',
+    component: () => import('../views/TaskDetailView.vue'),
+    meta: { title: 'Úkol' },
+  },
+  {
+    path: '/project/:id/bugs',
+    name: 'bugs',
+    component: () => import('../views/BugsView.vue'),
+    meta: { title: 'Chyby' },
+  },
+  {
+    path: '/project/:id/bugs/:bugId',
+    name: 'bugDetail',
+    component: () => import('../views/BugDetailView.vue'),
+    meta: { title: 'Chyba' },
+  },
 ]
 
 const router = createRouter({

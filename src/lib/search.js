@@ -52,6 +52,8 @@ const SEARCH_FIELDS = {
   requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation'],
   activity: ['name', 'description'],
   teamMember: ['name', 'role', 'email', 'phone', 'note'],
+  task: ['code', 'name', 'description', 'metrics', 'achievability', 'relevance', 'assignee'],
+  bug: ['code', 'name', 'description', 'stepsToReproduce', 'expectedBehavior', 'actualBehavior', 'affectedArea'],
 }
 
 /**
@@ -74,6 +76,8 @@ export function searchAll(data, query, projectId) {
     requirementIds: [],
     activityIds: [],
     teamMemberIds: [],
+    taskIds: [],
+    bugIds: [],
   }
 
   const filterByProject = (entity) => !projectId || entity.projectId === projectId
@@ -126,6 +130,16 @@ export function searchAll(data, query, projectId) {
   if (data.teamMembers) {
     result.teamMemberIds = data.teamMembers
       .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.teamMember, q))
+      .map((e) => e.id)
+  }
+  if (data.tasks) {
+    result.taskIds = data.tasks
+      .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.task, q))
+      .map((e) => e.id)
+  }
+  if (data.bugs) {
+    result.bugIds = data.bugs
+      .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.bug, q))
       .map((e) => e.id)
   }
 

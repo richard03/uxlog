@@ -17,6 +17,8 @@ import {
   createRequirement,
   createActivity,
   createTeamMember,
+  createTask,
+  createBug,
 } from './models.js'
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
@@ -514,6 +516,76 @@ export function deleteTeamMember(id) {
   persist()
 }
 
+// --- Tasks ---
+
+export function getTasks(projectId) {
+  return (getData().tasks || []).filter((t) => t.projectId === projectId)
+}
+
+export function getTask(id) {
+  return getData().tasks?.find((t) => t.id === id) ?? null
+}
+
+export function addTask(projectId, overrides = {}) {
+  const task = createTask(projectId, overrides)
+  state.tasks = state.tasks || []
+  state.tasks.push(task)
+  updateProject(projectId, {})
+  persist()
+  return task
+}
+
+export function updateTask(id, updates) {
+  const idx = state.tasks?.findIndex((t) => t.id === id)
+  if (idx === -1) return null
+  state.tasks[idx] = { ...state.tasks[idx], ...updates }
+  if (state.tasks[idx].projectId) updateProject(state.tasks[idx].projectId, {})
+  persist()
+  return state.tasks[idx]
+}
+
+export function deleteTask(id) {
+  const task = state.tasks?.find((t) => t.id === id)
+  state.tasks = (state.tasks || []).filter((t) => t.id !== id)
+  if (task?.projectId) updateProject(task.projectId, {})
+  persist()
+}
+
+// --- Bugs ---
+
+export function getBugs(projectId) {
+  return (getData().bugs || []).filter((b) => b.projectId === projectId)
+}
+
+export function getBug(id) {
+  return getData().bugs?.find((b) => b.id === id) ?? null
+}
+
+export function addBug(projectId, overrides = {}) {
+  const bug = createBug(projectId, overrides)
+  state.bugs = state.bugs || []
+  state.bugs.push(bug)
+  updateProject(projectId, {})
+  persist()
+  return bug
+}
+
+export function updateBug(id, updates) {
+  const idx = state.bugs?.findIndex((b) => b.id === id)
+  if (idx === -1) return null
+  state.bugs[idx] = { ...state.bugs[idx], ...updates }
+  if (state.bugs[idx].projectId) updateProject(state.bugs[idx].projectId, {})
+  persist()
+  return state.bugs[idx]
+}
+
+export function deleteBug(id) {
+  const bug = state.bugs?.find((b) => b.id === id)
+  state.bugs = (state.bugs || []).filter((b) => b.id !== id)
+  if (bug?.projectId) updateProject(bug.projectId, {})
+  persist()
+}
+
 // --- Relations (bez kaskádového mazání) ---
 
 export function linkStakeholderRequirement(stakeholderId, requirementId) {
@@ -722,6 +794,7 @@ export function importProjectData(importData) {
   const entityKeys = [
     'goals', 'stakeholders', 'competitions', 'hypotheses',
     'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
+    'tasks', 'bugs',
   ]
   let totalUpserted = 0
   for (const key of entityKeys) {
@@ -772,6 +845,8 @@ export function exportSectionData(projectId, storeKey) {
     requirements: getRequirements,
     activities: getAllActivities,
     teamMembers: getTeamMembers,
+    tasks: getTasks,
+    bugs: getBugs,
   }
   const getter = getters[storeKey]
   if (!getter) return toYaml({ [storeKey]: [] })
@@ -798,5 +873,7 @@ export function exportProjectData(projectId) {
     requirements: (data.requirements || []).filter((r) => r.projectId === projectId),
     activities: (data.activities || []).filter((a) => a.projectId === projectId),
     teamMembers: (data.teamMembers || []).filter((m) => m.projectId === projectId),
+    tasks: (data.tasks || []).filter((t) => t.projectId === projectId),
+    bugs: (data.bugs || []).filter((b) => b.projectId === projectId),
   })
 }

@@ -242,3 +242,70 @@ export function createRequirement(projectId, overrides = {}) {
     ...overrides,
   }
 }
+
+/**
+ * Vytvoří nový úkol (SMART).
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createTask(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    code: '',
+    name: '',
+    description: '',
+    metrics: '',
+    achievability: '',
+    relevance: '',
+    dueDate: '',
+    assignee: '',
+    status: 'open',
+    ...overrides,
+  }
+}
+
+/** Skóre závažnosti chyby */
+const SEVERITY_SCORE = { critical: 4, high: 3, medium: 2, low: 1 }
+/** Skóre dopadu chyby */
+const IMPACT_SCORE = { high: 3, medium: 2, low: 1 }
+
+/**
+ * Vypočítá prioritu chyby na základě závažnosti a dopadu.
+ * @param {'critical'|'high'|'medium'|'low'} severity
+ * @param {'high'|'medium'|'low'} impact
+ * @returns {'critical'|'high'|'medium'|'low'|null}
+ */
+export function getBugPriority(severity, impact) {
+  if (!severity || !impact) return null
+  const score = (SEVERITY_SCORE[severity] ?? 0) * (IMPACT_SCORE[impact] ?? 0)
+  if (score >= 9) return 'critical'
+  if (score >= 5) return 'high'
+  if (score >= 3) return 'medium'
+  return 'low'
+}
+
+/**
+ * Vytvoří novou chybu.
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createBug(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    code: '',
+    name: '',
+    description: '',
+    stepsToReproduce: '',
+    expectedBehavior: '',
+    actualBehavior: '',
+    affectedArea: '',
+    severity: '',
+    impact: '',
+    status: 'new',
+    ...overrides,
+  }
+}
