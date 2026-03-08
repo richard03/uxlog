@@ -17,8 +17,18 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="bug in bugs" :key="bug.id" class="card card-clickable">
-        <router-link :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }" class="card-body">
+      <li
+        v-for="bug in bugs"
+        :key="bug.id"
+        class="card card-clickable"
+        :class="{ 'drag-over': dnd.isDragOver(bug.id), dragging: dnd.isDragging(bug.id) }"
+        draggable="true"
+        @dragstart="dnd.onDragStart($event, bug.id)"
+        @dragover="dnd.onDragOver($event, bug.id)"
+        @drop="dnd.onDrop($event, bug.id)"
+        @dragend="dnd.onDragEnd()"
+      >
+        <router-link :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }" class="card-body" draggable="false">
           <div class="card-badges">
             <span v-if="bug.code" class="badge badge-accent">{{ bug.code }}</span>
             <span v-if="bug.severity" class="badge" :class="`severity-badge-${bug.severity}`">{{ t.bug.severityOptions[bug.severity] }}</span>
@@ -67,6 +77,7 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
 const store = useStore()
@@ -75,6 +86,7 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const bugs = computed(() => store.getBugs(projectId.value))
+const dnd = useDraggableList(() => bugs.value, (orderedIds) => store.reorderEntities('bugs', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },
@@ -114,6 +126,10 @@ function save() {
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
 .card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
+.dragging { opacity: 0.4; }
 .severity-badge-critical, .priority-badge-critical { background: #fee2e2; color: #991b1b; }
 .severity-badge-high, .priority-badge-high { background: #ffedd5; color: #9a3412; }
 .severity-badge-medium, .priority-badge-medium { background: #fef3c7; color: #92400e; }

@@ -17,8 +17,18 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="task in tasks" :key="task.id" class="card card-clickable">
-        <router-link :to="{ name: 'taskDetail', params: { id: projectId, taskId: task.id } }" class="card-body">
+      <li
+        v-for="task in tasks"
+        :key="task.id"
+        class="card card-clickable"
+        :class="{ 'drag-over': dnd.isDragOver(task.id), dragging: dnd.isDragging(task.id) }"
+        draggable="true"
+        @dragstart="dnd.onDragStart($event, task.id)"
+        @dragover="dnd.onDragOver($event, task.id)"
+        @drop="dnd.onDrop($event, task.id)"
+        @dragend="dnd.onDragEnd()"
+      >
+        <router-link :to="{ name: 'taskDetail', params: { id: projectId, taskId: task.id } }" class="card-body" draggable="false">
           <div class="card-badges">
             <span v-if="task.code" class="badge badge-accent">{{ task.code }}</span>
             <span class="badge" :class="`status-badge-${task.status}`">{{ t.task.statusOptions[task.status] }}</span>
@@ -65,6 +75,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
 const store = useStore()
@@ -73,6 +84,7 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const tasks = computed(() => store.getTasks(projectId.value))
+const dnd = useDraggableList(() => tasks.value, (orderedIds) => store.reorderEntities('tasks', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },
@@ -108,6 +120,10 @@ function save() {
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
 .card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
+.dragging { opacity: 0.4; }
 .status-badge-done { background: #d1fae5; color: #065f46; }
 .status-badge-in_progress { background: #fef3c7; color: #92400e; }
 .status-badge-cancelled { background: var(--bg-elevated); color: var(--text-muted); text-decoration: line-through; }

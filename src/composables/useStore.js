@@ -105,5 +105,7 @@ export function useStore() {
     unlinkScenarioPersona: store.unlinkScenarioPersona,
     linkScenarioRequirement: store.linkScenarioRequirement,
     unlinkScenarioRequirement: store.unlinkScenarioRequirement,
+    reorderEntities: store.reorderEntities,
+    reorderProjects: store.reorderProjects,
   }
 }

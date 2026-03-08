@@ -17,8 +17,18 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="r in items" :key="r.id" class="card card-clickable">
-        <router-link :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }" class="card-body">
+      <li
+        v-for="r in items"
+        :key="r.id"
+        class="card card-clickable"
+        :class="{ 'drag-over': dnd.isDragOver(r.id), dragging: dnd.isDragging(r.id) }"
+        draggable="true"
+        @dragstart="dnd.onDragStart($event, r.id)"
+        @dragover="dnd.onDragOver($event, r.id)"
+        @drop="dnd.onDrop($event, r.id)"
+        @dragend="dnd.onDragEnd()"
+      >
+        <router-link :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }" class="card-body" draggable="false">
           <span v-if="r.code" class="badge badge-accent">{{ r.code }}</span>
           <span class="badge">{{ tPath(`moscow.${r.priority}`) }}</span>
           <h3 class="card-title">{{ r.name || t.requirement.name }}</h3>
@@ -71,6 +81,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
 const store = useStore()
@@ -79,6 +90,7 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getRequirements(projectId.value))
+const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('requirements', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },
@@ -114,4 +126,8 @@ function save() {
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
 .card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
+.dragging { opacity: 0.4; }
 </style>

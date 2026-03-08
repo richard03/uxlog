@@ -64,7 +64,7 @@ function persist() {
 // --- Projects ---
 
 export function getProjects() {
-  return state.projects || []
+  return [...(state.projects || [])].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getProject(id) {
@@ -105,7 +105,9 @@ export function deleteProject(id) {
 // --- Goals ---
 
 export function getGoals(projectId) {
-  return (getData().goals || []).filter((g) => g.projectId === projectId)
+  return (getData().goals || [])
+    .filter((g) => g.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getGoal(id) {
@@ -140,7 +142,9 @@ export function deleteGoal(id) {
 // --- Stakeholders ---
 
 export function getStakeholders(projectId) {
-  return (getData().stakeholders || []).filter((s) => s.projectId === projectId)
+  return (getData().stakeholders || [])
+    .filter((s) => s.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getStakeholder(id) {
@@ -173,7 +177,9 @@ export function deleteStakeholder(id) {
 // --- Competitions ---
 
 export function getCompetitions(projectId) {
-  return (getData().competitions || []).filter((c) => c.projectId === projectId)
+  return (getData().competitions || [])
+    .filter((c) => c.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getCompetition(id) {
@@ -206,7 +212,9 @@ export function deleteCompetition(id) {
 // --- Hypotheses ---
 
 export function getHypotheses(projectId) {
-  return (getData().hypotheses || []).filter((h) => h.projectId === projectId)
+  return (getData().hypotheses || [])
+    .filter((h) => h.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getHypothesis(id) {
@@ -239,7 +247,9 @@ export function deleteHypothesis(id) {
 // --- Personas ---
 
 export function getPersonas(projectId) {
-  return (getData().personas || []).filter((p) => p.projectId === projectId)
+  return (getData().personas || [])
+    .filter((p) => p.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getPersona(id) {
@@ -272,7 +282,9 @@ export function deletePersona(id) {
 // --- Scenarios ---
 
 export function getScenarios(projectId) {
-  return (getData().scenarios || []).filter((s) => s.projectId === projectId)
+  return (getData().scenarios || [])
+    .filter((s) => s.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getScenario(id) {
@@ -319,7 +331,9 @@ export function deleteScenario(id) {
 // --- Requirements ---
 
 export function getRequirements(projectId) {
-  return (getData().requirements || []).filter((r) => r.projectId === projectId)
+  return (getData().requirements || [])
+    .filter((r) => r.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getRequirement(id) {
@@ -484,7 +498,9 @@ export function updateChecklistLabel(activityId, itemId, label) {
 // --- Team Members ---
 
 export function getTeamMembers(projectId) {
-  return (getData().teamMembers || []).filter((m) => m.projectId === projectId)
+  return (getData().teamMembers || [])
+    .filter((m) => m.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getTeamMember(id) {
@@ -519,7 +535,9 @@ export function deleteTeamMember(id) {
 // --- Tasks ---
 
 export function getTasks(projectId) {
-  return (getData().tasks || []).filter((t) => t.projectId === projectId)
+  return (getData().tasks || [])
+    .filter((t) => t.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getTask(id) {
@@ -554,7 +572,9 @@ export function deleteTask(id) {
 // --- Bugs ---
 
 export function getBugs(projectId) {
-  return (getData().bugs || []).filter((b) => b.projectId === projectId)
+  return (getData().bugs || [])
+    .filter((b) => b.projectId === projectId)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
 }
 
 export function getBug(id) {
@@ -584,6 +604,31 @@ export function deleteBug(id) {
   state.bugs = (state.bugs || []).filter((b) => b.id !== id)
   if (bug?.projectId) updateProject(bug.projectId, {})
   persist()
+}
+
+// --- Reorder ---
+
+/**
+ * Přeřadí entity v daném seznamu dle nového pořadí ID.
+ * @param {string} stateKey - klíč v state (goals, personas, …)
+ * @param {string|null} projectId - ID projektu (null pro projekty)
+ * @param {string[]} orderedIds - pole ID v novém pořadí
+ */
+export function reorderEntities(stateKey, projectId, orderedIds) {
+  const items = state[stateKey] || []
+  orderedIds.forEach((id, i) => {
+    const item = items.find((e) => e.id === id && (projectId === null || e.projectId === projectId))
+    if (item) item.sortOrder = i * 10
+  })
+  persist()
+}
+
+/**
+ * Přeřadí projekty dle nového pořadí ID.
+ * @param {string[]} orderedIds - pole ID v novém pořadí
+ */
+export function reorderProjects(orderedIds) {
+  reorderEntities('projects', null, orderedIds)
 }
 
 // --- Relations (bez kaskádového mazání) ---

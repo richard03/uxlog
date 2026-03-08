@@ -44,10 +44,21 @@
       </div>
 
       <ul v-if="activities.length" class="entity-list" role="list">
-        <li v-for="activity in activities" :key="activity.id" class="card card-clickable">
+        <li
+          v-for="activity in activities"
+          :key="activity.id"
+          class="card card-clickable"
+          :class="{ 'drag-over': dndActivities.isDragOver(activity.id), dragging: dndActivities.isDragging(activity.id) }"
+          draggable="true"
+          @dragstart="dndActivities.onDragStart($event, activity.id)"
+          @dragover="dndActivities.onDragOver($event, activity.id)"
+          @drop="dndActivities.onDrop($event, activity.id)"
+          @dragend="dndActivities.onDragEnd()"
+        >
           <router-link
             class="card-body"
             :to="{ name: 'activityDetail', params: { id: projectId, activityId: activity.id } }"
+            draggable="false"
           >
             <div class="card-badges">
               <span class="status-dot" :class="`status-${activity.status}`" aria-hidden="true"></span>
@@ -236,6 +247,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
 import { generateNextCode } from '../lib/code.js'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -329,6 +341,7 @@ const sections = computed(() => {
 // --- Activities ---
 
 const activities = computed(() => store.getActivities(projectId.value))
+const dndActivities = useDraggableList(() => activities.value, (orderedIds) => store.reorderEntities('activities', projectId.value, orderedIds))
 
 function getActivityChecklist(activity) {
   const type = activity.typeKey ? getActivityType(activity.typeKey) : null
@@ -635,6 +648,10 @@ function handleImported({ projectId: importedProjectId }) {
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-title { margin: var(--space-xs) 0 0; font-size: 1rem; }
 .card-clickable:hover { border-color: var(--accent); }
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
+.dragging { opacity: 0.4; }
 
 .card-badges {
   display: flex;

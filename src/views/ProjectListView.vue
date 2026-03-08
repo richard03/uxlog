@@ -18,8 +18,18 @@
     </div>
 
     <ul v-else class="project-list" role="list">
-      <li v-for="p in projects" :key="p.id" class="card">
-        <router-link :to="{ name: 'project', params: { id: p.id } }" class="card-link">
+      <li
+        v-for="p in projects"
+        :key="p.id"
+        class="card"
+        :class="{ 'drag-over': dnd.isDragOver(p.id), dragging: dnd.isDragging(p.id) }"
+        draggable="true"
+        @dragstart="dnd.onDragStart($event, p.id)"
+        @dragover="dnd.onDragOver($event, p.id)"
+        @drop="dnd.onDrop($event, p.id)"
+        @dragend="dnd.onDragEnd()"
+      >
+        <router-link :to="{ name: 'project', params: { id: p.id } }" class="card-link" draggable="false">
           <div class="card-header">
             <h3 class="card-title">{{ p.name || t.project.name }}</h3>
           </div>
@@ -84,6 +94,7 @@ import { isActivityOverdue } from '../lib/activity.js'
 import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const store = useStore()
 const { t, tPath } = useI18n()
@@ -99,7 +110,8 @@ const form = ref({
   priority: 'medium',
 })
 
-const projects = computed(() => store.state.projects || [])
+const projects = computed(() => store.getProjects())
+const dnd = useDraggableList(() => projects.value, (orderedIds) => store.reorderProjects(orderedIds))
 
 function scopeLabel(s) {
   return tPath(`scope.${s}`) || s
@@ -167,6 +179,11 @@ function saveProject() {
   flex-direction: column;
   gap: var(--space-md);
 }
+
+.project-list [draggable="true"] { cursor: grab; }
+.project-list [draggable="true"]:active { cursor: grabbing; }
+.project-list .drag-over { border-color: var(--accent); background: var(--bg-elevated); }
+.project-list .dragging { opacity: 0.4; }
 
 .card-header {
   display: flex;

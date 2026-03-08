@@ -42,6 +42,7 @@ export function createProject(overrides = {}) {
     phase: 'research',
     lastWorkedAt: new Date().toISOString(),
     notebook: '',
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -60,6 +61,7 @@ export function createGoal(projectId, overrides = {}) {
     name: '',
     description: '',
     metrics: '',
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -79,6 +81,7 @@ export function createStakeholder(projectId, overrides = {}) {
     influenceLevel: '',
     interestLevel: '',
     requirementIds: [],
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -98,6 +101,7 @@ export function createCompetition(projectId, overrides = {}) {
     strengths: '',
     weaknesses: '',
     inspiration: '',
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -118,6 +122,7 @@ export function createHypothesis(projectId, overrides = {}) {
     status: 'untested',
     explanation: '',
     requirementIds: [],
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -145,6 +150,7 @@ export function createPersona(projectId, overrides = {}) {
     targetGroupValue: '',
     scenarioIds: [],
     requirementIds: [],
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -173,6 +179,7 @@ export function createScenario(projectId, overrides = {}) {
     personaIds: [],
     hypothesisIds: [],
     requirementIds: [],
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -216,6 +223,7 @@ export function createTeamMember(projectId, overrides = {}) {
     email: '',
     phone: '',
     note: '',
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -239,6 +247,7 @@ export function createRequirement(projectId, overrides = {}) {
     conflictingRequirementIds: [],
     scenarioIds: [],
     stakeholderIds: [],
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -262,6 +271,7 @@ export function createTask(projectId, overrides = {}) {
     dueDate: '',
     assignee: '',
     status: 'open',
+    sortOrder: 9999,
     ...overrides,
   }
 }
@@ -306,6 +316,7 @@ export function createBug(projectId, overrides = {}) {
     severity: '',
     impact: '',
     status: 'new',
+    sortOrder: 9999,
     ...overrides,
   }
 }

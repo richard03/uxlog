@@ -17,8 +17,18 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="p in items" :key="p.id" class="card card-clickable">
-        <router-link :to="{ name: 'personaDetail', params: { id: projectId, personaId: p.id } }" class="card-body">
+      <li
+        v-for="p in items"
+        :key="p.id"
+        class="card card-clickable"
+        :class="{ 'drag-over': dnd.isDragOver(p.id), dragging: dnd.isDragging(p.id) }"
+        draggable="true"
+        @dragstart="dnd.onDragStart($event, p.id)"
+        @dragover="dnd.onDragOver($event, p.id)"
+        @drop="dnd.onDrop($event, p.id)"
+        @dragend="dnd.onDragEnd()"
+      >
+        <router-link :to="{ name: 'personaDetail', params: { id: projectId, personaId: p.id } }" class="card-body" draggable="false">
           <span v-if="p.code" class="badge badge-accent">{{ p.code }}</span>
           <span class="badge">{{ tPath(`personaStatus.${p.status}`) }}</span>
           <h3 class="card-title">{{ p.name || t.persona.name }}</h3>
@@ -69,6 +79,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import { generateNextCode } from '../lib/code.js'
+import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
 const store = useStore()
@@ -77,6 +88,7 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getPersonas(projectId.value))
+const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('personas', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },
@@ -112,4 +124,8 @@ function save() {
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
 .card-clickable:hover { border-color: var(--accent); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
+.dragging { opacity: 0.4; }
 </style>
