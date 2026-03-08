@@ -71,14 +71,71 @@
 
     <!-- Notebook modal -->
     <Modal v-if="showNotebook" :title="t.notebook.title" size="large" @close="closeNotebook">
-      <textarea
-        id="notebook"
-        v-model="notebookText"
-        class="notebook-textarea"
-        :placeholder="t.notebook.placeholder"
-        :aria-label="t.notebook.title"
-        autofocus
-      ></textarea>
+      <!-- Edit view -->
+      <div v-if="notebookView === 'edit'" class="nb-edit">
+        <textarea
+          id="notebook"
+          v-model="notebookText"
+          class="notebook-textarea"
+          :placeholder="t.notebook.placeholder"
+          :aria-label="t.notebook.title"
+          autofocus
+        ></textarea>
+        <div v-if="aiKeyAvailable" class="nb-ai-bar">
+          <button type="button" class="btn btn-secondary btn-sm" @click="runAiProcess">
+            {{ t.notebook.process }}
+          </button>
+          <span v-if="aiError" class="nb-error" role="alert">{{ aiError }}</span>
+        </div>
+      </div>
+
+      <!-- Processing view -->
+      <div v-else-if="notebookView === 'processing'" class="nb-processing" aria-live="polite">
+        <p>{{ t.notebook.processing }}</p>
+      </div>
+
+      <!-- Actions view -->
+      <div v-else class="nb-actions">
+        <div class="nb-actions-header">
+          <button type="button" class="btn btn-ghost btn-sm" @click="backToEdit">
+            ← {{ t.notebook.backToEdit }}
+          </button>
+        </div>
+        <div class="nb-action-list" role="list">
+          <div
+            v-for="action in aiActions"
+            :key="action._id"
+            class="nb-action-card"
+            :class="`nb-action-${action._status}`"
+            role="listitem"
+          >
+            <div class="nb-action-meta">
+              <span class="nb-action-entity-badge">{{ t.notebook.entityLabels[action.entity] || action.entity }}</span>
+              <span class="nb-action-type" :class="`nb-action-type-${action.type}`">
+                {{ action.type === 'create' ? t.notebook.actionCreate : t.notebook.actionUpdate }}
+              </span>
+              <strong class="nb-action-name">{{ action.entityName }}</strong>
+            </div>
+            <div class="nb-action-fields">
+              <div v-for="(val, key) in action.fields" :key="key" class="nb-action-field">
+                <span class="nb-field-key">{{ key }}</span>: <span class="nb-field-val">{{ val }}</span>
+              </div>
+            </div>
+            <blockquote v-if="action.sourceText" class="nb-action-source">{{ action.sourceText }}</blockquote>
+            <div v-if="action._status === 'pending'" class="nb-action-btns">
+              <button type="button" class="btn btn-primary btn-sm" @click="confirmAction(action)">
+                {{ t.notebook.actionConfirm }}
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="skipAction(action)">
+                {{ t.notebook.actionSkip }}
+              </button>
+            </div>
+            <div v-else class="nb-action-status">
+              {{ action._status === 'confirmed' ? t.notebook.actionDone : t.notebook.actionSkipped }}
+            </div>
+          </div>
+        </div>
+      </div>
     </Modal>
 
     <!-- Add activity modal -->
@@ -171,6 +228,8 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ExportButton from '../components/ExportButton.vue'
+import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
+import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -308,10 +367,25 @@ function dismissActivity(id) {
 
 const showNotebook = ref(false)
 const notebookText = ref('')
+const notebookView = ref('edit') // 'edit' | 'processing' | 'actions'
+const aiActions = ref([])
+const aiResidualText = ref('')
+const aiError = ref('')
+const aiKeyAvailable = ref(false)
 
 watch(project, (p) => {
   notebookText.value = p?.notebook || ''
 }, { immediate: true })
+
+watch(showNotebook, (v) => {
+  if (v) {
+    notebookView.value = 'edit'
+    aiActions.value = []
+    aiResidualText.value = ''
+    aiError.value = ''
+    aiKeyAvailable.value = hasAiKey()
+  }
+})
 
 const notebookPreview = computed(() => {
   const text = notebookText.value?.trim()
@@ -324,6 +398,107 @@ function closeNotebook() {
     store.updateProject(project.value.id, { notebook: notebookText.value })
   }
   showNotebook.value = false
+}
+
+async function runAiProcess() {
+  notebookView.value = 'processing'
+  aiError.value = ''
+  aiActions.value = []
+  try {
+    const projectData = {
+      goals: store.getGoals(projectId.value),
+      stakeholders: store.getStakeholders(projectId.value),
+      competitions: store.getCompetitions(projectId.value),
+      hypotheses: store.getHypotheses(projectId.value),
+      personas: store.getPersonas(projectId.value),
+      scenarios: store.getScenarios(projectId.value),
+      requirements: store.getRequirements(projectId.value),
+      teamMembers: store.getTeamMembers(projectId.value),
+    }
+    const { actions, residualText } = await processNotebook(notebookText.value, projectData)
+    aiResidualText.value = residualText
+    if (actions.length === 0) {
+      aiError.value = t.notebook.noActions
+      notebookText.value = residualText
+      notebookView.value = 'edit'
+    } else {
+      aiActions.value = actions.map((a, i) => ({ ...a, _id: i, _status: 'pending' }))
+      notebookView.value = 'actions'
+    }
+  } catch (e) {
+    aiError.value = e.message
+    notebookView.value = 'edit'
+  }
+}
+
+/** Mapování entity → { prefix kódu, getter pro existující položky } */
+const CODE_ENTITIES = {
+  goal:        { prefix: 'GOL', getter: (pid) => store.getGoals(pid) },
+  hypothesis:  { prefix: 'HYP', getter: (pid) => store.getHypotheses(pid) },
+  persona:     { prefix: 'PER', getter: (pid) => store.getPersonas(pid) },
+  scenario:    { prefix: 'SCN', getter: (pid) => store.getScenarios(pid) },
+  requirement: { prefix: 'REQ', getter: (pid) => store.getRequirements(pid) },
+}
+
+/**
+ * Sestaví text zápisníku z residualTextu + sourceTextů nezpracovaných akcí.
+ */
+function buildNotebookFromResidual() {
+  const parts = [aiResidualText.value]
+  for (const a of aiActions.value) {
+    if (a._status !== 'confirmed' && a.sourceText?.trim()) {
+      parts.push(a.sourceText.trim())
+    }
+  }
+  return parts.filter(Boolean).join('\n\n').trim()
+}
+
+function confirmAction(action) {
+  const pid = projectId.value
+  const creators = {
+    persona: (f) => store.addPersona(pid, f),
+    requirement: (f) => store.addRequirement(pid, f),
+    goal: (f) => store.addGoal(pid, f),
+    stakeholder: (f) => store.addStakeholder(pid, f),
+    competition: (f) => store.addCompetition(pid, f),
+    hypothesis: (f) => store.addHypothesis(pid, f),
+    scenario: (f) => store.addScenario(pid, f),
+    teamMember: (f) => store.addTeamMember(pid, f),
+  }
+  const updaters = {
+    persona: (id, f) => store.updatePersona(id, f),
+    requirement: (id, f) => store.updateRequirement(id, f),
+    goal: (id, f) => store.updateGoal(id, f),
+    stakeholder: (id, f) => store.updateStakeholder(id, f),
+    competition: (id, f) => store.updateCompetition(id, f),
+    hypothesis: (id, f) => store.updateHypothesis(id, f),
+    scenario: (id, f) => store.updateScenario(id, f),
+    teamMember: (id, f) => store.updateTeamMember(id, f),
+  }
+  let fields = { ...action.fields }
+  if (action.type === 'create') {
+    // Automaticky doplnit kód, pokud ho entita má a AI ho nezadala
+    const codeInfo = CODE_ENTITIES[action.entity]
+    if (codeInfo && !fields.code) {
+      fields.code = generateNextCode(codeInfo.prefix, codeInfo.getter(pid))
+    }
+    creators[action.entity]?.(fields)
+  } else if (action.type === 'update' && action.entityId) {
+    updaters[action.entity]?.(action.entityId, fields)
+  }
+  action._status = 'confirmed'
+}
+
+function skipAction(action) {
+  action._status = 'skipped'
+}
+
+function backToEdit() {
+  notebookText.value = buildNotebookFromResidual()
+  notebookView.value = 'edit'
+  aiActions.value = []
+  aiResidualText.value = ''
+  aiError.value = ''
 }
 
 function handleImported({ projectId: importedProjectId }) {
@@ -534,6 +709,27 @@ function handleImported({ projectId: importedProjectId }) {
   -webkit-box-orient: vertical;
 }
 
+/* Notebook modal – edit view */
+.nb-edit {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--space-sm);
+}
+
+.nb-ai-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.nb-error {
+  color: var(--danger, #e53e3e);
+  font-size: 0.9rem;
+}
+
 /* Notebook modal textarea */
 .notebook-textarea {
   width: 100%;
@@ -547,7 +743,7 @@ function handleImported({ projectId: importedProjectId }) {
   font-family: inherit;
   font-size: 0.95rem;
   line-height: 1.6;
-  resize: vertical;
+  resize: none;
   box-sizing: border-box;
   transition: border-color var(--transition);
 }
@@ -555,5 +751,124 @@ function handleImported({ projectId: importedProjectId }) {
 .notebook-textarea:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+/* Notebook modal – processing view */
+.nb-processing {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+/* Notebook modal – actions view */
+.nb-actions {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-md);
+}
+
+.nb-actions-header {
+  flex-shrink: 0;
+}
+
+.nb-action-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.nb-action-card {
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: opacity var(--transition);
+}
+
+.nb-action-confirmed { opacity: 0.55; border-color: var(--accent); }
+.nb-action-skipped { opacity: 0.35; }
+
+.nb-action-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.nb-action-entity-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.nb-action-type {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.nb-action-type-create { background: var(--accent-muted); color: var(--accent); }
+.nb-action-type-update { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+
+.nb-action-name {
+  font-size: 0.95rem;
+}
+
+.nb-action-fields {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nb-field-key {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nb-field-val {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.nb-action-source {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.nb-action-btns {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.nb-action-status {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 </style>

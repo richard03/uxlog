@@ -24,6 +24,19 @@
           </button>
         </div>
         <p class="field-hint">{{ service.hint }}</p>
+        <div class="model-row">
+          <label :for="'ai-model-' + service.id" class="model-label">{{ t.settings.modelLabel }}</label>
+          <input
+            :id="'ai-model-' + service.id"
+            v-model="models[service.id]"
+            type="text"
+            :placeholder="service.modelPlaceholder"
+            class="input input-sm"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <p class="field-hint">{{ t.settings.modelHint }}</p>
       </div>
       <div class="actions">
         <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
@@ -47,13 +60,20 @@ const loaded = loadAiKeys()
 const keys = reactive(
   Object.fromEntries(AI_SERVICES.map((s) => [s.id, loaded[s.id] ?? '']))
 )
+const models = reactive(
+  Object.fromEntries(AI_SERVICES.map((s) => [s.id, loaded[`${s.id}_model`] ?? '']))
+)
 const visible = reactive(
   Object.fromEntries(AI_SERVICES.map((s) => [s.id, false]))
 )
 const saved = ref(false)
 
 function save() {
-  saveAiKeys({ ...keys })
+  const data = { ...keys }
+  for (const s of AI_SERVICES) {
+    data[`${s.id}_model`] = models[s.id]
+  }
+  saveAiKeys(data)
   saved.value = true
   setTimeout(() => {
     saved.value = false
@@ -111,5 +131,24 @@ function save() {
 .icon-btn {
   padding: var(--space-xs) var(--space-sm);
   font-size: 1rem;
+}
+
+.model-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.model-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.input-sm {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
 }
 </style>
