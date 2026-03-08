@@ -52,6 +52,12 @@
             <div class="card-badges">
               <span class="status-dot" :class="`status-${activity.status}`" aria-hidden="true"></span>
               <span class="badge">{{ t.activity.statusOptions[activity.status] }}</span>
+              <span
+                v-if="getActivityChecklist(activity).total > 0"
+                class="badge activity-checklist-badge"
+                :class="{ 'activity-checklist-done': getActivityChecklist(activity).done === getActivityChecklist(activity).total }"
+                :aria-label="t.activity.checklistProgress(getActivityChecklist(activity).done, getActivityChecklist(activity).total)"
+              >{{ getActivityChecklist(activity).done }}/{{ getActivityChecklist(activity).total }}</span>
             </div>
             <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
           </router-link>
@@ -321,6 +327,13 @@ const sections = computed(() => {
 // --- Activities ---
 
 const activities = computed(() => store.getActivities(projectId.value))
+
+function getActivityChecklist(activity) {
+  const type = activity.typeKey ? getActivityType(activity.typeKey) : null
+  const total = type?.checklist?.length ?? 0
+  const done = total ? (activity.checkedItems || []).length : 0
+  return { done, total }
+}
 
 const showAddActivity = ref(false)
 const activityTypeKey = ref('')
@@ -648,6 +661,18 @@ function handleImported({ projectId: importedProjectId }) {
 
 .activity-dismiss:hover {
   opacity: 1;
+}
+
+.activity-checklist-badge {
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.activity-checklist-done {
+  color: #4caf50;
+  border-color: #4caf50;
 }
 
 .activities-empty {

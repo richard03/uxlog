@@ -64,6 +64,7 @@ export function useStore() {
     addActivity: store.addActivity,
     updateActivity: store.updateActivity,
     deleteActivity: store.deleteActivity,
+    toggleChecklistItem: store.toggleChecklistItem,
     search: store.search,
     exportData: store.exportData,
     exportSectionData: store.exportSectionData,

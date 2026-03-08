@@ -37,6 +37,29 @@
       </dl>
     </section>
 
+    <section v-if="activityType?.checklist?.length" class="checklist-section" aria-labelledby="checklist-heading">
+      <div class="checklist-header">
+        <h2 id="checklist-heading" class="checklist-title">{{ t.activity.checklist }}</h2>
+        <span class="checklist-progress" :class="{ 'checklist-done': checklistDone }" aria-live="polite">
+          {{ checklistDone ? t.activity.checklistDone : t.activity.checklistProgress(checkedCount, activityType.checklist.length) }}
+        </span>
+      </div>
+      <ul class="checklist-list" role="list">
+        <li v-for="ci in activityType.checklist" :key="ci.id" class="checklist-item">
+          <label class="checklist-label">
+            <input
+              type="checkbox"
+              class="checklist-checkbox"
+              :checked="isChecked(ci.id)"
+              @change="store.toggleChecklistItem(activityItem.id, ci.id)"
+              :aria-label="ci.label"
+            />
+            <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ ci.label }}</span>
+          </label>
+        </li>
+      </ul>
+    </section>
+
     <section v-if="activityType" class="type-info-section" aria-label="t.activity.typeInfo">
       <h2 class="type-info-title">{{ t.activity.typeInfo }}</h2>
       <p class="type-info-desc">{{ activityType.defaultDescription }}</p>
@@ -87,9 +110,20 @@ const store = useStore()
 const { t } = useI18n()
 
 const projectId = computed(() => route.params.id)
-const item = computed(() => store.getActivity(route.params.activityId))
+const activityItem = computed(() => store.getActivity(route.params.activityId))
+const item = activityItem
 const project = computed(() => store.getProject(projectId.value))
-const activityType = computed(() => item.value?.typeKey ? getActivityType(item.value.typeKey) : null)
+const activityType = computed(() => activityItem.value?.typeKey ? getActivityType(activityItem.value.typeKey) : null)
+
+const checkedCount = computed(() => (activityItem.value?.checkedItems || []).length)
+const checklistDone = computed(() =>
+  activityType.value?.checklist?.length > 0 &&
+  checkedCount.value === activityType.value.checklist.length
+)
+
+function isChecked(itemId) {
+  return (activityItem.value?.checkedItems || []).includes(itemId)
+}
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },
@@ -169,4 +203,15 @@ function doDelete() {
 .type-info-title { margin: 0 0 var(--space-xs); font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .type-info-desc { margin: 0; font-size: 0.9rem; color: var(--text); }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+.checklist-section { margin-top: var(--space-lg); }
+.checklist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
+.checklist-title { margin: 0; font-size: 1rem; font-weight: 600; }
+.checklist-progress { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.checklist-done { color: #4caf50; font-weight: 600; }
+.checklist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.checklist-item { border-bottom: 1px solid var(--border); }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; }
+.checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--color-primary, #3b82f6); width: 1rem; height: 1rem; cursor: pointer; }
+.checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
 </style>

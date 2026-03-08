@@ -406,6 +406,18 @@ export function deleteActivity(id) {
   persist()
 }
 
+export function toggleChecklistItem(activityId, itemId) {
+  const idx = state.activities?.findIndex((a) => a.id === activityId)
+  if (idx === undefined || idx === -1) return
+  const a = state.activities[idx]
+  const checked = a.checkedItems || []
+  const newChecked = checked.includes(itemId)
+    ? checked.filter((id) => id !== itemId)
+    : [...checked, itemId]
+  state.activities[idx] = { ...a, checkedItems: newChecked }
+  persist()
+}
+
 // --- Team Members ---
 
 export function getTeamMembers(projectId) {

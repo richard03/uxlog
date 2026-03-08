@@ -193,6 +193,7 @@ export function createActivity(projectId, overrides = {}) {
     status: 'pending',
     dismissed: false,
     sortOrder: 9999,
+    checkedItems: [],
     ...overrides,
   }
 }

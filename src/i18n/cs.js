@@ -257,6 +257,9 @@ export default {
     groupProject: 'Projektové',
     groupResearch: 'UX výzkum',
     groupDesign: 'UX design',
+    checklist: 'Checklist',
+    checklistProgress: (done, total) => `${done} / ${total}`,
+    checklistDone: 'Vše splněno',
   },
   moscow: {
     must: 'Must have',
