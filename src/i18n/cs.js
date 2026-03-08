@@ -245,7 +245,7 @@ export default {
     edit: 'Upravit aktivitu',
     delete: 'Smazat aktivitu',
     deleteConfirm: 'Opravdu smazat aktivitu?',
-    notInterested: 'Nezajímavé',
+    notInterested: 'Odstranit',
     addPredefined: 'Přidat předdefinovanou aktivitu',
     addCustom: 'Přidat vlastní aktivitu',
     customName: 'Vlastní aktivita',
