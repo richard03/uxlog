@@ -833,18 +833,18 @@ function handleImported({ projectId: importedProjectId }) {
 
 .nb-action-fields {
   font-size: 0.85rem;
-  color: var(--text-muted);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .nb-field-key {
-  font-weight: 600;
-  color: var(--text);
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .nb-field-val {
+  color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
 }
