@@ -43,17 +43,17 @@ function entityMatches(entity, searchFields, query) {
 /** Mapování entit na pole pro vyhledávání */
 const SEARCH_FIELDS = {
   project: ['name'],
-  goal: ['code', 'name', 'description', 'metrics'],
+  goal: ['code', 'name', 'description', 'metrics', 'url'],
   stakeholder: ['name', 'description', 'influenceLevel', 'interestLevel'],
-  competition: ['name', 'description', 'strengths', 'weaknesses', 'inspiration'],
-  hypothesis: ['code', 'name', 'description', 'explanation'],
-  persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue'],
-  scenario: ['code', 'name', 'type', 'description', 'frequency', 'value'],
-  requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation'],
+  competition: ['name', 'description', 'strengths', 'weaknesses', 'inspiration', 'url'],
+  hypothesis: ['code', 'name', 'description', 'explanation', 'url'],
+  persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue', 'url'],
+  scenario: ['code', 'name', 'type', 'description', 'frequency', 'value', 'url'],
+  requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation', 'url'],
   activity: ['name', 'description'],
   teamMember: ['name', 'role', 'email', 'phone', 'note'],
-  task: ['code', 'name', 'description', 'metrics', 'achievability', 'relevance', 'assignee'],
-  bug: ['code', 'name', 'expectedBehavior', 'actualBehavior', 'stepsToReproduce'],
+  task: ['code', 'name', 'description', 'metrics', 'achievability', 'relevance', 'assignee', 'url'],
+  bug: ['code', 'name', 'expectedBehavior', 'actualBehavior', 'stepsToReproduce', 'url'],
 }
 
 /**

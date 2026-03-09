@@ -39,6 +39,10 @@
           <h3 class="card-title">{{ h.name || t.hypothesis.name }}</h3>
           <p v-if="h.description" class="card-desc">{{ h.description }}</p>
         </router-link>
+        <KebabMenu
+          :items="[{ label: t.hypothesis.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'delete') confirmDeleteItem(h.id) }"
+        />
       </li>
     </ul>
 
@@ -64,6 +68,14 @@
         </div>
       </form>
     </Modal>
+
+    <ConfirmDialog
+      v-if="deleteTarget"
+      :title="t.hypothesis.delete"
+      :message="t.hypothesis.deleteConfirm"
+      @confirm="doDeleteItem"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>
 
@@ -73,9 +85,11 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
+import KebabMenu from '../components/KebabMenu.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
@@ -99,6 +113,15 @@ const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', status: 'untested', explanation: '' })
 
+const deleteTarget = ref(null)
+function confirmDeleteItem(id) { deleteTarget.value = id }
+function doDeleteItem() {
+  if (deleteTarget.value) {
+    store.deleteHypothesis(deleteTarget.value)
+    deleteTarget.value = null
+  }
+}
+
 
 function openForm() {
   form.value = { code: generateNextCode('HYP', items.value), name: '', description: '', status: 'untested', explanation: '' }
@@ -118,6 +141,7 @@ function save() {
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .header-actions { display: flex; gap: var(--space-xs); }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.card { display: flex; align-items: center; gap: var(--space-sm); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-title { margin: var(--space-xs) 0; font-size: 1rem; }
 .card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }

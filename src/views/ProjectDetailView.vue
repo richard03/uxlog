@@ -72,12 +72,11 @@
             </div>
             <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
           </router-link>
-          <button
-            type="button"
-            class="btn btn-ghost btn-xs activity-dismiss"
+          <KebabMenu
+            :items="[{ label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
             :aria-label="t.activity.notInterested"
-            @click="dismissActivity(activity.id)"
-          >{{ t.activity.notInterested }}</button>
+            @action="(a) => { if (a === 'delete') dismissActivity(activity.id) }"
+          />
         </li>
       </ul>
       <p v-else class="activities-empty">
@@ -117,6 +116,14 @@
           <button type="button" class="btn btn-ghost btn-sm" @click="backToEdit">
             ← {{ t.notebook.backToEdit }}
           </button>
+          <button
+            v-if="aiActions.some(a => a._status === 'pending')"
+            type="button"
+            class="btn btn-primary btn-sm"
+            @click="confirmAllActions"
+          >
+            {{ t.notebook.actionConfirmAll }}
+          </button>
         </div>
         <div class="nb-action-list" role="list">
           <div
@@ -135,7 +142,16 @@
             </div>
             <div class="nb-action-fields">
               <div v-for="(val, key) in action.fields" :key="key" class="nb-action-field">
-                <span class="nb-field-key">{{ key }}</span>: <span class="nb-field-val">{{ val }}</span>
+                <label :for="`af-${action._id}-${key}`" class="nb-field-key">{{ key }}</label>
+                <textarea
+                  v-if="action._status === 'pending'"
+                  :id="`af-${action._id}-${key}`"
+                  class="nb-field-input"
+                  :value="action.fields[key]"
+                  @input="action.fields[key] = $event.target.value"
+                  rows="2"
+                ></textarea>
+                <span v-else class="nb-field-val">{{ val }}</span>
               </div>
             </div>
             <blockquote v-if="action.sourceText" class="nb-action-source">{{ action.sourceText }}</blockquote>
@@ -245,6 +261,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ExportButton from '../components/ExportButton.vue'
+import KebabMenu from '../components/KebabMenu.vue'
 import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -521,6 +538,14 @@ function skipAction(action) {
   action._status = 'skipped'
 }
 
+function confirmAllActions() {
+  for (const action of aiActions.value) {
+    if (action._status === 'pending') {
+      confirmAction(action)
+    }
+  }
+}
+
 function backToEdit() {
   notebookText.value = buildNotebookFromResidual()
   notebookView.value = 'edit'
@@ -682,18 +707,6 @@ function handleImported({ projectId: importedProjectId }) {
 .status-dot.status-pending { background: var(--color-muted, #9ca3af); }
 .status-dot.status-in_progress { background: #f59e0b; }
 .status-dot.status-done { background: #4caf50; }
-
-.activity-dismiss {
-  font-size: 0.75rem;
-  flex-shrink: 0;
-  padding: 0.15rem 0.5rem;
-  opacity: 0.5;
-  align-self: center;
-}
-
-.activity-dismiss:hover {
-  opacity: 1;
-}
 
 .activity-checklist-badge {
   font-variant-numeric: tabular-nums;
@@ -898,6 +911,25 @@ function handleImported({ projectId: importedProjectId }) {
 .nb-field-key {
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.nb-field-input {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  resize: vertical;
+  line-height: 1.4;
+  transition: border-color var(--transition);
+}
+
+.nb-field-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .nb-field-val {

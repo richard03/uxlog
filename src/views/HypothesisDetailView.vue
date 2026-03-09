@@ -13,6 +13,7 @@
               <h1>{{ item.name || t.hypothesis.name }}</h1>
               <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
+            
           </div>
           <p class="entity-type">{{ t.hypothesis.label }}</p>
         </div>
@@ -28,7 +29,10 @@
       <dl class="detail-list">
         <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
           <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': !item[field.key] }">{{ displayValue(field.key) }}</dd>
+          <dd :class="{ 'value-empty': !item[field.key] }">
+            <a v-if="field.type === 'url' && isUrl(item[field.key])" :href="item[field.key]" target="_blank" rel="noopener noreferrer" @click.stop>{{ item[field.key] }}</a>
+            <template v-else>{{ displayValue(field.key) }}</template>
+          </dd>
           <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
@@ -38,7 +42,7 @@
       <form @submit.prevent="saveField">
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
-          <input v-if="editingType === 'text'" id="edit-field" v-model="editValue" class="form-control" />
+          <input v-if="editingType === 'text' || editingType === 'url'" id="edit-field" v-model="editValue" class="form-control" />
           <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
           <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
             <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -105,9 +109,15 @@ const allFields = [
     ],
   },
   { key: 'explanation', label: t.hypothesis.explanation, type: 'textarea' },
+  { key: 'url', label: t.hypothesis.url, type: 'url' },
 ]
 
 const fields = allFields.slice(2)
+
+function isUrl(val) {
+  if (!val) return false
+  try { return Boolean(new URL(val)) } catch { return false }
+}
 
 const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
 const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
@@ -161,6 +171,8 @@ function doDelete() {
 .editable-code { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
 .editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
 .editable-code .pencil, .editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
+.header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
+.header-url-link:hover { color: var(--color-primary); }
 .editable-code:hover .pencil, .editable-code:focus-visible .pencil, .editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .detail-section { margin-top: var(--space-lg); }
 .detail-list { margin: 0; padding: 0; }

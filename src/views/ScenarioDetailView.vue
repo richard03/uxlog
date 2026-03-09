@@ -21,6 +21,7 @@
               <h1>{{ scenario.name || t.scenario.name }}</h1>
               <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
+            
           </div>
           <p class="entity-type">{{ t.scenario.label }}</p>
         </div>
@@ -36,7 +37,10 @@
       <dl class="detail-list">
         <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
           <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': isFieldEmpty(field) }">{{ displayValue(field.key) }}</dd>
+          <dd :class="{ 'value-empty': isFieldEmpty(field) }">
+            <a v-if="field.type === 'url' && isUrl(scenario[field.key])" :href="scenario[field.key]" target="_blank" rel="noopener noreferrer" @click.stop>{{ scenario[field.key] }}</a>
+            <template v-else>{{ displayValue(field.key) }}</template>
+          </dd>
           <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
@@ -47,7 +51,7 @@
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
           <input
-            v-if="editingType === 'text'"
+            v-if="editingType === 'text' || editingType === 'url'"
             id="edit-field"
             v-model="editValue"
             class="form-control"
@@ -168,6 +172,7 @@ const fields = [
   { key: 'userCount', valueKey: 'userCount', unitKey: 'userCountUnit', label: t.scenario.userCount, type: 'number-unit', units },
   { key: 'frequency', valueKey: 'frequencyValue', unitKey: 'frequencyUnit', label: t.scenario.frequency, type: 'number-unit', units },
   { key: 'value', valueKey: 'valueAmount', unitKey: 'valueUnit', label: t.scenario.value, type: 'number-unit', units },
+  { key: 'url', label: t.scenario.url, type: 'url' },
 ]
 
 // Zahrnuje také code a name pro modál (editace z hlavičky)
@@ -176,6 +181,11 @@ const allFields = [
   { key: 'name', label: t.scenario.name, type: 'text' },
   ...fields,
 ]
+
+function isUrl(val) {
+  if (!val) return false
+  try { return Boolean(new URL(val)) } catch { return false }
+}
 
 const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
 const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
@@ -337,6 +347,8 @@ function doDelete() {
   flex-shrink: 0;
   align-self: center;
 }
+.header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
+.header-url-link:hover { color: var(--color-primary); }
 
 .editable-code:hover .pencil,
 .editable-code:focus-visible .pencil,

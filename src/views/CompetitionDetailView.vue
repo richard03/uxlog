@@ -4,10 +4,13 @@
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-title-row">
         <div class="header-title">
-          <button class="editable-name" @click="openEdit('name')" :aria-label="`${t.common.edit} – ${t.competition.name}`">
-            <h1>{{ item.name || t.competition.name }}</h1>
-            <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
+          <div class="header-title-main">
+            <button class="editable-name" @click="openEdit('name')" :aria-label="`${t.common.edit} – ${t.competition.name}`">
+              <h1>{{ item.name || t.competition.name }}</h1>
+              <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            
+          </div>
           <p class="entity-type">{{ t.competition.label }}</p>
         </div>
         <div class="header-actions">
@@ -22,7 +25,10 @@
       <dl class="detail-list">
         <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
           <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': !item[field.key] }">{{ item[field.key] || '—' }}</dd>
+          <dd :class="{ 'value-empty': !item[field.key] }">
+            <a v-if="field.type === 'url' && isUrl(item[field.key])" :href="item[field.key]" target="_blank" rel="noopener noreferrer" @click.stop>{{ item[field.key] }}</a>
+            <template v-else>{{ item[field.key] || '—' }}</template>
+          </dd>
           <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
@@ -32,7 +38,7 @@
       <form @submit.prevent="saveField">
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
-          <input v-if="editingType === 'text'" id="edit-field" v-model="editValue" class="form-control" />
+          <input v-if="editingType === 'text' || editingType === 'url'" id="edit-field" v-model="editValue" class="form-control" />
           <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
         </div>
         <div class="form-actions">
@@ -89,7 +95,13 @@ const allFields = [
   { key: 'strengths', label: t.competition.strengths, type: 'textarea' },
   { key: 'weaknesses', label: t.competition.weaknesses, type: 'textarea' },
   { key: 'inspiration', label: t.competition.inspiration, type: 'textarea' },
+  { key: 'url', label: t.competition.url, type: 'url' },
 ]
+
+function isUrl(val) {
+  if (!val) return false
+  try { return Boolean(new URL(val)) } catch { return false }
+}
 
 const fields = allFields.slice(1)
 
@@ -130,10 +142,13 @@ function doDelete() {
 .header-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
 .header-actions { display: flex; gap: var(--space-xs); }
 .header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.header-title-main { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; }
 .entity-type { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
 .editable-name { display: inline-flex; align-items: baseline; gap: 0.3em; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font-family: inherit; }
 .editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
 .editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
+.header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
+.header-url-link:hover { color: var(--color-primary); }
 .editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .detail-section { margin-top: var(--space-lg); }
 .detail-list { margin: 0; padding: 0; }

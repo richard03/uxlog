@@ -62,13 +62,13 @@ ${notebookText}
 Analyzuj poznámky a navrhni seznam konkrétních akcí pro vytvoření nebo úpravu záznamů v projektové databázi.
 
 Podporované typy entit a jejich pole:
-- persona: code, name, status (protopersona/persona), description, motivation, needs, problems, context, recruitmentCriteria, targetGroupSize, targetGroupValue
-- requirement: code, name, description, motivation, priority (must/should/could/wont), wontHaveExplanation
-- goal: code, name, description, metrics
+- persona: code, name, status (protopersona/persona), description, motivation, needs, problems, context, recruitmentCriteria, targetGroupSize, targetGroupValue, url
+- requirement: code, name, description, motivation, priority (must/should/could/wont), wontHaveExplanation, url
+- goal: code, name, description, metrics, url
 - stakeholder: name, description, influenceLevel (high/medium/low), interestLevel (high/medium/low)
-- competition: name, description, strengths, weaknesses, inspiration
-- hypothesis: code, name, description, status (untested/tested/refuted), explanation
-- scenario: code, name, type (main/secondary/error), description
+- competition: name, description, strengths, weaknesses, inspiration, url
+- hypothesis: code, name, description, status (untested/tested/refuted), explanation, url
+- scenario: code, name, type (main/secondary/error), description, url
 - teamMember: name, role, email, phone, note
 
 Pravidla:

@@ -36,6 +36,10 @@
             <span v-if="m.phone" class="badge">{{ m.phone }}</span>
           </div>
         </router-link>
+        <KebabMenu
+          :items="[{ label: t.teamMember.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'delete') confirmDeleteItem(m.id) }"
+        />
       </li>
     </ul>
 
@@ -69,6 +73,14 @@
         </div>
       </form>
     </Modal>
+
+    <ConfirmDialog
+      v-if="deleteTarget"
+      :title="t.teamMember.delete"
+      :message="t.teamMember.deleteConfirm"
+      @confirm="doDeleteItem"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>
 
@@ -78,9 +90,11 @@ import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
+import KebabMenu from '../components/KebabMenu.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 
 const route = useRoute()
@@ -102,6 +116,15 @@ const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ name: '', role: '', email: '', phone: '', note: '' })
 
+const deleteTarget = ref(null)
+function confirmDeleteItem(id) { deleteTarget.value = id }
+function doDeleteItem() {
+  if (deleteTarget.value) {
+    store.deleteTeamMember(deleteTarget.value)
+    deleteTarget.value = null
+  }
+}
+
 
 function openForm() {
   form.value = { name: '', role: '', email: '', phone: '', note: '' }
@@ -121,6 +144,7 @@ function save() {
 .header-row { display: flex; align-items: center; justify-content: space-between; }
 .header-actions { display: flex; gap: var(--space-xs); }
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.card { display: flex; align-items: center; gap: var(--space-sm); }
 .card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-title { margin: var(--space-xs) 0; font-size: 1rem; }
 .card-role { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }

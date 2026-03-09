@@ -57,22 +57,13 @@
               />
               <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ getItemLabel(ci) }}</span>
             </label>
-            <button
-              class="checklist-item-edit-btn"
-              @click="startEditLabel(ci)"
-              :aria-label="t.activity.editChecklistLabel"
-              :title="t.activity.editChecklistLabel"
-            >
-              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button
-              class="checklist-item-remove-btn"
-              @click="store.removeChecklistItem(activityItem.id, ci.id)"
-              :aria-label="t.activity.removeChecklistItem"
-              :title="t.activity.removeChecklistItem"
-            >
-              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <KebabMenu
+              :items="[
+                { label: t.activity.editChecklistLabel, action: 'edit' },
+                { label: t.activity.removeChecklistItem, action: 'remove', variant: 'danger' },
+              ]"
+              @action="(a) => { if (a === 'edit') startEditLabel(ci); else if (a === 'remove') store.removeChecklistItem(activityItem.id, ci.id) }"
+            />
           </div>
           <div v-else class="checklist-item-editing">
             <input
@@ -162,6 +153,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
+import KebabMenu from '../components/KebabMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -326,11 +318,6 @@ function doDelete() {
 .checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; flex: 1; min-width: 0; }
 .checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--color-primary, #3b82f6); width: 1rem; height: 1rem; cursor: pointer; }
 .checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
-.checklist-item-edit-btn, .checklist-item-remove-btn { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: var(--space-xs) 0.25rem; opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; margin-top: 2px; border-radius: var(--radius-sm); }
-.checklist-item:hover .checklist-item-edit-btn, .checklist-item:focus-within .checklist-item-edit-btn,
-.checklist-item:hover .checklist-item-remove-btn, .checklist-item:focus-within .checklist-item-remove-btn { opacity: 1; }
-.checklist-item-edit-btn:hover { color: var(--text); background: var(--bg-hover, rgba(0,0,0,0.05)); }
-.checklist-item-remove-btn:hover { color: var(--color-danger, #ef4444); background: var(--bg-hover, rgba(0,0,0,0.05)); }
 .checklist-add-row { padding: var(--space-xs) 0; }
 .checklist-add-btn { display: flex; align-items: center; gap: 0.4em; color: var(--text-muted); }
 .checklist-add-btn:hover { color: var(--color-primary, #3b82f6); }
