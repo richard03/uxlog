@@ -339,4 +339,9 @@ function doDelete() {
 .checklist-edit-input { font-size: 0.95rem; padding: 0.3rem 0.5rem; }
 .checklist-edit-actions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
 .btn-sm { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
+@media (max-width: 600px) {
+  .detail-item { grid-template-columns: 1fr auto; }
+  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
+  .detail-item dd { grid-column: 1; }
+}
 </style>

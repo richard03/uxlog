@@ -557,6 +557,7 @@ function handleImported({ projectId: importedProjectId }) {
 
 .header-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
 }
 
@@ -576,6 +577,18 @@ function handleImported({ projectId: importedProjectId }) {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: var(--space-sm);
+}
+
+@media (max-width: 640px) {
+  .section-nav {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 800px) {
+  .section-nav {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .section-link {

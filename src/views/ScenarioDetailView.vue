@@ -430,4 +430,9 @@ function doDelete() {
   justify-content: flex-end;
   margin-top: var(--space-md);
 }
+@media (max-width: 600px) {
+  .detail-item { grid-template-columns: 1fr auto; }
+  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
+  .detail-item dd { grid-column: 1; }
+}
 </style>

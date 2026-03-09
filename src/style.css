@@ -321,9 +321,12 @@ label {
   pointer-events: none;
 }
 
-@media (min-width: var(--breakpoint-md)) {
-  .header-inner {
-    padding-left: var(--space-md);
+@media (max-width: 480px) {
+  h1 { font-size: 1.35rem; }
+  h2 { font-size: 1.15rem; }
+
+  .container {
+    padding: var(--space-sm);
   }
 }
 

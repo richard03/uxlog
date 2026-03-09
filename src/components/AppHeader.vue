@@ -72,6 +72,10 @@ const isDark = computed(() => theme.isDark.value)
   font-weight: 700;
   font-size: 1.25rem;
   color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .logo:hover {
@@ -82,6 +86,7 @@ const isDark = computed(() => theme.isDark.value)
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-shrink: 0;
 }
 
 .nav-link {

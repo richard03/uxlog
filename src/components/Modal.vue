@@ -85,6 +85,7 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   min-width: 320px;
   max-width: 500px;
+  width: 100%;
   margin: auto;
 }
 
@@ -95,6 +96,27 @@ onUnmounted(() => {
   max-height: calc(100dvh - 48px);
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: var(--space-sm);
+    align-items: flex-end;
+  }
+
+  .modal {
+    min-width: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    margin-bottom: 0;
+  }
+
+  .modal-large {
+    width: 100vw;
+    max-width: 100vw;
+    height: calc(100dvh - 48px);
+    max-height: calc(100dvh - 48px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
 }
 
 .modal-large .modal-body {

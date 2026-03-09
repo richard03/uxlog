@@ -177,4 +177,9 @@ function doDelete() {
 .edit-btn { opacity: 0; transition: opacity 0.15s; color: var(--text-muted); }
 .detail-item:hover .edit-btn, .detail-item:focus-within .edit-btn { opacity: 1; }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+@media (max-width: 600px) {
+  .detail-item { grid-template-columns: 1fr auto; }
+  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
+  .detail-item dd { grid-column: 1; }
+}
 </style>

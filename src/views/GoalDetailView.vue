@@ -153,4 +153,9 @@ function doDelete() {
 .detail-item:hover .edit-btn, .detail-item:focus-within .edit-btn { opacity: 1; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
+@media (max-width: 600px) {
+  .detail-item { grid-template-columns: 1fr auto; }
+  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
+  .detail-item dd { grid-column: 1; }
+}
 </style>
