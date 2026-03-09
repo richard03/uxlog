@@ -102,6 +102,7 @@ const NODE_ACCENT_BAR = 'AccentBar';
 const NODE_FOTO = 'Foto';
 const NODE_SPACER = 'Spacer';
 const NODE_BADGE = 'Badge';
+const NODE_URL = 'URL';
 
 /** Chybové zprávy */
 const ERR_FONT_LOAD = 'Nepodařilo se načíst žádný font. Ujistěte se, že máte v dokumentu dostupný font Inter, Roboto nebo Open Sans.';
@@ -633,6 +634,27 @@ function buildDivider() {
 }
 
 /**
+ * Vytvoří textový uzel s klikatelným URL odkazem.
+ * Text je podtržený a modrý; odkaz je nastaven jako Figma hyperlink.
+ * @param {string} url - URL adresa
+ * @param {boolean} [inverted] - true = světlý text (tmavé pozadí)
+ * @returns {TextNode}
+ */
+function buildUrlText(url, inverted) {
+  const urlText = figma.createText();
+  urlText.name        = NODE_URL;
+  urlText.fontName    = { family: FONTS.family, style: FONTS.regular };
+  urlText.characters  = url;
+  urlText.fontSize    = 22;
+  urlText.fills       = [solid(hex(inverted ? COLOR_LT_SKY : COLOR_BLUE))];
+  urlText.textDecoration = 'UNDERLINE';
+  try {
+    urlText.setRangeHyperlink(0, url.length, { type: 'URL', value: url });
+  } catch (_) {}
+  return urlText;
+}
+
+/**
  * Vytvoří statistikový blok (popisek + hodnota).
  * @param {string} label - Popisek statistiky
  * @param {string} value - Hodnota
@@ -819,6 +841,11 @@ function buildGenericHeader(entity, config) {
     }
 
     fl(header, statsRow, 'HUG', 'HUG');
+  }
+
+  // URL odkaz (pokud entita má vyplněné URL)
+  if (entity.url && entity.url.trim()) {
+    fl(header, buildUrlText(entity.url.trim(), true), 'HUG');
   }
 
   return header;
@@ -1165,6 +1192,11 @@ function buildInfoColumn(persona, inverted) {
 
   const badgeLabel = persona.status === 'protopersona' ? BADGE_PROTOPERSONA : BADGE_PERSONA;
   meta.appendChild(buildBadge(badgeLabel));
+
+  // URL odkaz (pokud persona má vyplněné URL)
+  if (persona.url && persona.url.trim()) {
+    fl(col, buildUrlText(persona.url.trim(), inverted), 'HUG');
+  }
 
   // Spacer
   const spacer = figma.createFrame();
