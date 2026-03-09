@@ -329,7 +329,7 @@ const sections = computed(() => {
     { id: 'scenarios', route: 'scenarios', count: store.getScenarios(pid).length },
     { id: 'requirements', route: 'requirements', count: store.getRequirements(pid).length },
     { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },
-    { id: 'bugs', route: 'bugs', count: store.getBugs(pid).length },
+    { id: 'bugs', route: 'bugs', count: store.getBugs(pid).filter(b => b.status === 'zadano').length },
     { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
     { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
     { id: 'competition', route: 'competition', count: store.getCompetitions(pid).length },

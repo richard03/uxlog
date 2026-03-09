@@ -102,11 +102,9 @@ const editValue = ref('')
 const allFields = [
   { key: 'code', label: t.bug.code, type: 'text' },
   { key: 'name', label: t.bug.name, type: 'text' },
-  { key: 'description', label: t.bug.description, type: 'textarea' },
-  { key: 'stepsToReproduce', label: t.bug.stepsToReproduce, type: 'textarea' },
   { key: 'expectedBehavior', label: t.bug.expectedBehavior, type: 'textarea' },
   { key: 'actualBehavior', label: t.bug.actualBehavior, type: 'textarea' },
-  { key: 'affectedArea', label: t.bug.affectedArea, type: 'text' },
+  { key: 'stepsToReproduce', label: t.bug.stepsToReproduce, type: 'textarea' },
   {
     key: 'severity', label: t.bug.severity, type: 'select',
     options: [
@@ -129,11 +127,9 @@ const allFields = [
   {
     key: 'status', label: t.bug.status, type: 'select',
     options: [
-      { value: 'new', label: t.bug.statusOptions.new },
-      { value: 'in_progress', label: t.bug.statusOptions.in_progress },
-      { value: 'fixed', label: t.bug.statusOptions.fixed },
-      { value: 'wontfix', label: t.bug.statusOptions.wontfix },
-      { value: 'closed', label: t.bug.statusOptions.closed },
+      { value: 'zadano', label: t.bug.statusOptions.zadano },
+      { value: 'neopravime', label: t.bug.statusOptions.neopravime },
+      { value: 'opraveno', label: t.bug.statusOptions.opraveno },
     ],
   },
 ]

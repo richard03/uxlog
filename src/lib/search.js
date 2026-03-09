@@ -53,7 +53,7 @@ const SEARCH_FIELDS = {
   activity: ['name', 'description'],
   teamMember: ['name', 'role', 'email', 'phone', 'note'],
   task: ['code', 'name', 'description', 'metrics', 'achievability', 'relevance', 'assignee'],
-  bug: ['code', 'name', 'description', 'stepsToReproduce', 'expectedBehavior', 'actualBehavior', 'affectedArea'],
+  bug: ['code', 'name', 'expectedBehavior', 'actualBehavior', 'stepsToReproduce'],
 }
 
 /**

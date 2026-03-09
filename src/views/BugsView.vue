@@ -36,7 +36,6 @@
             <span class="badge" :class="`status-badge-${bug.status}`">{{ t.bug.statusOptions[bug.status] }}</span>
           </div>
           <h3 class="card-title">{{ bug.name || t.bug.name }}</h3>
-          <p v-if="bug.description" class="card-desc">{{ bug.description }}</p>
         </router-link>
       </li>
     </ul>
@@ -54,8 +53,12 @@
           <input id="bug-name" v-model="form.name" required />
         </div>
         <div class="form-group">
-          <label for="bug-desc">{{ t.bug.description }}</label>
-          <textarea id="bug-desc" v-model="form.description" />
+          <label for="bug-expected">{{ t.bug.expectedBehavior }}</label>
+          <textarea id="bug-expected" v-model="form.expectedBehavior" rows="3" />
+        </div>
+        <div class="form-group">
+          <label for="bug-actual">{{ t.bug.actualBehavior }}</label>
+          <textarea id="bug-actual" v-model="form.actualBehavior" rows="3" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
@@ -96,14 +99,14 @@ const breadcrumbs = computed(() => [
 
 const showForm = ref(false)
 const showImport = ref(false)
-const form = ref({ code: '', name: '', description: '' })
+const form = ref({ code: '', name: '', expectedBehavior: '', actualBehavior: '' })
 
 function bugPriority(bug) {
   return getBugPriority(bug.severity, bug.impact)
 }
 
 function openForm() {
-  form.value = { code: generateNextCode('BUG', bugs.value), name: '', description: '' }
+  form.value = { code: generateNextCode('BUG', bugs.value), name: '', expectedBehavior: '', actualBehavior: '' }
   showForm.value = true
 }
 
@@ -134,7 +137,7 @@ function save() {
 .severity-badge-high, .priority-badge-high { background: #ffedd5; color: #9a3412; }
 .severity-badge-medium, .priority-badge-medium { background: #fef3c7; color: #92400e; }
 .severity-badge-low, .priority-badge-low { background: #ecfdf5; color: #065f46; }
-.status-badge-fixed, .status-badge-closed { background: #d1fae5; color: #065f46; }
-.status-badge-wontfix { background: var(--bg-elevated); color: var(--text-muted); }
-.status-badge-in_progress { background: #fef3c7; color: #92400e; }
+.status-badge-opraveno { background: #d1fae5; color: #065f46; }
+.status-badge-neopravime { background: var(--bg-elevated); color: var(--text-muted); }
+.status-badge-zadano { background: #fef3c7; color: #92400e; }
 </style>
