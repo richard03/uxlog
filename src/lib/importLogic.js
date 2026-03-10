@@ -4,7 +4,35 @@
  */
 
 import { generateId } from './id.js'
-import { createProject } from './models.js'
+import {
+  createProject,
+  createGoal,
+  createStakeholder,
+  createCompetition,
+  createHypothesis,
+  createPersona,
+  createScenario,
+  createRequirement,
+  createActivity,
+  createTeamMember,
+  createTask,
+  createBug,
+} from './models.js'
+
+/** Továrny pro každý typ entity */
+const ENTITY_FACTORIES = {
+  goals: createGoal,
+  stakeholders: createStakeholder,
+  competitions: createCompetition,
+  hypotheses: createHypothesis,
+  personas: createPersona,
+  scenarios: createScenario,
+  requirements: createRequirement,
+  activities: createActivity,
+  teamMembers: createTeamMember,
+  tasks: createTask,
+  bugs: createBug,
+}
 
 /** Typy entit a klíče pro párování duplikátů */
 const ENTITY_CONFIGS = [
@@ -111,9 +139,10 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
     effectiveProjectId = yamlProjectId && !collision ? yamlProjectId : generateId()
 
     const pi = plan.project?.item || {}
+    const defaultName = pi.name || 'Importováno'
     newProjectData = createProject({
       id: effectiveProjectId,
-      name: pi.name || '',
+      name: defaultName,
       scope: pi.scope || 'medium',
       priority: pi.priority || 'medium',
       phase: pi.phase || 'research',
@@ -158,7 +187,18 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
       const { item, action, existing } = items[i]
       const finalId =
         idMapping.get(item.id) || (action === 'update' && existing ? existing.id : item.id)
-      const prepared = { ...item, id: finalId, projectId: effectiveProjectId }
+
+      // Základ entity: pro update zachováme existující data, pro create použijeme factory výchozí hodnoty
+      let base
+      if (action === 'update' && existing) {
+        base = { ...existing }
+      } else {
+        const factory = ENTITY_FACTORIES[key]
+        base = factory ? factory(effectiveProjectId) : {}
+      }
+
+      // Přepisujeme pouze atributy, které jsou skutečně přítomny v importovaných datech
+      const prepared = { ...base, ...item, id: finalId, projectId: effectiveProjectId }
       for (const field of RELATION_FIELDS[key] || []) {
         if (Array.isArray(prepared[field])) {
           prepared[field] = remapIds(prepared[field])

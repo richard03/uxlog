@@ -116,4 +116,39 @@ describe('parseYaml', () => {
     expect(parsed.personas[0].code).toBe('PER-001')
     expect(parsed.personas[0].name).toBe('designer Richard')
   })
+
+  it('parsuje YAML s problematickými Unicode znaky (NBSP)', () => {
+    const yaml = 'requirements:\n  - id: r1\n    description: Text\u00A0s\u00A0mezerami'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('Text s mezerami')
+  })
+
+  it('odstraní zero-width znaky, které rozbíjejí parsování', () => {
+    const yaml = 'requirements:\n  - id: r1\n    description: Text\u200B\u200C\u200Dbez'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('Textbez')
+  })
+
+  it('parsuje YAML s vícerořádkovým popisem (pokračování bez key:)', () => {
+    const yaml = [
+      'requirements:',
+      '  - id: r1',
+      '    code: R1',
+      '    description: První řádek',
+      '    pokračování na dalším řádku',
+      '    motivation: Krátká motivace',
+    ].join('\n')
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('První řádek\npokračování na dalším řádku')
+    expect(parsed.requirements[0].motivation).toBe('Krátká motivace')
+  })
+
+  it('parsuje YAML s CRLF line endings (Windows)', () => {
+    const yaml = 'requirements:\r\n  - id: req-1\r\n    code: REQ-001\r\n    name: Test\r\n'
+    const parsed = parseYaml(yaml)
+    expect(parsed).toBeTruthy()
+    expect(parsed.requirements).toHaveLength(1)
+    expect(parsed.requirements[0].id).toBe('req-1')
+    expect(parsed.requirements[0].code).toBe('REQ-001')
+  })
 })

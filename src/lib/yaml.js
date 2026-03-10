@@ -77,8 +77,40 @@ function serializeArrayItem(item, depth) {
  * @param {string} text
  * @returns {*}
  */
+/**
+ * Bezpečné znaky pro YAML import – pozitivní whitelist.
+ * Povoleny jsou: struktura (\n \t mezera), ASCII tisknutelné, rozšířená latinka (čeština, evropské jazyky),
+ * cyrilice, řečtina, Unicode písmena/čísla/diakritika/interpunkce/symboly.
+ * Ostatní znaky (např. z Figmy, Jiry – zero-width, různá mezerová specifika) se odstraní nebo normalizují.
+ * @param {string} text
+ * @returns {string}
+ */
+function normalizeParseInput(text) {
+  let out = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+
+  out = [...out]
+    .map((char) => {
+      const code = char.codePointAt(0)
+      if (code === 0x0a || code === 0x09) return char
+      if (code === 0x20) return char
+      if (/\p{Z}/u.test(char)) return ' '
+      if (code >= 0x21 && code <= 0x7e) return char
+      if (code >= 0xa0 && code <= 0x24f) return char
+      if (code >= 0x370 && code <= 0x3ff) return char
+      if (code >= 0x400 && code <= 0x4ff) return char
+      if (/\p{L}|\p{N}|\p{M}|\p{P}|\p{S}/u.test(char)) return char
+      return ''
+    })
+    .join('')
+
+  return out
+}
+
 export function parseYaml(text) {
-  const lines = text.split('\n')
+  const normalized = normalizeParseInput(text)
+  const lines = normalized.split('\n')
   let pos = 0
 
   function skipBlank() {
@@ -171,11 +203,13 @@ export function parseYaml(text) {
     const line = lines[pos]
     const afterDash = line.slice(arrayIndent + 2)
     const result = {}
+    let lastKey = null
     const firstMatch = afterDash.match(/^(\w+):\s*(.*)$/)
     if (firstMatch) {
       const key = firstMatch[1]
       const rest = firstMatch[2].trim()
       pos++
+      lastKey = key
       if (rest === '') {
         skipBlank()
         if (currentIndent() > itemIndent) result[key] = parseValue()
@@ -195,20 +229,30 @@ export function parseYaml(text) {
       if (pos >= lines.length) break
       if (currentIndent() !== itemIndent) break
       const curMatch = lines[pos].slice(itemIndent).match(/^(\w+):\s*(.*)$/)
-      if (!curMatch) break
-      const key = curMatch[1]
-      const rest = curMatch[2].trim()
-      pos++
-      if (rest === '') {
-        skipBlank()
-        if (currentIndent() > itemIndent) result[key] = parseValue()
-        else result[key] = null
-      } else if (rest === '[]') {
-        result[key] = []
-      } else if (rest === '{}') {
-        result[key] = {}
+      if (!curMatch) {
+        // Řádek bez "key: value" na stejné úrovni – může jít o pokračování předchozí hodnoty (vícerořádkový text)
+        if (lastKey != null && typeof result[lastKey] === 'string') {
+          result[lastKey] += '\n' + lines[pos].slice(itemIndent).trim()
+          pos++
+        } else {
+          break
+        }
       } else {
-        result[key] = parseScalar(rest)
+        const key = curMatch[1]
+        const rest = curMatch[2].trim()
+        pos++
+        lastKey = key
+        if (rest === '') {
+          skipBlank()
+          if (currentIndent() > itemIndent) result[key] = parseValue()
+          else result[key] = null
+        } else if (rest === '[]') {
+          result[key] = []
+        } else if (rest === '{}') {
+          result[key] = {}
+        } else {
+          result[key] = parseScalar(rest)
+        }
       }
     }
     return result
