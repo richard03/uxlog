@@ -343,8 +343,21 @@ personas:
     // YAML serializer (zrcadlo yaml.js z UXLog)
     // -----------------------------------------------------------------------
 
+    /**
+     * Normalizuje speciální znaky Figmy před serializací do YAML.
+     * Převádí Figma line/paragraph separátory na \n a odrážkové znaky na "- ".
+     * @param {string} s
+     * @returns {string}
+     */
+    function normalizeFigmaText(s) {
+      return s
+        .replace(/[\u2028\u2029\u000B]/g, '\n')
+        .replace(/[\u2022\u2023\u25CF\u25E6\u25AA\u00B7]\s*/g, '- ');
+    }
+
     function yamlEscape(str) {
       if (str === '') return "''";
+      str = normalizeFigmaText(str);
       if (str.includes('\n')) return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"';
       const specialStart = /^[\-?:,\[\]{}#&*!|>'"%@`~]/.test(str);
       const hasSpecial   = /[:#,\[\]{}]/.test(str);

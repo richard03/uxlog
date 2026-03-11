@@ -82,6 +82,14 @@ function serializeArrayItem(item, depth) {
  * Povoleny jsou: struktura (\n \t mezera), ASCII tisknutelné, rozšířená latinka (čeština, evropské jazyky),
  * cyrilice, řečtina, Unicode písmena/čísla/diakritika/interpunkce/symboly.
  * Ostatní znaky (např. z Figmy, Jiry – zero-width, různá mezerová specifika) se odstraní nebo normalizují.
+ *
+ * Figma specifika:
+ *   – U+2028 LINE SEPARATOR a U+2029 PARAGRAPH SEPARATOR jsou oddělovače řádků v textových vrstvách.
+ *     Nekonvertují se zde na \n, protože by to rozbilo strukturu YAML (parsér dělí řádky jen na \n).
+ *     Projdou proto jako kontrolní znaky a jsou převedeny na \n až v parseScalar po extrakci hodnoty.
+ *   – U+000B VERTICAL TAB se v některých editorech používá jako "soft return". Stejný postup.
+ *   – Odrážkové znaky (•, ‣, ●, ◦ …) jsou interpunkce (\p{P}) a projdou whitelistem, převod na „- "
+ *     provede parseScalar.
  * @param {string} text
  * @returns {string}
  */
@@ -95,6 +103,10 @@ function normalizeParseInput(text) {
       const code = char.codePointAt(0)
       if (code === 0x0a || code === 0x09) return char
       if (code === 0x20) return char
+      // Figma LINE SEPARATOR (U+2028), PARAGRAPH SEPARATOR (U+2029) a VERTICAL TAB (U+000B):
+      // ponecháme je netknuté – convertuje je parseScalar po extrakci hodnoty.
+      // Kdybychom je zde převedli na \n, rozbili bychom YAML linky uvnitř quoted stringů.
+      if (code === 0x2028 || code === 0x2029 || code === 0x000b) return char
       if (/\p{Z}/u.test(char)) return ' '
       if (code >= 0x21 && code <= 0x7e) return char
       if (code >= 0xa0 && code <= 0x24f) return char
@@ -106,6 +118,20 @@ function normalizeParseInput(text) {
     .join('')
 
   return out
+}
+
+/**
+ * Normalizuje Figma-specifické znaky v hodnotě skalárního řetězce.
+ * Voláno po extrakci hodnoty z YAML, kdy je parsér již hotový se strukturou.
+ *   – LINE SEPARATOR (U+2028), PARAGRAPH SEPARATOR (U+2029), VERTICAL TAB (U+000B) → \n
+ *   – Odrážkové znaky (•, ‣, ●, ◦, ▪, ·) + případná mezera za nimi → "- "
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeFigmaValue(value) {
+  return value
+    .replace(/[\u2028\u2029\u000B]/g, '\n')
+    .replace(/[\u2022\u2023\u25CF\u25E6\u25AA\u00B7]\s*/g, '- ')
 }
 
 export function parseYaml(text) {
@@ -129,13 +155,15 @@ export function parseYaml(text) {
     if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw)
     if (raw === "''") return ''
     if (raw.startsWith('"') && raw.endsWith('"')) {
-      return raw
-        .slice(1, -1)
-        .replace(/\\n/g, '\n')
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, '\\')
+      return normalizeFigmaValue(
+        raw
+          .slice(1, -1)
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\')
+      )
     }
-    return raw
+    return normalizeFigmaValue(raw)
   }
 
   function parseValue() {
@@ -155,7 +183,7 @@ export function parseYaml(text) {
       if (pos >= lines.length) break
       const ci = currentIndent()
       if (ci < 0 || ci < indent || ci > indent) break
-      const match = lines[pos].slice(indent).match(/^(\w+):\s*(.*)$/)
+      const match = lines[pos].slice(indent).match(/^(\w+):\s*([\s\S]*)/)
       if (!match) break
       const key = match[1]
       const rest = match[2].trim()
@@ -204,7 +232,7 @@ export function parseYaml(text) {
     const afterDash = line.slice(arrayIndent + 2)
     const result = {}
     let lastKey = null
-    const firstMatch = afterDash.match(/^(\w+):\s*(.*)$/)
+    const firstMatch = afterDash.match(/^(\w+):\s*([\s\S]*)/)
     if (firstMatch) {
       const key = firstMatch[1]
       const rest = firstMatch[2].trim()
@@ -228,7 +256,7 @@ export function parseYaml(text) {
       skipBlank()
       if (pos >= lines.length) break
       if (currentIndent() !== itemIndent) break
-      const curMatch = lines[pos].slice(itemIndent).match(/^(\w+):\s*(.*)$/)
+      const curMatch = lines[pos].slice(itemIndent).match(/^(\w+):\s*([\s\S]*)/)
       if (!curMatch) {
         // Řádek bez "key: value" na stejné úrovni – může jít o pokračování předchozí hodnoty (vícerořádkový text)
         if (lastKey != null && typeof result[lastKey] === 'string') {

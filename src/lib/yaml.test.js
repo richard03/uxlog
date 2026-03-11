@@ -151,4 +151,38 @@ describe('parseYaml', () => {
     expect(parsed.requirements[0].id).toBe('req-1')
     expect(parsed.requirements[0].code).toBe('REQ-001')
   })
+
+  it('převede Figma LINE SEPARATOR (U+2028) v unquoted hodnotě na odřádkování', () => {
+    // Simuluje starý Figma export – \u2028 v hodnotě nezabalené do uvozovek
+    const yaml = 'requirements:\n  - id: r1\n    description: Řádek 1\u2028Řádek 2\u2028Řádek 3'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('Řádek 1\nŘádek 2\nŘádek 3')
+  })
+
+  it('převede Figma LINE SEPARATOR (U+2028) v quoted hodnotě na odřádkování', () => {
+    // Starý Figma export – \u2028 uvnitř quoted stringu (např. hodnota začínající pomlčkou)
+    const yaml = 'requirements:\n  - id: r1\n    description: "Řádek 1\u2028Řádek 2"'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('Řádek 1\nŘádek 2')
+  })
+
+  it('převede Figma PARAGRAPH SEPARATOR (U+2029) na odřádkování', () => {
+    const yaml = 'requirements:\n  - id: r1\n    description: Odstavec A\u2029Odstavec B'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('Odstavec A\nOdstavec B')
+  })
+
+  it('převede Figma odrážkový znak (U+2022 •) na pomlčku', () => {
+    // Odrážka v hodnotě – \u2022 je interpunkce a projde normalizeParseInput
+    const yaml = 'requirements:\n  - id: r1\n    description: \u2022 Položka'
+    const parsed = parseYaml(yaml)
+    expect(parsed.requirements[0].description).toBe('- Položka')
+  })
+
+  it('převede kombinaci Figma oddělovačů a odrážek na čitelný text', () => {
+    // Simuluje Figma text: odrážky oddělené LINE SEPARATOR – celé v jedné YAML hodnotě
+    const yaml = 'personas:\n  - id: p1\n    needs: \u2022 Rychlé rozhraní\u2028\u2022 Tmavý režim\u2028\u2022 Export dat'
+    const parsed = parseYaml(yaml)
+    expect(parsed.personas[0].needs).toBe('- Rychlé rozhraní\n- Tmavý režim\n- Export dat')
+  })
 })
