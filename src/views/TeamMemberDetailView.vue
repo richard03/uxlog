@@ -13,7 +13,10 @@
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <ExportButton :get-yaml="() => store.exportEntityData('teamMembers', item?.id)" :filename="item?.name || t.teamMember.label" />
-          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+          <KebabMenu
+            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.teamMember.delete, action: 'delete', variant: 'danger' }]"
+            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'delete') confirmDelete() }"
+          />
         </div>
       </div>
     </header>
@@ -46,6 +49,7 @@
 
     <ConfirmDialog v-if="showConfirm" :title="t.teamMember.delete" :message="t.teamMember.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
+    <MoveToProjectModal v-if="showMove" state-key="teamMembers" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'team', params: { id: projectId } })" />
   </div>
   <div v-else-if="project && !item" class="container">
     <p>{{ t.common.loading }}</p>
@@ -61,7 +65,9 @@ import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
+import KebabMenu from '../components/KebabMenu.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -81,7 +87,7 @@ const breadcrumbs = computed(() => [
 
 const showConfirm = ref(false)
 const showImport = ref(false)
-
+const showMove = ref(false)
 
 const editingField = ref(null)
 const editValue = ref('')

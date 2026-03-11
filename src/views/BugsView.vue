@@ -38,8 +38,8 @@
           <h3 class="card-title">{{ bug.name || t.bug.name }}</h3>
         </router-link>
         <KebabMenu
-          :items="[{ label: t.bug.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id) }"
+          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id) }"
         />
       </li>
     </ul>
@@ -78,6 +78,7 @@
       @confirm="doDeleteItem"
       @cancel="deleteTarget = null"
     />
+    <MoveToProjectModal v-if="moveTarget" state-key="bugs" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
   </div>
 </template>
 
@@ -92,6 +93,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
+import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -123,6 +125,9 @@ function doDeleteItem() {
     deleteTarget.value = null
   }
 }
+
+const moveTarget = ref(null)
+function confirmMoveItem(id) { moveTarget.value = id }
 
 function bugPriority(bug) {
   return getBugPriority(bug.severity, bug.impact)

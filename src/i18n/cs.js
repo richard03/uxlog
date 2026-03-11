@@ -403,5 +403,9 @@ export default {
     noResults: 'Žádné výsledky',
     next: 'Pokračovat',
     openUrl: 'Otevřít odkaz',
+    moveToProject: 'Přesunout do jiného projektu',
+    moveSelectProject: 'Vyberte cílový projekt',
+    moveConfirm: 'Přesunout',
+    moveNoOtherProjects: 'Nejsou k dispozici žádné jiné projekty.',
   },
 }

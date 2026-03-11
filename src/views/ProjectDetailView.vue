@@ -5,10 +5,12 @@
       <div class="header-title-row">
         <h1>{{ project.name }}</h1>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="openForm">{{ t.common.edit }}</button>
-          <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
-          <button type="button" class="btn btn-ghost" @click="confirmDelete">{{ t.common.delete }}</button>
+          <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
+          <KebabMenu
+            :items="[{ label: t.common.edit, action: 'edit' }, { label: t.common.delete, action: 'delete', variant: 'danger' }]"
+            @action="(a) => { if (a === 'edit') openForm(); else if (a === 'delete') confirmDelete() }"
+          />
         </div>
       </div>
       <div class="header-meta">
@@ -73,9 +75,9 @@
             <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
           </router-link>
           <KebabMenu
-            :items="[{ label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
+            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
             :aria-label="t.activity.notInterested"
-            @action="(a) => { if (a === 'delete') dismissActivity(activity.id) }"
+            @action="(a) => { if (a === 'delete') dismissActivity(activity.id); else if (a === 'move') confirmMoveActivity(activity.id) }"
           />
         </li>
       </ul>
@@ -243,6 +245,7 @@
       @confirm="doDelete"
       @cancel="showConfirm = false"
     />
+    <MoveToProjectModal v-if="moveActivityTarget" state-key="activities" :entity-id="moveActivityTarget" :current-project-id="projectId" @close="moveActivityTarget = null" @moved="moveActivityTarget = null" />
   </div>
   <div v-else class="container">
     <p>{{ t.common.loading }}</p>
@@ -262,6 +265,7 @@ import ImportModal from '../components/ImportModal.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
+import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -407,6 +411,9 @@ function saveActivity() {
 function dismissActivity(id) {
   store.updateActivity(id, { dismissed: true })
 }
+
+const moveActivityTarget = ref(null)
+function confirmMoveActivity(id) { moveActivityTarget.value = id }
 
 // --- Notebook ---
 

@@ -39,8 +39,8 @@
           <p v-if="g.description" class="card-desc">{{ g.description }}</p>
         </router-link>
         <KebabMenu
-          :items="[{ label: t.goal.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(g.id) }"
+          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.goal.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'delete') confirmDeleteItem(g.id); else if (a === 'move') confirmMoveItem(g.id) }"
         />
       </li>
     </ul>
@@ -75,6 +75,7 @@
       @confirm="doDeleteItem"
       @cancel="deleteTarget = null"
     />
+    <MoveToProjectModal v-if="moveTarget" state-key="goals" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
   </div>
 </template>
 
@@ -89,6 +90,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
+import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
@@ -120,6 +122,9 @@ function doDeleteItem() {
     deleteTarget.value = null
   }
 }
+
+const moveTarget = ref(null)
+function confirmMoveItem(id) { moveTarget.value = id }
 
 
 function openForm() {

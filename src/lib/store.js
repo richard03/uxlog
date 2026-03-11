@@ -606,6 +606,26 @@ export function deleteBug(id) {
   persist()
 }
 
+// --- Move to project ---
+
+/**
+ * Přesune entitu do jiného projektu (změní projectId).
+ * @param {string} stateKey - klíč v state (goals, personas, …)
+ * @param {string} entityId - ID entity
+ * @param {string} targetProjectId - ID cílového projektu
+ */
+export function moveEntityToProject(stateKey, entityId, targetProjectId) {
+  const items = state[stateKey] || []
+  const item = items.find((e) => e.id === entityId)
+  if (!item) return false
+  const sourceProjectId = item.projectId
+  item.projectId = targetProjectId
+  if (sourceProjectId) updateProject(sourceProjectId, {})
+  updateProject(targetProjectId, {})
+  persist()
+  return true
+}
+
 // --- Reorder ---
 
 /**
