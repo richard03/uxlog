@@ -3,7 +3,7 @@
     <header class="page-header">
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
-        <h1>{{ t.sections.personas }}</h1>
+        <h1><ProjectColorTag :color="project?.color" />{{ t.sections.personas }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'personas')" :filename="t.sections.personas" />
@@ -102,6 +102,7 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
+import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const route = useRoute()
 const store = useStore()

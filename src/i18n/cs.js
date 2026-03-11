@@ -32,6 +32,7 @@ export default {
     delete: 'Smazat projekt',
     deleteConfirm: 'Opravdu smazat projekt?',
     import: 'Import',
+    color: 'Barva projektu',
   },
   import: {
     title: 'Import dat',

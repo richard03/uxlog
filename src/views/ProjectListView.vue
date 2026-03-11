@@ -23,6 +23,7 @@
         :key="p.id"
         class="card"
         :class="{ 'drag-over': dnd.isDragOver(p.id), dragging: dnd.isDragging(p.id) }"
+        :style="p.color ? { borderLeftColor: p.color, borderLeftWidth: '4px' } : {}"
         draggable="true"
         @dragstart="dnd.onDragStart($event, p.id)"
         @dragover="dnd.onDragOver($event, p.id)"
@@ -31,7 +32,7 @@
       >
         <router-link :to="{ name: 'project', params: { id: p.id } }" class="card-link" draggable="false">
           <div class="card-header">
-            <h3 class="card-title">{{ p.name || t.project.name }}</h3>
+            <h3 class="card-title"><ProjectColorTag :color="p.color" />{{ p.name || t.project.name }}</h3>
           </div>
           <div class="card-meta">
             <span class="badge">{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</span>
@@ -73,6 +74,22 @@
             <option value="low">{{ t.priority.low }}</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>{{ t.project.color }}</label>
+          <div class="color-swatches" role="radiogroup" :aria-label="t.project.color">
+            <button
+              v-for="c in PROJECT_COLORS"
+              :key="c"
+              type="button"
+              class="color-swatch"
+              :class="{ selected: form.color === c }"
+              :style="{ background: c }"
+              :aria-checked="form.color === c"
+              role="radio"
+              @click="form.color = c"
+            ></button>
+          </div>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">
             {{ t.common.cancel }}
@@ -95,6 +112,8 @@ import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
+import { PROJECT_COLORS } from '../lib/projectColors.js'
+import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
@@ -108,6 +127,7 @@ const form = ref({
   name: '',
   scope: 'medium',
   priority: 'medium',
+  color: '',
 })
 
 const projects = computed(() => store.getProjects())
@@ -124,8 +144,8 @@ function priorityLabel(p) {
 function openForm(project = null) {
   editing.value = project
   form.value = project
-    ? { name: project.name, scope: project.scope, priority: project.priority }
-    : { name: '', scope: 'medium', priority: 'medium' }
+    ? { name: project.name, scope: project.scope, priority: project.priority, color: project.color || '' }
+    : { name: '', scope: 'medium', priority: 'medium', color: '' }
   showForm.value = true
 }
 
@@ -143,7 +163,7 @@ function handleImported({ projectId }) {
 }
 
 function saveProject() {
-  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority }
+  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color }
   const projectToEdit = editing.value
   const isEdit = !!projectToEdit && store.state.projects?.some((p) => p.id === projectToEdit.id)
   console.log('[UXLog] saveProject, editing:', !!projectToEdit, 'projekt v seznamu:', isEdit, 'form:', formData, 'projektů před:', store.state.projects?.length ?? 0)
@@ -221,5 +241,32 @@ function saveProject() {
   gap: var(--space-sm);
   justify-content: flex-end;
   margin-top: var(--space-md);
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  outline-offset: 2px;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.selected {
+  border-color: var(--text);
+  transform: scale(1.15);
 }
 </style>

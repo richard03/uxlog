@@ -1,5 +1,5 @@
 <template>
-  <header class="header" role="banner">
+  <header class="header" role="banner" :style="projectColor ? { borderBottomColor: projectColor } : {}">
     <div class="header-inner">
       <router-link to="/" class="logo" :aria-label="t.app.title">
         {{ t.app.title }}
@@ -39,24 +39,35 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
+import { useStore } from '../composables/useStore.js'
 import SearchModal from './SearchModal.vue'
 import SettingsModal from './SettingsModal.vue'
 
 const theme = useTheme()
 const { t } = useI18n()
+const route = useRoute()
+const store = useStore()
 const showSearch = ref(false)
 const showSettings = ref(false)
 
 const isDark = computed(() => theme.isDark.value)
+
+const projectColor = computed(() => {
+  const id = route.params.id
+  if (!id) return null
+  return store.getProject(id)?.color || null
+})
 </script>
 
 <style scoped>
 .header {
   background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
   padding: var(--space-md);
+  transition: border-bottom-color 0.2s;
 }
 
 .header-inner {

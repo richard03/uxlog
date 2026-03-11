@@ -43,6 +43,7 @@ export function createProject(overrides = {}) {
     lastWorkedAt: new Date().toISOString(),
     notebook: '',
     sortOrder: 9999,
+    color: '',
     ...overrides,
   }
 }

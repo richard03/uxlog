@@ -3,7 +3,7 @@
     <header class="page-header">
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
-        <h1>{{ t.sections.tasks }}</h1>
+        <h1><ProjectColorTag :color="project?.color" />{{ t.sections.tasks }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'tasks')" :filename="t.sections.tasks" />
@@ -92,6 +92,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
+import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const route = useRoute()
 const store = useStore()

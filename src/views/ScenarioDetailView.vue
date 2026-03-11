@@ -5,25 +5,22 @@
       <div class="header-title-row">
         <div class="header-title">
           <div class="header-title-main">
-            <button
-              class="editable-code"
-              @click="openEdit('code')"
-              :aria-label="`${t.common.edit} – ${t.scenario.code}`"
-            >
+            <button class="editable-name" @click="openEdit('name')" :aria-label="`${t.common.edit} – ${t.scenario.name}`">
+              <h1><ProjectColorTag :color="project?.color" />{{ scenario.name || t.scenario.name }}</h1>
+              <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>
+          <p class="entity-type">{{ t.scenario.label }} 
+            <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.scenario.code}`">
               <span>{{ scenario.code || '–' }}</span>
               <svg class="pencil" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            <button
-              class="editable-name"
-              @click="openEdit('name')"
-              :aria-label="`${t.common.edit} – ${t.scenario.name}`"
-            >
-              <h1>{{ scenario.name || t.scenario.name }}</h1>
-              <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            
-          </div>
-          <p class="entity-type">{{ t.scenario.label }}</p>
+          </p>
+        </div>
+        <div class="header-actions">
+          
+          
+
         </div>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
@@ -121,6 +118,7 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const route = useRoute()
 const router = useRouter()

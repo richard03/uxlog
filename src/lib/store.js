@@ -23,6 +23,7 @@ import {
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
 import { generateId } from './id.js'
+import { pickProjectColor } from './projectColors.js'
 
 /** Reaktivní stav – Vue automaticky sleduje změny */
 export const state = reactive(
@@ -72,7 +73,9 @@ export function getProject(id) {
 }
 
 export function addProject(overrides = {}) {
-  const project = createProject(overrides)
+  const usedColors = (state.projects || []).map((p) => p.color).filter(Boolean)
+  const color = overrides.color || pickProjectColor(usedColors)
+  const project = createProject({ color, ...overrides })
   state.projects = state.projects || []
   state.projects.push(project)
   // Přidat všechny předdefinované aktivity jako výchozí

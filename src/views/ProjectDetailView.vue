@@ -3,7 +3,7 @@
     <header class="page-header">
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-title-row">
-        <h1>{{ project.name }}</h1>
+        <h1><ProjectColorTag :color="project.color" />{{ project.name }}</h1>
         <div class="header-actions">
           <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
           <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
@@ -222,6 +222,22 @@
             <option value="low">{{ t.priority.low }}</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>{{ t.project.color }}</label>
+          <div class="color-swatches" role="radiogroup" :aria-label="t.project.color">
+            <button
+              v-for="c in PROJECT_COLORS"
+              :key="c"
+              type="button"
+              class="color-swatch"
+              :class="{ selected: form.color === c }"
+              :style="{ background: c }"
+              :aria-checked="form.color === c"
+              role="radio"
+              @click="form.color = c"
+            ></button>
+          </div>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">
             {{ t.common.cancel }}
@@ -269,6 +285,8 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
+import { PROJECT_COLORS } from '../lib/projectColors.js'
+import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -283,6 +301,7 @@ const form = ref({
   name: '',
   scope: 'medium',
   priority: 'medium',
+  color: '',
 })
 
 const projectId = computed(() => route.params.id)
@@ -302,6 +321,7 @@ function openForm() {
       name: project.value.name,
       scope: project.value.scope,
       priority: project.value.priority,
+      color: project.value.color || '',
     }
     showForm.value = true
   }
@@ -319,7 +339,7 @@ function closeForm() {
  */
 function saveProject() {
   if (!project.value) return
-  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority }
+  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color }
   store.updateProject(project.value.id, formData)
   closeForm()
 }
@@ -571,6 +591,33 @@ function handleImported({ projectId: importedProjectId }) {
 </script>
 
 <style scoped>
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  outline-offset: 2px;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.selected {
+  border-color: var(--text);
+  transform: scale(1.15);
+}
+
 .page-header {
   margin-bottom: var(--space-lg);
 }
