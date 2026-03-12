@@ -9,7 +9,7 @@
         @click="openEdit(field)"
       >
         <dt>{{ field.label }}</dt>
-        <dd :class="{ 'value-empty': !fieldValue(field.id) }">{{ fieldValue(field.id) || '—' }}</dd>
+        <dd :class="{ 'value-empty': !fieldValue(field.id) }">{{ displayValue(field) }}</dd>
         <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </div>
     </dl>
@@ -25,6 +25,14 @@
             class="form-control"
             rows="4"
           />
+          <select
+            v-else-if="editingField.type === 'select'"
+            id="custom-field-edit"
+            v-model="editValue"
+            class="form-control"
+          >
+            <option v-for="opt in (editingField.options || [])" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
           <input
             v-else
             id="custom-field-edit"
@@ -67,6 +75,20 @@ const customFields = computed(() => getEntityCustomFields(props.entityType))
 
 function fieldValue(fieldId) {
   return props.entity?.customFields?.[fieldId] ?? ''
+}
+
+/**
+ * Vrátí hodnotu pole pro zobrazení. U select polí vrátí popisek.
+ * @param {Object} field
+ * @returns {string}
+ */
+function displayValue(field) {
+  const val = fieldValue(field.id)
+  if (!val) return '—'
+  if (field.type === 'select' && field.options) {
+    return field.options.find((o) => o.value === val)?.label ?? val
+  }
+  return val
 }
 
 const editingField = ref(null)

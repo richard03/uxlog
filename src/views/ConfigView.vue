@@ -55,7 +55,6 @@
         </table>
       </div>
 
-      <!-- Deleted built-in templates -->
       <details class="deleted-section" v-if="deletedTemplates.length > 0">
         <summary class="deleted-summary">{{ t.config.deletedTemplates }} ({{ deletedTemplates.length }})</summary>
         <ul class="deleted-list" role="list">
@@ -71,7 +70,7 @@
       <p v-else class="no-deleted">{{ t.config.noDeletedTemplates }}</p>
     </section>
 
-    <!-- Section 2: Custom Entity Fields -->
+    <!-- Section 2: Entity Attributes (built-in + custom) -->
     <section class="config-section" aria-labelledby="fields-heading">
       <div class="section-header">
         <h2 id="fields-heading">{{ t.config.entityFields }}</h2>
@@ -94,31 +93,61 @@
               <th>{{ t.config.fieldLabel }}</th>
               <th>{{ t.config.fieldType }}</th>
               <th>{{ t.config.fieldSortOrder }}</th>
+              <th>{{ t.config.fieldSource }}</th>
               <th><span class="visually-hidden">{{ t.common.actions }}</span></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="field in currentEntityFields" :key="field.id">
-              <td>{{ field.label }}</td>
+            <tr v-for="field in currentEffectiveFields" :key="field.key" :class="{ 'row-overridden': field.builtIn && isOverridden(field.key) }">
               <td>
-                <span class="type-badge">{{ field.type === 'textarea' ? t.config.fieldTypeTextarea : t.config.fieldTypeText }}</span>
+                {{ field.label }}
+                <span v-if="field.builtIn && isOverridden(field.key)" class="modified-badge">{{ t.config.fieldModified }}</span>
+              </td>
+              <td>
+                <span class="type-badge">{{ fieldTypeLabel(field.type) }}</span>
               </td>
               <td>{{ field.sortOrder }}</td>
+              <td>
+                <span class="source-badge" :class="field.builtIn ? 'source-builtin' : 'source-custom'">
+                  {{ field.builtIn ? t.config.fieldSourceBuiltIn : t.config.fieldSourceCustom }}
+                </span>
+              </td>
               <td class="row-actions">
-                <button type="button" class="btn btn-ghost btn-sm" @click="openEditField(field)">
+                <button type="button" class="btn btn-ghost btn-sm" @click="field.builtIn ? openEditBuiltIn(field) : openEditField(field)">
                   {{ t.config.editField }}
                 </button>
-                <button type="button" class="btn btn-ghost btn-sm danger-btn" @click="confirmDeleteField(field)">
+                <button v-if="field.builtIn" type="button" class="btn btn-ghost btn-sm danger-btn" @click="hideBuiltInField(field.key)">
+                  {{ t.config.hideField }}
+                </button>
+                <button v-if="field.builtIn && isOverridden(field.key)" type="button" class="btn btn-ghost btn-sm" @click="confirmResetBuiltIn(field)">
+                  {{ t.config.resetField }}
+                </button>
+                <button v-if="field.isCustom" type="button" class="btn btn-ghost btn-sm danger-btn" @click="confirmDeleteField(field)">
                   {{ t.config.deleteField }}
                 </button>
               </td>
             </tr>
-            <tr v-if="currentEntityFields.length === 0">
-              <td colspan="4" class="empty-row">{{ t.config.noCustomFields }}</td>
+            <tr v-if="currentEffectiveFields.length === 0">
+              <td colspan="5" class="empty-row">{{ t.config.noFields }}</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Hidden built-in fields -->
+      <details class="deleted-section" v-if="currentHiddenFields.length > 0">
+        <summary class="deleted-summary">{{ t.config.hiddenFields }} ({{ currentHiddenFields.length }})</summary>
+        <ul class="deleted-list" role="list">
+          <li v-for="field in currentHiddenFields" :key="field.key" class="deleted-item">
+            <span class="deleted-name">{{ field.label }}</span>
+            <span class="type-badge">{{ fieldTypeLabel(field.type) }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" @click="showBuiltInField(field.key)">
+              {{ t.config.showField }}
+            </button>
+          </li>
+        </ul>
+      </details>
+      <p v-else-if="currentEffectiveFields.some(f => f.builtIn)" class="no-deleted">{{ t.config.noHiddenFields }}</p>
     </section>
 
     <!-- Edit/Add Template Modal -->
@@ -151,7 +180,6 @@
           </div>
         </div>
 
-        <!-- Checklist editor -->
         <div class="form-group">
           <label>{{ t.config.checklist }}</label>
           <ul class="checklist-editor-list" role="list">
@@ -187,7 +215,80 @@
       </form>
     </Modal>
 
-    <!-- Edit/Add Field Modal -->
+    <!-- Edit Built-in Field Modal -->
+    <Modal v-if="editingBuiltIn !== null" :title="t.config.editBuiltInField" @close="closeBuiltInModal">
+      <form @submit.prevent="saveBuiltIn">
+        <div class="form-group">
+          <label for="bi-label">{{ t.config.fieldLabel }}</label>
+          <input id="bi-label" v-model="builtInForm.label" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label for="bi-type">{{ t.config.fieldType }}</label>
+          <input id="bi-type" :value="fieldTypeLabel(editingBuiltIn?.type)" class="form-control" disabled />
+        </div>
+        <div class="form-group">
+          <label for="bi-sort">{{ t.config.fieldSortOrder }}</label>
+          <input id="bi-sort" v-model.number="builtInForm.sortOrder" type="number" class="form-control" />
+        </div>
+
+        <!-- Select options editor -->
+        <div v-if="editingBuiltIn?.type === 'select'" class="form-group">
+          <label>{{ t.config.selectOptions }}</label>
+          <ul class="options-editor-list" role="list">
+            <li v-for="(opt, idx) in builtInForm.options" :key="idx" class="options-editor-item">
+              <input
+                v-model="opt.value"
+                class="form-control options-value-input"
+                :placeholder="t.config.optionValue"
+              />
+              <input
+                v-model="opt.label"
+                class="form-control options-label-input"
+                :placeholder="t.config.optionLabel"
+              />
+              <button type="button" class="btn btn-ghost btn-sm" @click="builtInForm.options.splice(idx, 1)" :aria-label="t.config.removeOption">
+                ✕
+              </button>
+            </li>
+          </ul>
+          <button type="button" class="btn btn-secondary btn-sm" @click="builtInForm.options.push({ value: '', label: '' })">
+            {{ t.config.addOption }}
+          </button>
+        </div>
+
+        <!-- Number-unit units editor -->
+        <div v-if="editingBuiltIn?.type === 'number-unit'" class="form-group">
+          <label>{{ t.config.unitOptions }}</label>
+          <ul class="options-editor-list" role="list">
+            <li v-for="(u, idx) in builtInForm.units" :key="idx" class="options-editor-item">
+              <input
+                v-model="u.value"
+                class="form-control options-value-input"
+                :placeholder="t.config.unitValue"
+              />
+              <input
+                v-model="u.label"
+                class="form-control options-label-input"
+                :placeholder="t.config.unitLabel"
+              />
+              <button type="button" class="btn btn-ghost btn-sm" @click="builtInForm.units.splice(idx, 1)" :aria-label="t.config.removeUnit">
+                ✕
+              </button>
+            </li>
+          </ul>
+          <button type="button" class="btn btn-secondary btn-sm" @click="builtInForm.units.push({ value: '', label: '' })">
+            {{ t.config.addUnit }}
+          </button>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" @click="closeBuiltInModal">{{ t.common.cancel }}</button>
+          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Edit/Add Custom Field Modal -->
     <Modal v-if="editingField !== null" :title="editingFieldIsNew ? t.config.addField : t.config.editField" @close="closeFieldModal">
       <form @submit.prevent="saveField">
         <div class="form-group">
@@ -199,12 +300,40 @@
           <select id="field-type" v-model="fieldForm.type" class="form-control">
             <option value="text">{{ t.config.fieldTypeText }}</option>
             <option value="textarea">{{ t.config.fieldTypeTextarea }}</option>
+            <option value="url">{{ t.config.fieldTypeUrl }}</option>
+            <option value="select">{{ t.config.fieldTypeSelect }}</option>
           </select>
         </div>
         <div class="form-group">
           <label for="field-sort">{{ t.config.fieldSortOrder }}</label>
           <input id="field-sort" v-model.number="fieldForm.sortOrder" type="number" class="form-control" />
         </div>
+
+        <!-- Select options editor for custom fields -->
+        <div v-if="fieldForm.type === 'select'" class="form-group">
+          <label>{{ t.config.selectOptions }}</label>
+          <ul class="options-editor-list" role="list">
+            <li v-for="(opt, idx) in fieldForm.options" :key="idx" class="options-editor-item">
+              <input
+                v-model="opt.value"
+                class="form-control options-value-input"
+                :placeholder="t.config.optionValue"
+              />
+              <input
+                v-model="opt.label"
+                class="form-control options-label-input"
+                :placeholder="t.config.optionLabel"
+              />
+              <button type="button" class="btn btn-ghost btn-sm" @click="fieldForm.options.splice(idx, 1)" :aria-label="t.config.removeOption">
+                ✕
+              </button>
+            </li>
+          </ul>
+          <button type="button" class="btn btn-secondary btn-sm" @click="fieldForm.options.push({ value: '', label: '' })">
+            {{ t.config.addOption }}
+          </button>
+        </div>
+
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeFieldModal">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
@@ -229,6 +358,15 @@
       @confirm="doDeleteField"
       @cancel="confirmingDeleteField = null"
     />
+
+    <!-- Confirm reset built-in -->
+    <ConfirmDialog
+      v-if="confirmingResetBuiltIn"
+      :title="t.config.resetField"
+      :message="t.config.resetFieldConfirm"
+      @confirm="doResetBuiltIn"
+      @cancel="confirmingResetBuiltIn = null"
+    />
   </div>
 </template>
 
@@ -241,9 +379,9 @@ import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const config = useConfig()
-const { t } = useI18n()
+const { t, tPath } = useI18n()
 
-// --- Templates ---
+// ─── Templates ───────────────────────────────────────────────
 
 const activeTemplates = computed(() => config.getEffectiveTemplates())
 const deletedTemplates = computed(() => config.getDeletedBuiltInTemplates())
@@ -252,8 +390,7 @@ function toggleCreateOnNewProject(tpl) {
   config.updateTemplate(tpl.key, { createOnNewProject: !tpl.createOnNewProject })
 }
 
-// Template modal state
-const editingTemplate = ref(null) // null = closed, object = editing
+const editingTemplate = ref(null)
 const editingTemplateIsNew = ref(false)
 const templateForm = reactive({
   key: '',
@@ -337,19 +474,135 @@ function doDeleteTemplate() {
   confirmingDeleteTemplate.value = null
 }
 
-// --- Entity Fields ---
+// ─── Entity Fields ───────────────────────────────────────────
 
 const selectedEntityType = ref('goal')
 
-const currentEntityFields = computed(() => config.getEntityCustomFields(selectedEntityType.value))
+/** Efektivní atributy (vestavěné + vlastní) pro vybraný typ entity. */
+const currentEffectiveFields = computed(() =>
+  config.getEffectiveEntityFields(selectedEntityType.value, tPath)
+)
 
-const editingField = ref(null) // null = closed
+/** Skryté vestavěné atributy pro vybraný typ entity. */
+const currentHiddenFields = computed(() =>
+  config.getHiddenBuiltInFields(selectedEntityType.value, tPath)
+)
+
+/**
+ * Vrátí lokalizovaný popisek typu atributu.
+ * @param {string} type
+ * @returns {string}
+ */
+function fieldTypeLabel(type) {
+  const map = {
+    text: t.config.fieldTypeText,
+    textarea: t.config.fieldTypeTextarea,
+    url: t.config.fieldTypeUrl,
+    select: t.config.fieldTypeSelect,
+    'number-unit': t.config.fieldTypeNumberUnit,
+    email: t.config.fieldTypeEmail,
+    tel: t.config.fieldTypeTel,
+  }
+  return map[type] || type
+}
+
+/**
+ * Zjistí, zda má vestavěný atribut přepis.
+ * @param {string} fieldKey
+ * @returns {boolean}
+ */
+function isOverridden(fieldKey) {
+  return config.isFieldOverridden(selectedEntityType.value, fieldKey)
+}
+
+// --- Built-in field editing ---
+
+const editingBuiltIn = ref(null)
+const builtInForm = reactive({
+  label: '',
+  sortOrder: 0,
+  options: [],
+  units: [],
+})
+
+/**
+ * Otevře modál pro editaci vestavěného atributu.
+ * @param {Object} field
+ */
+function openEditBuiltIn(field) {
+  editingBuiltIn.value = field
+  builtInForm.label = field.label
+  builtInForm.sortOrder = field.sortOrder ?? 0
+  builtInForm.options = field.options ? field.options.map((o) => ({ ...o })) : []
+  builtInForm.units = field.units ? field.units.map((u) => ({ ...u })) : []
+}
+
+function closeBuiltInModal() {
+  editingBuiltIn.value = null
+}
+
+/**
+ * Uloží změny vestavěného atributu jako přepis.
+ */
+function saveBuiltIn() {
+  if (!editingBuiltIn.value) return
+  const updates = {
+    label: builtInForm.label,
+    sortOrder: builtInForm.sortOrder,
+  }
+  if (editingBuiltIn.value.type === 'select' && builtInForm.options.length > 0) {
+    updates.options = builtInForm.options
+      .filter((o) => o.value !== '' || o.label !== '')
+      .map((o) => ({ value: o.value, label: o.label }))
+  }
+  if (editingBuiltIn.value.type === 'number-unit' && builtInForm.units.length > 0) {
+    updates.units = builtInForm.units
+      .filter((u) => u.value !== '' || u.label !== '')
+      .map((u) => ({ value: u.value, label: u.label }))
+  }
+  config.updateFieldOverride(selectedEntityType.value, editingBuiltIn.value.key, updates)
+  closeBuiltInModal()
+}
+
+/**
+ * Skryje vestavěný atribut.
+ * @param {string} fieldKey
+ */
+function hideBuiltInField(fieldKey) {
+  config.updateFieldOverride(selectedEntityType.value, fieldKey, { hidden: true })
+}
+
+/**
+ * Zobrazí skrytý vestavěný atribut.
+ * @param {string} fieldKey
+ */
+function showBuiltInField(fieldKey) {
+  config.updateFieldOverride(selectedEntityType.value, fieldKey, { hidden: false })
+}
+
+const confirmingResetBuiltIn = ref(null)
+
+function confirmResetBuiltIn(field) {
+  confirmingResetBuiltIn.value = field
+}
+
+function doResetBuiltIn() {
+  if (confirmingResetBuiltIn.value) {
+    config.resetFieldOverride(selectedEntityType.value, confirmingResetBuiltIn.value.key)
+  }
+  confirmingResetBuiltIn.value = null
+}
+
+// --- Custom field editing ---
+
+const editingField = ref(null)
 const editingFieldIsNew = ref(false)
 const fieldForm = reactive({
   id: '',
   label: '',
   type: 'text',
   sortOrder: 0,
+  options: [],
 })
 
 function openAddField() {
@@ -358,9 +611,14 @@ function openAddField() {
   fieldForm.id = ''
   fieldForm.label = ''
   fieldForm.type = 'text'
-  fieldForm.sortOrder = (currentEntityFields.value.length) * 10
+  fieldForm.sortOrder = (currentEffectiveFields.value.length) * 10
+  fieldForm.options = []
 }
 
+/**
+ * Otevře modál pro editaci vlastního atributu.
+ * @param {Object} field
+ */
 function openEditField(field) {
   editingFieldIsNew.value = false
   editingField.value = field
@@ -368,25 +626,33 @@ function openEditField(field) {
   fieldForm.label = field.label
   fieldForm.type = field.type || 'text'
   fieldForm.sortOrder = field.sortOrder ?? 0
+  fieldForm.options = field.options ? field.options.map((o) => ({ ...o })) : []
 }
 
 function closeFieldModal() {
   editingField.value = null
 }
 
+/**
+ * Uloží vlastní atribut (nový nebo aktualizovaný).
+ */
 function saveField() {
-  if (editingFieldIsNew.value) {
-    config.addEntityField(selectedEntityType.value, {
-      label: fieldForm.label,
-      type: fieldForm.type,
-      sortOrder: fieldForm.sortOrder,
-    })
+  const data = {
+    label: fieldForm.label,
+    type: fieldForm.type,
+    sortOrder: fieldForm.sortOrder,
+  }
+  if (fieldForm.type === 'select') {
+    data.options = fieldForm.options
+      .filter((o) => o.value !== '' || o.label !== '')
+      .map((o) => ({ value: o.value, label: o.label }))
   } else {
-    config.updateEntityField(selectedEntityType.value, fieldForm.id, {
-      label: fieldForm.label,
-      type: fieldForm.type,
-      sortOrder: fieldForm.sortOrder,
-    })
+    data.options = undefined
+  }
+  if (editingFieldIsNew.value) {
+    config.addEntityField(selectedEntityType.value, data)
+  } else {
+    config.updateEntityField(selectedEntityType.value, fieldForm.id, data)
   }
   closeFieldModal()
 }
@@ -464,11 +730,17 @@ function doDeleteField() {
   background: var(--bg-muted, rgba(0,0,0,0.03));
 }
 
+.row-overridden td:first-child {
+  border-left: 3px solid var(--accent, #3b82f6);
+  padding-left: calc(var(--space-sm) - 3px);
+}
+
 .row-actions {
   display: flex;
   gap: var(--space-xs);
   justify-content: flex-end;
   white-space: nowrap;
+  flex-wrap: wrap;
 }
 
 .empty-row {
@@ -507,6 +779,49 @@ function doDeleteField() {
   background: var(--bg-muted);
   color: var(--text-muted);
   border: 1px solid var(--border);
+}
+
+.source-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.12em 0.5em;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.source-builtin {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.source-custom {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+@media (prefers-color-scheme: dark) {
+  .source-builtin { background: #1e3a5f; color: #93c5fd; border-color: #1e40af; }
+  .source-custom { background: #14532d; color: #86efac; border-color: #166534; }
+}
+
+.modified-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  margin-left: var(--space-xs);
+  vertical-align: middle;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modified-badge { background: #451a03; color: #fde68a; border-color: #92400e; }
 }
 
 .danger-btn { color: var(--color-danger, #dc2626); }
@@ -629,6 +944,30 @@ function doDeleteField() {
   display: flex;
   gap: var(--space-xs);
   align-items: center;
+}
+
+.options-editor-list {
+  list-style: none;
+  margin: 0 0 var(--space-sm);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.options-editor-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.options-value-input {
+  flex: 1;
+  max-width: 10rem;
+}
+
+.options-label-input {
+  flex: 2;
 }
 
 .form-actions {

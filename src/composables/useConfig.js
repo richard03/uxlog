@@ -1,3 +1,8 @@
+/**
+ * Composable pro přístup ke konfiguraci aplikace.
+ * Obaluje funkce z configStore.js a poskytuje je komponentám.
+ */
+
 import {
   configState,
   getEffectiveTemplates,
@@ -11,6 +16,12 @@ import {
   addEntityField,
   updateEntityField,
   deleteEntityField,
+  getEffectiveEntityFields,
+  getHiddenBuiltInFields,
+  getFieldOverride,
+  updateFieldOverride,
+  resetFieldOverride,
+  isFieldOverridden,
 } from '../lib/configStore.js'
 
 export function useConfig() {
@@ -27,5 +38,11 @@ export function useConfig() {
     addEntityField,
     updateEntityField,
     deleteEntityField,
+    getEffectiveEntityFields,
+    getHiddenBuiltInFields,
+    getFieldOverride,
+    updateFieldOverride,
+    resetFieldOverride,
+    isFieldOverridden,
   }
 }

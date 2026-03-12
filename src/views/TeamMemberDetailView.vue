@@ -23,9 +23,12 @@
 
     <section class="detail-section">
       <dl class="detail-list">
-        <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
+        <div v-for="field in visibleFields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
           <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': !item[field.key] }">{{ item[field.key] || '—' }}</dd>
+          <dd :class="{ 'value-empty': isFieldEmpty(field) }">
+            <a v-if="field.type === 'url' && isUrl(getFieldValue(field))" :href="getFieldValue(field)" target="_blank" rel="noopener noreferrer" @click.stop>{{ getFieldValue(field) }}</a>
+            <template v-else>{{ displayFieldValue(field) }}</template>
+          </dd>
           <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
@@ -35,10 +38,11 @@
       <form @submit.prevent="saveField">
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
-          <input v-if="editingType === 'text'" id="edit-field" v-model="editValue" class="form-control" />
-          <input v-else-if="editingType === 'email'" id="edit-field" type="email" v-model="editValue" class="form-control" />
-          <input v-else-if="editingType === 'tel'" id="edit-field" type="tel" v-model="editValue" class="form-control" />
+          <input v-if="editingType === 'text' || editingType === 'url' || editingType === 'email' || editingType === 'tel'" id="edit-field" v-model="editValue" class="form-control" />
           <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
+          <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
+            <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
@@ -46,8 +50,6 @@
         </div>
       </form>
     </Modal>
-
-    <CustomFieldsSection entity-type="teamMember" :entity="item" @update="(u) => store.updateTeamMember(item?.id, u)" />
 
     <ConfirmDialog v-if="showConfirm" :title="t.teamMember.delete" :message="t.teamMember.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -63,6 +65,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import { useEntityFields } from '../composables/useEntityFields.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
@@ -71,7 +74,6 @@ import KebabMenu from '../components/KebabMenu.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -93,39 +95,16 @@ const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
 
-const editingField = ref(null)
-const editValue = ref('')
-
-const allFields = [
+const headerFields = [
   { key: 'name', label: t.teamMember.name, type: 'text' },
-  { key: 'role', label: t.teamMember.role, type: 'text' },
-  { key: 'email', label: t.teamMember.email, type: 'email' },
-  { key: 'phone', label: t.teamMember.phone, type: 'tel' },
-  { key: 'note', label: t.teamMember.note, type: 'textarea' },
 ]
 
-const fields = allFields.slice(1)
-
-const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
-const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
-const editingType = computed(() => editingFieldDef.value?.type ?? 'text')
-
-function openEdit(key) {
-  editingField.value = key
-  editValue.value = item.value?.[key] ?? ''
-}
-
-function closeEdit() {
-  editingField.value = null
-  editValue.value = ''
-}
-
-function saveField() {
-  if (item.value && editingField.value) {
-    store.updateTeamMember(item.value.id, { [editingField.value]: editValue.value })
-    closeEdit()
-  }
-}
+const {
+  visibleFields, editingField, editValue,
+  editingLabel, editingType, editingOptions,
+  getFieldValue, displayFieldValue, isFieldEmpty, isUrl,
+  openEdit, closeEdit, saveField,
+} = useEntityFields('teamMember', item, (u) => store.updateTeamMember(item.value.id, u), headerFields)
 
 function confirmDelete() { showConfirm.value = true }
 

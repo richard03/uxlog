@@ -9,7 +9,6 @@
               <h1><ProjectColorTag :color="project?.color" />{{ item.name || t.competition.name }}</h1>
               <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            
           </div>
           <p class="entity-type">{{ t.competition.label }}</p>
         </div>
@@ -26,25 +25,26 @@
 
     <section class="detail-section">
       <dl class="detail-list">
-        <div v-for="field in fields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
+        <div v-for="field in visibleFields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
           <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': !item[field.key] }">
-            <a v-if="field.type === 'url' && isUrl(item[field.key])" :href="item[field.key]" target="_blank" rel="noopener noreferrer" @click.stop>{{ item[field.key] }}</a>
-            <template v-else>{{ item[field.key] || '—' }}</template>
+          <dd :class="{ 'value-empty': isFieldEmpty(field) }">
+            <a v-if="field.type === 'url' && isUrl(getFieldValue(field))" :href="getFieldValue(field)" target="_blank" rel="noopener noreferrer" @click.stop>{{ getFieldValue(field) }}</a>
+            <template v-else>{{ displayFieldValue(field) }}</template>
           </dd>
           <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </div>
       </dl>
     </section>
 
-    <CustomFieldsSection entity-type="competition" :entity="item" @update="(u) => store.updateCompetition(item?.id, u)" />
-
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveField">
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
-          <input v-if="editingType === 'text' || editingType === 'url'" id="edit-field" v-model="editValue" class="form-control" />
+          <input v-if="editingType === 'text' || editingType === 'url' || editingType === 'email' || editingType === 'tel'" id="edit-field" v-model="editValue" class="form-control" />
           <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
+          <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
+            <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
@@ -67,6 +67,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import { useEntityFields } from '../composables/useEntityFields.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -75,7 +76,6 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,46 +96,17 @@ const breadcrumbs = computed(() => [
 const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
-const editingField = ref(null)
-const editValue = ref('')
 
-
-const allFields = [
+const headerFields = [
   { key: 'name', label: t.competition.name, type: 'text' },
-  { key: 'description', label: t.competition.description, type: 'textarea' },
-  { key: 'strengths', label: t.competition.strengths, type: 'textarea' },
-  { key: 'weaknesses', label: t.competition.weaknesses, type: 'textarea' },
-  { key: 'inspiration', label: t.competition.inspiration, type: 'textarea' },
-  { key: 'url', label: t.competition.url, type: 'url' },
 ]
 
-function isUrl(val) {
-  if (!val) return false
-  try { return Boolean(new URL(val)) } catch { return false }
-}
-
-const fields = allFields.slice(1)
-
-const editingFieldDef = computed(() => allFields.find((f) => f.key === editingField.value))
-const editingLabel = computed(() => editingFieldDef.value?.label ?? '')
-const editingType = computed(() => editingFieldDef.value?.type ?? 'text')
-
-function openEdit(key) {
-  editingField.value = key
-  editValue.value = item.value?.[key] ?? ''
-}
-
-function closeEdit() {
-  editingField.value = null
-  editValue.value = ''
-}
-
-function saveField() {
-  if (item.value && editingField.value) {
-    store.updateCompetition(item.value.id, { [editingField.value]: editValue.value })
-    closeEdit()
-  }
-}
+const {
+  visibleFields, editingField, editValue,
+  editingLabel, editingType, editingOptions,
+  getFieldValue, displayFieldValue, isFieldEmpty, isUrl,
+  openEdit, closeEdit, saveField,
+} = useEntityFields('competition', item, (u) => store.updateCompetition(item.value.id, u), headerFields)
 
 function confirmDelete() { showConfirm.value = true }
 
@@ -158,8 +129,6 @@ function doDelete() {
 .editable-name { display: inline-flex; align-items: baseline; gap: 0.3em; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font-family: inherit; }
 .editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
 .editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
-.header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
-.header-url-link:hover { color: var(--accent); }
 .editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .detail-section { margin-top: var(--space-lg); }
 .detail-list { margin: 0; padding: 0; }
