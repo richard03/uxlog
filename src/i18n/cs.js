@@ -393,6 +393,8 @@ export default {
   },
   config: {
     title: 'Konfigurace',
+    entities: 'Entity',
+    activities: 'Aktivity',
     activityTemplates: 'Šablony aktivit',
     addTemplate: 'Přidat šablonu',
     editTemplate: 'Upravit šablonu',

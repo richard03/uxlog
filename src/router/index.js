@@ -149,6 +149,30 @@ const routes = [
     component: () => import('../views/ConfigView.vue'),
     meta: { title: 'Konfigurace' },
   },
+  {
+    path: '/config/entities',
+    name: 'configEntities',
+    component: () => import('../views/ConfigEntitiesView.vue'),
+    meta: { title: 'Entity' },
+  },
+  {
+    path: '/config/entities/:entityType',
+    name: 'configEntityAttrs',
+    component: () => import('../views/ConfigEntityAttrsView.vue'),
+    meta: { title: 'Atributy entity' },
+  },
+  {
+    path: '/config/activities',
+    name: 'configActivities',
+    component: () => import('../views/ConfigActivitiesView.vue'),
+    meta: { title: 'Šablony aktivit' },
+  },
+  {
+    path: '/config/activities/:templateKey',
+    name: 'configActivityTemplate',
+    component: () => import('../views/ConfigActivityTemplateView.vue'),
+    meta: { title: 'Šablona aktivity' },
+  },
 ]
 
 const router = createRouter({

@@ -114,11 +114,13 @@ export function getDeletedBuiltInTemplates() {
 /**
  * Přidá vlastní šablonu aktivity.
  * @param {Object} fields
+ * @returns {string} klíč nové šablony
  */
 export function addCustomTemplate(fields = {}) {
   if (!configState.customActivityTemplates) configState.customActivityTemplates = []
+  const key = generateId()
   configState.customActivityTemplates.push({
-    key: generateId(),
+    key,
     group: 'project',
     name: '',
     description: '',
@@ -128,6 +130,7 @@ export function addCustomTemplate(fields = {}) {
     ...fields,
   })
   persist()
+  return key
 }
 
 /**
