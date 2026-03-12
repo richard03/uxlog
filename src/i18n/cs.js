@@ -392,7 +392,7 @@ export default {
     ariaLabel: (filled, total) => `Vyplněno ${filled} z ${total} polí`,
   },
   config: {
-    title: 'Konfigurace',
+    title: 'Šablony',
     entities: 'Entity',
     activities: 'Aktivity',
     activityTemplates: 'Šablony aktivit',
@@ -408,6 +408,7 @@ export default {
     templateSortOrder: 'Pořadí',
     createOnNewProject: 'Vytvořit u nového projektu',
     checklist: 'Checklist',
+    items: 'položek',
     addChecklistItem: 'Přidat krok',
     checklistItemPlaceholder: 'Popis kroku…',
     removeChecklistItem: 'Odebrat',

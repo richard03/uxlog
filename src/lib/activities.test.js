@@ -27,8 +27,8 @@ describe('createActivity', () => {
 })
 
 describe('ACTIVITY_TYPES', () => {
-  it('obsahuje 16 předdefinovaných typů', () => {
-    expect(ACTIVITY_TYPES).toHaveLength(16)
+  it('obsahuje 13 předdefinovaných typů', () => {
+    expect(ACTIVITY_TYPES).toHaveLength(13)
   })
 
   it('každý typ má unikátní klíč', () => {

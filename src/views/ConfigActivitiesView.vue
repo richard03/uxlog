@@ -16,15 +16,17 @@
 
     <ul v-else class="entity-list" role="list">
       <li v-for="tpl in templates" :key="tpl.key" class="card card-clickable">
-        <router-link :to="{ name: 'configActivityTemplate', params: { templateKey: tpl.key } }" class="card-body">
-          <span class="group-badge" :class="`group-${tpl.group}`">
-            {{ t.config.groupLabels[tpl.group] || tpl.group }}
-          </span>
-          <h3 class="card-title">{{ tpl.name }}</h3>
-          <p v-if="tpl.description" class="card-desc">{{ tpl.description }}</p>
-          <span v-if="(tpl.checklist || []).length" class="checklist-count">
-            {{ (tpl.checklist || []).length }} {{ t.config.checklist }}
-          </span>
+        <router-link :to="{ name: 'configActivityTemplate', params: { templateKey: tpl.key } }" class="card-link">
+          <div class="card-header">
+            <h3 class="card-title">{{ tpl.name }}</h3>
+            <p v-if="tpl.description" class="card-desc">{{ tpl.description }}</p>
+          </div>
+          <div class="card-meta">
+            <span class="badge" :class="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</span>
+            <span v-if="(tpl.checklist || []).length" class="badge checklist-count">
+              {{ t.config.checklist }}: {{ (tpl.checklist || []).length }} {{ t.config.items }}
+            </span>
+          </div>
         </router-link>
       </li>
     </ul>
@@ -174,11 +176,23 @@ function saveTemplate() {
 
 .entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card { display: flex; align-items: stretch; }
-.card-body {
-  flex: 1;
-  text-decoration: none;
-  color: inherit;
-  display: block;
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .card-clickable:hover {
@@ -187,13 +201,16 @@ function saveTemplate() {
 }
 .card-title { margin: var(--space-xs) 0 0; font-size: 1rem; }
 .card-desc { margin: var(--space-xs) 0 0; font-size: 0.9rem; color: var(--text-muted); }
-.checklist-count { display: inline-block; margin-top: var(--space-xs); font-size: 0.8rem; color: var(--text-muted); }
+.checklist-count { display: inline-block; font-size: 0.8rem; color: var(--text-muted); }
 
-.group-badge { display: inline-block; font-size: 0.75rem; font-weight: 500; padding: 0.15em 0.55em; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-muted); color: var(--text-muted); }
-.group-badge.group-project { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.group-badge.group-research { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
-.group-badge.group-design { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
-@media (prefers-color-scheme: dark) { .group-badge.group-project { background: #0c4a6e; color: #bae6fd; } .group-badge.group-research { background: #451a03; color: #fef08a; } .group-badge.group-design { background: #3b0764; color: #e9d5ff; } }
+.badge.group-project { background: #e0f2fe; color: #0369a1;  }
+.badge.group-research { background: #fef9c3; color: #854d0e;  }
+.badge.group-design { background: #f3e8ff; color: #6b21a8; }
+@media (prefers-color-scheme: dark) { 
+  .badge.group-project { background: #0c4a6e; color: #bae6fd; } 
+  .badge.group-research { background: #451a03; color: #fef08a; } 
+  .badge.group-design { background: #3b0764; color: #e9d5ff; } 
+}
 
 .deleted-section { margin-top: var(--space-lg); border-top: 1px solid var(--border); padding-top: var(--space-md); }
 .deleted-summary { cursor: pointer; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; padding: var(--space-xs) 0; user-select: none; }
