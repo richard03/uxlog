@@ -4,7 +4,7 @@
       <router-link to="/" class="logo" :aria-label="t.app.title">
         {{ t.app.title }}
       </router-link>
-      <nav class="nav" aria-label="Hlavní navigace">
+      <nav class="nav" :aria-label="t.nav.mainNav">
         <router-link to="/" class="nav-link">{{ t.nav.projects }}</router-link>
         <button
           type="button"
@@ -23,7 +23,7 @@
         </button>
         <button
           type="button"
-          class="btn btn-ghost icon-btn"
+          class="btn btn-secondary icon-btn"
           :aria-label="t.nav.settings"
           :title="t.nav.settings"
           @click="showSettings = true"

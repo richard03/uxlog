@@ -156,7 +156,7 @@ function doDelete() {
 .editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
 .editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
 .header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
-.header-url-link:hover { color: var(--color-primary); }
+.header-url-link:hover { color: var(--accent); }
 .editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .detail-section { margin-top: var(--space-lg); }
 .detail-list { margin: 0; padding: 0; }

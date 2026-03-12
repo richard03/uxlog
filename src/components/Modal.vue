@@ -12,7 +12,7 @@
         <button
           type="button"
           class="btn btn-ghost icon-btn"
-          aria-label="Zavřít"
+          :aria-label="t.common.close"
           @click="emit('close')"
         >
           ×
@@ -27,6 +27,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from '../composables/useI18n.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   title: { type: String, default: '' },

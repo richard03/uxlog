@@ -3,7 +3,7 @@
     <button
       type="button"
       class="kebab-btn"
-      :aria-label="ariaLabel || 'Akce'"
+      :aria-label="ariaLabel || t.common.actions"
       :aria-expanded="open"
       @click.stop="toggle"
     >
@@ -29,6 +29,9 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from '../composables/useI18n.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   items: { type: Array, required: true },

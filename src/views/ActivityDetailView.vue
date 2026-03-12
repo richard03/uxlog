@@ -323,11 +323,11 @@ function doDelete() {
 .checklist-item:last-child { border-bottom: none; }
 .checklist-row { display: flex; align-items: flex-start; gap: var(--space-xs); }
 .checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; flex: 1; min-width: 0; }
-.checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--color-primary, #3b82f6); width: 1rem; height: 1rem; cursor: pointer; }
+.checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); width: 1rem; height: 1rem; cursor: pointer; }
 .checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
 .checklist-add-row { padding: var(--space-xs) 0; }
 .checklist-add-btn { display: flex; align-items: center; gap: 0.4em; color: var(--text-muted); }
-.checklist-add-btn:hover { color: var(--color-primary, #3b82f6); }
+.checklist-add-btn:hover { color: var(--accent); }
 .checklist-add-form { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .checklist-item-editing { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .checklist-edit-input { font-size: 0.95rem; padding: 0.3rem 0.5rem; }

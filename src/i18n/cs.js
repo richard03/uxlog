@@ -10,6 +10,8 @@ export default {
   nav: {
     projects: 'Projekty',
     search: 'Vyhledat',
+    mainNav: 'Hlavní navigace',
+    breadcrumb: 'Drobková navigace',
     darkMode: 'Tmavý režim',
     lightMode: 'Světlý režim',
     settings: 'Nastavení',
@@ -408,5 +410,7 @@ export default {
     moveSelectProject: 'Vyberte cílový projekt',
     moveConfirm: 'Přesunout',
     moveNoOtherProjects: 'Nejsou k dispozici žádné jiné projekty.',
+    close: 'Zavřít',
+    actions: 'Akce',
   },
 }

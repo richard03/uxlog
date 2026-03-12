@@ -14,6 +14,7 @@
 
     <div v-if="bugs.length === 0" class="empty-state">
       <p>{{ t.common.empty }}</p>
+      <p>{{ t.common.emptyHint }}</p>
     </div>
 
     <ul v-else class="entity-list" role="list">

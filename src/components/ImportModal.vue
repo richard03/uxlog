@@ -82,9 +82,9 @@
             <strong class="im-card-name">{{ plan.project.item.name }}</strong>
           </div>
           <div class="im-card-btns">
-            <button v-if="projectStatus !== 'skipped'" type="button" class="btn btn-ghost btn-sm"
+            <button v-if="projectStatus !== 'skipped'" type="button" class="btn btn-secondary btn-sm"
               @click="projectStatus = 'skipped'">{{ t.import.skip }}</button>
-            <button v-else type="button" class="btn btn-ghost btn-sm"
+            <button v-else type="button" class="btn btn-secondary btn-sm"
               @click="projectStatus = 'included'">{{ t.import.include }}</button>
           </div>
         </div>
@@ -100,9 +100,9 @@
           <span class="im-section-title">{{ section.label }}</span>
           <span class="badge">{{ plan[section.key].length }}</span>
           <div class="im-section-actions">
-            <button type="button" class="btn btn-ghost btn-sm"
+            <button type="button" class="btn btn-secondary btn-sm"
               @click="setAllInSection(section.key, 'included')">{{ t.import.includeAll }}</button>
-            <button type="button" class="btn btn-ghost btn-sm"
+            <button type="button" class="btn btn-secondary btn-sm"
               @click="setAllInSection(section.key, 'skipped')">{{ t.import.skipAll }}</button>
           </div>
         </div>

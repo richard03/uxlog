@@ -1,5 +1,5 @@
 <template>
-  <nav aria-label="Drobková navigace" class="breadcrumb">
+  <nav :aria-label="t.nav.breadcrumb" class="breadcrumb">
     <ol>
       <li v-for="(crumb, i) in items" :key="i">
         <router-link v-if="crumb.to" :to="crumb.to">{{ crumb.label }}</router-link>
@@ -10,6 +10,10 @@
 </template>
 
 <script setup>
+import { useI18n } from '../composables/useI18n.js'
+
+const { t } = useI18n()
+
 defineProps({
   items: {
     type: Array,

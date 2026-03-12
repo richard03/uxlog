@@ -1,6 +1,6 @@
 <template>
   <div class="export-btn-wrap" ref="wrapRef">
-    <button type="button" class="btn btn-ghost" @click="toggle" :aria-expanded="open" aria-haspopup="menu">
+    <button type="button" class="btn btn-secondary" @click="toggle" :aria-expanded="open" aria-haspopup="menu">
       {{ t.project.export }}
     </button>
     <ul v-if="open" class="export-menu" role="menu">

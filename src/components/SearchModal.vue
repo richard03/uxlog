@@ -3,7 +3,7 @@
     class="modal-overlay"
     role="dialog"
     aria-modal="true"
-    aria-label="Vyhledávání"
+    :aria-label="t.common.search"
     @keydown.esc="emit('close')"
   >
     <div class="modal search-modal" ref="modalRef">
@@ -12,7 +12,7 @@
         <button
           type="button"
           class="btn btn-ghost icon-btn"
-          aria-label="Zavřít"
+          :aria-label="t.common.close"
           @click="emit('close')"
         >
           ×

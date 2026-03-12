@@ -202,7 +202,7 @@ function doDelete() {
 .editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
 .editable-code .pencil, .editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
 .header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
-.header-url-link:hover { color: var(--color-primary); }
+.header-url-link:hover { color: var(--accent); }
 .editable-code:hover .pencil, .editable-code:focus-visible .pencil, .editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .priority-banner { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); font-size: 0.9rem; }
 .priority-banner-critical { background: #fee2e2; color: #991b1b; }

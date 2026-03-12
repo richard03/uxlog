@@ -353,7 +353,7 @@ function doDelete() {
   align-self: center;
 }
 .header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
-.header-url-link:hover { color: var(--color-primary); }
+.header-url-link:hover { color: var(--accent); }
 
 .editable-code:hover .pencil,
 .editable-code:focus-visible .pencil,
