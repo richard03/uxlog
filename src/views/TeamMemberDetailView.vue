@@ -47,6 +47,8 @@
       </form>
     </Modal>
 
+    <CustomFieldsSection entity-type="teamMember" :entity="item" @update="(u) => store.updateTeamMember(item?.id, u)" />
+
     <ConfirmDialog v-if="showConfirm" :title="t.teamMember.delete" :message="t.teamMember.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="teamMembers" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'team', params: { id: projectId } })" />
@@ -69,6 +71,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()

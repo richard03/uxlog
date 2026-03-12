@@ -143,6 +143,12 @@ const routes = [
     component: () => import('../views/BugDetailView.vue'),
     meta: { title: 'Chyba' },
   },
+  {
+    path: '/config',
+    name: 'config',
+    component: () => import('../views/ConfigView.vue'),
+    meta: { title: 'Konfigurace' },
+  },
 ]
 
 const router = createRouter({

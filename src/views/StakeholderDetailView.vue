@@ -34,6 +34,8 @@
       </dl>
     </section>
 
+    <CustomFieldsSection entity-type="stakeholder" :entity="item" @update="(u) => store.updateStakeholder(item?.id, u)" />
+
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveField">
         <div class="form-group">
@@ -74,6 +76,7 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()

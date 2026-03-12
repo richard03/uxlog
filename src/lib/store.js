@@ -22,6 +22,7 @@ import {
 } from './models.js'
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
+import { getEffectiveTemplates, getTemplate } from './configStore.js'
 import { generateId } from './id.js'
 import { pickProjectColor } from './projectColors.js'
 
@@ -80,11 +81,12 @@ export function addProject(overrides = {}) {
   state.projects.push(project)
   // Přidat všechny předdefinované aktivity jako výchozí
   state.activities = state.activities || []
-  for (const type of ACTIVITY_TYPES) {
+  for (const template of getEffectiveTemplates().filter((t) => t.createOnNewProject)) {
     state.activities.push(createActivity(project.id, {
-      typeKey: type.key,
-      name: type.defaultName,
-      sortOrder: type.sortOrder,
+      typeKey: template.key,
+      name: template.name,
+      sortOrder: template.sortOrder,
+      baseChecklist: template.checklist ? [...template.checklist] : [],
     }))
   }
   console.log('[UXLog] addProject:', project.name, 'celkem projektů:', state.projects.length)
@@ -402,7 +404,14 @@ export function getActivity(id) {
 }
 
 export function addActivity(projectId, overrides = {}) {
-  const a = createActivity(projectId, overrides)
+  let finalOverrides = { ...overrides }
+  if (overrides.typeKey && !overrides.baseChecklist) {
+    const template = getTemplate(overrides.typeKey)
+    if (template?.checklist) {
+      finalOverrides.baseChecklist = [...template.checklist]
+    }
+  }
+  const a = createActivity(projectId, finalOverrides)
   state.activities = state.activities || []
   state.activities.push(a)
   updateProject(projectId, {})
@@ -427,9 +436,9 @@ export function deleteActivity(id) {
 }
 
 function effectiveChecklist(activity) {
-  const type = ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)
+  const baseChecklist = activity.baseChecklist || (ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)?.checklist) || []
   const removed = new Set(activity.removedChecklistItems || [])
-  const defaults = (type?.checklist || []).filter((ci) => !removed.has(ci.id))
+  const defaults = baseChecklist.filter((ci) => !removed.has(ci.id))
   return [...defaults, ...(activity.customChecklistItems || [])]
 }
 
@@ -469,8 +478,8 @@ export function removeChecklistItem(activityId, itemId) {
   const idx = state.activities?.findIndex((a) => a.id === activityId)
   if (idx === undefined || idx === -1) return
   const a = state.activities[idx]
-  const type = ACTIVITY_TYPES.find((t) => t.key === a.typeKey)
-  const isDefault = type?.checklist?.some((ci) => ci.id === itemId)
+  const baseChecklist = a.baseChecklist || (ACTIVITY_TYPES.find((t) => t.key === a.typeKey)?.checklist) || []
+  const isDefault = baseChecklist.some((ci) => ci.id === itemId)
   const customChecklistItems = (a.customChecklistItems || []).filter((ci) => ci.id !== itemId)
   const removedChecklistItems = isDefault
     ? [...new Set([...(a.removedChecklistItems || []), itemId])]

@@ -64,6 +64,7 @@ export function createGoal(projectId, overrides = {}) {
     metrics: '',
     url: '',
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -84,6 +85,7 @@ export function createStakeholder(projectId, overrides = {}) {
     interestLevel: '',
     requirementIds: [],
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -105,6 +107,7 @@ export function createCompetition(projectId, overrides = {}) {
     inspiration: '',
     url: '',
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -127,6 +130,7 @@ export function createHypothesis(projectId, overrides = {}) {
     url: '',
     requirementIds: [],
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -156,6 +160,7 @@ export function createPersona(projectId, overrides = {}) {
     scenarioIds: [],
     requirementIds: [],
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -186,6 +191,7 @@ export function createScenario(projectId, overrides = {}) {
     hypothesisIds: [],
     requirementIds: [],
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -210,6 +216,7 @@ export function createActivity(projectId, overrides = {}) {
     checklistLabels: {},
     customChecklistItems: [],
     removedChecklistItems: [],
+    baseChecklist: null,
     ...overrides,
   }
 }
@@ -230,6 +237,7 @@ export function createTeamMember(projectId, overrides = {}) {
     phone: '',
     note: '',
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -255,6 +263,7 @@ export function createRequirement(projectId, overrides = {}) {
     scenarioIds: [],
     stakeholderIds: [],
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -280,6 +289,7 @@ export function createTask(projectId, overrides = {}) {
     url: '',
     status: 'open',
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }
@@ -324,6 +334,7 @@ export function createBug(projectId, overrides = {}) {
     url: '',
     status: 'zadano',
     sortOrder: 9999,
+    customFields: {},
     ...overrides,
   }
 }

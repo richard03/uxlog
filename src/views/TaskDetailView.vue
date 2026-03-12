@@ -61,6 +61,8 @@
       </form>
     </Modal>
 
+    <CustomFieldsSection entity-type="task" :entity="item" @update="(u) => store.updateTask(item?.id, u)" />
+
     <ConfirmDialog v-if="showConfirm" :title="t.task.delete" :message="t.task.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="tasks" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'tasks', params: { id: projectId } })" />
@@ -83,6 +85,7 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()

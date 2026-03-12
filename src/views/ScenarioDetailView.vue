@@ -91,6 +91,8 @@
       </form>
     </Modal>
 
+    <CustomFieldsSection entity-type="scenario" :entity="scenario" @update="(u) => store.updateScenario(scenario?.id, u)" />
+
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <ConfirmDialog
       v-if="showConfirm"
@@ -119,6 +121,7 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()

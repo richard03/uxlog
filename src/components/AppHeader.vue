@@ -6,6 +6,7 @@
       </router-link>
       <nav class="nav" :aria-label="t.nav.mainNav">
         <router-link to="/" class="nav-link">{{ t.nav.projects }}</router-link>
+        <router-link to="/config" class="nav-link">{{ t.nav.config }}</router-link>
         <button
           type="button"
           class="btn btn-ghost icon-btn"

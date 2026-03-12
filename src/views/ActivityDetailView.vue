@@ -115,7 +115,7 @@
 
     <section v-if="activityType" class="type-info-section" aria-label="t.activity.typeInfo">
       <h2 class="type-info-title">{{ t.activity.typeInfo }}</h2>
-      <p class="type-info-desc">{{ activityType.defaultDescription }}</p>
+      <p class="type-info-desc">{{ activityType.description }}</p>
     </section>
 
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
@@ -151,7 +151,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
-import { getActivityType } from '../lib/activityTypes.js'
+import { getTemplate } from '../lib/configStore.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -170,12 +170,13 @@ const projectId = computed(() => route.params.id)
 const activityItem = computed(() => store.getActivity(route.params.activityId))
 const item = activityItem
 const project = computed(() => store.getProject(projectId.value))
-const activityType = computed(() => activityItem.value?.typeKey ? getActivityType(activityItem.value.typeKey) : null)
+const activityType = computed(() => activityItem.value?.typeKey ? getTemplate(activityItem.value.typeKey) : null)
 
 const effectiveChecklist = computed(() => {
   if (!activityItem.value) return []
   const removed = new Set(activityItem.value.removedChecklistItems || [])
-  const defaults = (activityType.value?.checklist || []).filter((ci) => !removed.has(ci.id))
+  const baseChecklist = activityItem.value.baseChecklist || activityType.value?.checklist || []
+  const defaults = baseChecklist.filter((ci) => !removed.has(ci.id))
   return [...defaults, ...(activityItem.value.customChecklistItems || [])]
 })
 

@@ -58,6 +58,8 @@
       </form>
     </Modal>
 
+    <CustomFieldsSection entity-type="bug" :entity="item" @update="(u) => store.updateBug(item?.id, u)" />
+
     <ConfirmDialog v-if="showConfirm" :title="t.bug.delete" :message="t.bug.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="bugs" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'bugs', params: { id: projectId } })" />
@@ -81,6 +83,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import { getBugPriority } from '../lib/models.js'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -36,6 +36,8 @@
       </dl>
     </section>
 
+    <CustomFieldsSection entity-type="requirement" :entity="item" @update="(u) => store.updateRequirement(item?.id, u)" />
+
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveField">
         <div class="form-group">
@@ -75,6 +77,7 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CustomFieldsSection from '../components/CustomFieldsSection.vue'
 
 const route = useRoute()
 const router = useRouter()
