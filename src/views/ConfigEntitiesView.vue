@@ -55,9 +55,13 @@ const MAX_BADGES = 7
 /**
  * Vrátí pole názvů atributů (max MAX_BADGES) a počet dalších pro daný typ entity.
  */
+function stripParens(label) {
+  return label.replace(/\s*\(.*?\)\s*$/, '').trim()
+}
+
 function getEntityFieldInfo(entityType) {
   const fields = config.getEffectiveEntityFields(entityType, tPath)
-  const labels = fields.map((f) => f.label)
+  const labels = fields.map((f) => stripParens(f.label))
   const visible = labels.slice(0, MAX_BADGES)
   const rest = labels.length - visible.length
   return { visible, rest }
