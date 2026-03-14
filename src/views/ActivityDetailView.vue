@@ -26,15 +26,37 @@
 
     <section class="detail-section">
       <dl class="detail-list">
-        <DetailField :label="t.activity.description" :empty="!item.description" @edit="openEdit('description')">
-          {{ item.description || '—' }}
-        </DetailField>
-        <DetailField :label="t.activity.status" @edit="openEdit('status')">
-          {{ t.activity.statusOptions[item.status] }}
-        </DetailField>
-        <DetailField :label="t.activity.deadline" :empty="!item.deadline" @edit="openEdit('deadline')">
-          <span :class="{ 'deadline-overdue': deadlineOverdue }">{{ item.deadline ? formatDeadlineDate(item.deadline) : '—' }}</span>
-        </DetailField>
+        <InlineEditableDetailField
+          :label="t.activity.description"
+          :empty="!item.description"
+          :display-value="item.description || '—'"
+          :raw-value="item.description ?? ''"
+          :field="{ key: 'description', type: 'textarea' }"
+          :cancel-text="t.common.cancel"
+          :save-text="t.common.save"
+          @save="(val) => saveField('description', val)"
+        />
+        <InlineEditableDetailField
+          :label="t.activity.status"
+          :empty="!item.status"
+          :display-value="t.activity.statusOptions[item.status] ?? '—'"
+          :raw-value="item.status ?? ''"
+          :field="{ key: 'status', type: 'select', options: statusOptions }"
+          :cancel-text="t.common.cancel"
+          :save-text="t.common.save"
+          @save="(val) => saveField('status', val)"
+        />
+        <InlineEditableDetailField
+          :label="t.activity.deadline"
+          :empty="!item.deadline"
+          :display-value="item.deadline ? formatDeadlineDate(item.deadline) : '—'"
+          :raw-value="item.deadline ?? ''"
+          :field="{ key: 'deadline', type: 'date' }"
+          :value-class="deadlineOverdue ? 'deadline-overdue' : ''"
+          :cancel-text="t.common.cancel"
+          :save-text="t.common.save"
+          @save="(val) => saveField('deadline', val)"
+        />
       </dl>
     </section>
 
@@ -66,31 +88,9 @@
     </SectionCard>
 
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
-      <form @submit.prevent="saveField">
+      <form @submit.prevent="saveFieldModal">
         <FormGroup :label="editingLabel" control-id="edit-field">
-          <FormTextarea
-            v-if="editingField === 'description'"
-            v-model="editValue"
-            control-id="edit-field"
-            :rows="4"
-          />
-          <FormSelect
-            v-else-if="editingField === 'status'"
-            v-model="editValue"
-            control-id="edit-field"
-            :options="statusOptions"
-          />
-          <FormInput
-            v-else-if="editingField === 'deadline'"
-            v-model="editValue"
-            type="date"
-            control-id="edit-field"
-          />
-          <FormInput
-            v-else
-            v-model="editValue"
-            control-id="edit-field"
-          />
+          <FormInput v-model="editValue" control-id="edit-field" />
         </FormGroup>
         <FormActions>
           <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
@@ -115,7 +115,6 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { getTemplate } from '../lib/configStore.js'
 import { daysRemaining } from '../lib/deadline.js'
-import Modal from '../components/Modal.vue'
 import PageHeader from '../components/PageHeader.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -124,12 +123,13 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import DetailField from '../components/DetailField.vue'
+import Modal from '../components/Modal.vue'
+import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
+import { FormGroup, FormInput, FormActions } from '../components/form'
 import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
 import ActivityChecklist from '../components/ActivityChecklist.vue'
 import SectionCard from '../components/SectionCard.vue'
 import AppButton from '../components/AppButton.vue'
-import { FormGroup, FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,21 +180,7 @@ const editValue = ref('')
 
 const fieldLabels = {
   name: () => t.activity.name,
-  description: () => t.activity.description,
-  status: () => t.activity.status,
-  deadline: () => t.activity.deadline,
 }
-
-function formatDeadlineDate(ymd) {
-  if (!ymd) return ''
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-const deadlineOverdue = computed(() => {
-  const dr = daysRemaining(item.value?.deadline)
-  return dr !== null && dr < 0
-})
 
 const editingLabel = computed(() => fieldLabels[editingField.value]?.() ?? '')
 
@@ -208,10 +194,27 @@ function closeEdit() {
   editValue.value = ''
 }
 
-function saveField() {
+function saveFieldModal() {
   if (item.value && editingField.value) {
     store.updateActivity(item.value.id, { [editingField.value]: editValue.value })
     closeEdit()
+  }
+}
+
+function formatDeadlineDate(ymd) {
+  if (!ymd) return ''
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const deadlineOverdue = computed(() => {
+  const dr = daysRemaining(item.value?.deadline)
+  return dr !== null && dr < 0
+})
+
+function saveField(key, value) {
+  if (item.value) {
+    store.updateActivity(item.value.id, { [key]: value })
   }
 }
 

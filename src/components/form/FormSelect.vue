@@ -2,6 +2,7 @@
   <div v-if="label || hint" class="form-group">
     <label v-if="label" :for="controlId || undefined" class="form-group-label">{{ label }}</label>
     <select
+      ref="selectRef"
       :id="controlId"
       :value="modelValue"
       :required="required"
@@ -24,6 +25,7 @@
   </div>
   <select
     v-else
+    ref="selectRef"
     :id="controlId"
     :value="modelValue"
     :required="required"
@@ -45,6 +47,8 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 /**
  * FormSelect – výběrový seznam se sjednoceným stylingem.
  * Volitelně zobrazí label a hint přímo v komponentě. Může být použit s options prop nebo se slotem pro vlastní option prvky.
@@ -69,6 +73,12 @@ defineProps({
 })
 
 defineEmits(['update:modelValue'])
+
+const selectRef = ref(null)
+defineExpose({
+  /** Předá focus na select element */
+  focus: () => selectRef.value?.focus(),
+})
 </script>
 
 <script>

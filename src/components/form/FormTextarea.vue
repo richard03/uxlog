@@ -2,6 +2,7 @@
   <div v-if="label || hint" class="form-group">
     <label v-if="label" :for="controlId || undefined" class="form-group-label">{{ label }}</label>
     <textarea
+      ref="textareaRef"
       :id="controlId"
       :value="modelValue"
       :placeholder="placeholder"
@@ -16,6 +17,7 @@
   </div>
   <textarea
     v-else
+    ref="textareaRef"
     :id="controlId"
     :value="modelValue"
     :placeholder="placeholder"
@@ -29,6 +31,8 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 /**
  * FormTextarea – vícedřádkové textové pole se sjednoceným stylingem.
  * Volitelně zobrazí label a hint přímo v komponentě.
@@ -53,6 +57,12 @@ defineProps({
 })
 
 defineEmits(['update:modelValue'])
+
+const textareaRef = ref(null)
+defineExpose({
+  /** Předá focus na textarea element */
+  focus: () => textareaRef.value?.focus(),
+})
 </script>
 
 <script>

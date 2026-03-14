@@ -33,10 +33,20 @@
 
     <section class="detail-section">
       <dl class="detail-list">
-        <DetailField v-for="field in visibleFields" :key="field.key" :label="field.label" :empty="isFieldEmpty(field)" @edit="openEdit(field.key)">
-          <a v-if="field.type === 'url' && isUrl(getFieldValue(field))" :href="getFieldValue(field)" target="_blank" rel="noopener noreferrer" @click.stop>{{ getFieldValue(field) }}</a>
-          <template v-else>{{ displayFieldValue(field) }}</template>
-        </DetailField>
+        <InlineEditableDetailField
+          v-for="field in visibleFields"
+          :key="field.key"
+          :label="field.label"
+          :empty="isFieldEmpty(field)"
+          :display-value="displayFieldValue(field)"
+          :raw-value="getFieldValue(field)"
+          :field="field"
+          :show-as-link="field.type === 'url' && isUrl(getFieldValue(field))"
+          :cancel-text="t.common.cancel"
+          :save-text="t.common.save"
+          @edit="openEdit(field.key)"
+          @save="(val) => saveFieldInline(field.key, val)"
+        />
       </dl>
     </section>
 
@@ -80,7 +90,7 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import DetailField from '../components/DetailField.vue'
+import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -112,7 +122,7 @@ const {
   visibleFields, editingField, editValue,
   editingLabel, editingType, editingOptions,
   getFieldValue, displayFieldValue, isFieldEmpty, isUrl,
-  openEdit, closeEdit, saveField,
+  openEdit, closeEdit, saveField, saveFieldInline,
 } = useEntityFields('task', item, (u) => store.updateTask(item.value.id, u), headerFields)
 
 function confirmDelete() { showConfirm.value = true }

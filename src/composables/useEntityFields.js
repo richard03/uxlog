@@ -150,6 +150,39 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
     closeEdit()
   }
 
+  /**
+   * Uloží hodnotu pole bez otevření modálu (pro inline editaci).
+   * Podporuje pouze pole s jedním vstupem (text, textarea, url, select …).
+   * U number-unit se nemá volat – to vyžaduje modál.
+   * @param {string} key - klíč pole (pro custom pole ve tvaru _cf_<id>)
+   * @param {string} value - nová hodnota
+   */
+  function saveFieldInline(key, value) {
+    if (!entityRef.value) return
+    const field = allFields.value.find((f) => f.key === key)
+    if (!field) return
+    if (field.isCustom) {
+      const merged = {
+        ...(entityRef.value.customFields || {}),
+        [field.id]: value,
+      }
+      updateFn({ customFields: merged })
+    } else if (field.type === 'number-unit') {
+      return
+    } else {
+      updateFn({ [key]: value })
+    }
+  }
+
+  /**
+   * Vrátí true, pokud pole lze editovat inline (jedno datové políčko).
+   * @param {Object} field - definice pole
+   * @returns {boolean}
+   */
+  function isInlineEditable(field) {
+    return field && field.type !== 'number-unit'
+  }
+
   return {
     t,
     bodyFields,
@@ -167,8 +200,10 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
     displayFieldValue,
     isFieldEmpty,
     isUrl,
+    isInlineEditable,
     openEdit,
     closeEdit,
     saveField,
+    saveFieldInline,
   }
 }
