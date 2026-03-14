@@ -1,6 +1,6 @@
 <template>
   <div class="container" v-if="project && item">
-    <header class="page-header">
+    <PageHeader>
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-title-row">
         <div class="header-title">
@@ -22,7 +22,7 @@
       <div class="status-badge-row">
         <ActivityStatusBadge :status="item.status" :label="t.activity.statusOptions[item.status]" />
       </div>
-    </header>
+    </PageHeader>
 
     <section class="detail-section">
       <dl class="detail-list">
@@ -38,91 +38,60 @@
       </dl>
     </section>
 
-    <section v-if="activityType || activityItem?.customChecklistItems?.length" class="checklist-section" aria-labelledby="checklist-heading">
-      <div class="checklist-header">
-        <h2 id="checklist-heading" class="checklist-title">{{ t.activity.checklist }}</h2>
-        <span class="checklist-progress" :class="{ 'checklist-done': checklistDone }" aria-live="polite">
-          {{ checklistDone ? t.activity.checklistDone : t.activity.checklistProgress(checkedCount, effectiveChecklist.length) }}
-        </span>
-      </div>
-      <ul class="checklist-list" role="list">
-        <li v-for="ci in effectiveChecklist" :key="ci.id" class="checklist-item">
-          <div v-if="editingLabelId !== ci.id" class="checklist-row">
-            <label class="checklist-label">
-              <input
-                type="checkbox"
-                class="checklist-checkbox"
-                :checked="isChecked(ci.id)"
-                @change="store.toggleChecklistItem(activityItem.id, ci.id)"
-                :aria-label="getItemLabel(ci)"
-              />
-              <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ getItemLabel(ci) }}</span>
-            </label>
-            <KebabMenu
-              :items="[
-                { label: t.activity.editChecklistLabel, action: 'edit' },
-                { label: t.activity.removeChecklistItem, action: 'remove', variant: 'danger' },
-              ]"
-              @action="(a) => { if (a === 'edit') startEditLabel(ci); else if (a === 'remove') store.removeChecklistItem(activityItem.id, ci.id) }"
-            />
-          </div>
-          <div v-else class="checklist-item-editing">
-            <input
-              type="text"
-              class="form-control checklist-edit-input"
-              v-model="editingLabelValue"
-              @keydown.enter.prevent="saveLabel(ci)"
-              @keydown.escape="cancelEditLabel"
-            />
-            <div class="checklist-edit-actions">
-              <AppButton v-if="activityItem.checklistLabels?.[ci.id]" variant="tertiary" size="sm" @click="resetLabel(ci)" :title="t.activity.resetChecklistLabel">{{ t.activity.resetChecklistLabel }}</AppButton>
-              <AppButton variant="secondary" size="sm" @click="cancelEditLabel">{{ t.common.cancel }}</AppButton>
-              <AppButton variant="primary" size="sm" @click="saveLabel(ci)">{{ t.common.save }}</AppButton>
-            </div>
-          </div>
-        </li>
-      </ul>
-      <div class="checklist-add-row" v-if="!addingItem">
-        <AppButton variant="tertiary" size="sm" class="checklist-add-btn" @click="addingItem = true">
-          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          {{ t.activity.addChecklistItem }}
-        </AppButton>
-      </div>
-      <div class="checklist-add-form" v-else>
-        <input
-          type="text"
-          class="form-control checklist-edit-input"
-          v-model="newItemLabel"
-          :placeholder="t.activity.addChecklistItemPlaceholder"
-          @keydown.enter.prevent="submitNewItem"
-          @keydown.escape="cancelNewItem"
-          ref="newItemInput"
-        />
-        <div class="checklist-edit-actions">
-          <AppButton variant="secondary" size="sm" @click="cancelNewItem">{{ t.common.cancel }}</AppButton>
-          <AppButton variant="primary" size="sm" :disabled="!newItemLabel.trim()" @click="submitNewItem">{{ t.common.save }}</AppButton>
-        </div>
-      </div>
-    </section>
+    <ActivityChecklist
+      v-if="activityType || activityItem?.customChecklistItems?.length"
+      :title="t.activity.checklist"
+      :items="effectiveChecklist"
+      :checked-ids="activityItem?.checkedItems || []"
+      :custom-labels="activityItem?.checklistLabels || {}"
+      :progress-text="t.activity.checklistProgress(checkedCount, effectiveChecklist.length)"
+      :done-text="t.activity.checklistDone"
+      :add-item-text="t.activity.addChecklistItem"
+      :add-item-placeholder="t.activity.addChecklistItemPlaceholder"
+      :edit-label-text="t.activity.editChecklistLabel"
+      :remove-item-text="t.activity.removeChecklistItem"
+      :reset-label-text="t.activity.resetChecklistLabel"
+      :cancel-text="t.common.cancel"
+      :save-text="t.common.save"
+      :done="checklistDone"
+      v-model:show-add-form="addingItem"
+      @toggle="store.toggleChecklistItem(activityItem.id, $event)"
+      @edit-label="(p) => store.updateChecklistLabel(activityItem.id, p.itemId, p.value)"
+      @remove="store.removeChecklistItem(activityItem.id, $event)"
+      @add="onAddChecklistItem"
+    />
 
-    <section v-if="activityType" class="type-info-section" aria-label="t.activity.typeInfo">
-      <h2 class="type-info-title">{{ t.activity.typeInfo }}</h2>
-      <p class="type-info-desc">{{ activityType.description }}</p>
-    </section>
+    <SectionCard v-if="activityType" :title="t.activity.typeInfo" :aria-label="t.activity.typeInfo">
+      <p class="section-card-desc">{{ activityType.description }}</p>
+    </SectionCard>
 
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveField">
-        <div class="form-group">
-          <label for="edit-field">{{ editingLabel }}</label>
-          <textarea v-if="editingField === 'description'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
-          <select v-else-if="editingField === 'status'" id="edit-field" v-model="editValue" class="form-control">
-            <option value="pending">{{ t.activity.statusOptions.pending }}</option>
-            <option value="in_progress">{{ t.activity.statusOptions.in_progress }}</option>
-            <option value="done">{{ t.activity.statusOptions.done }}</option>
-          </select>
-          <input v-else-if="editingField === 'deadline'" id="edit-field" type="date" v-model="editValue" class="form-control" />
-          <input v-else id="edit-field" v-model="editValue" class="form-control" />
-        </div>
+        <FormGroup :label="editingLabel" control-id="edit-field">
+          <FormTextarea
+            v-if="editingField === 'description'"
+            v-model="editValue"
+            control-id="edit-field"
+            :rows="4"
+          />
+          <FormSelect
+            v-else-if="editingField === 'status'"
+            v-model="editValue"
+            control-id="edit-field"
+            :options="statusOptions"
+          />
+          <FormInput
+            v-else-if="editingField === 'deadline'"
+            v-model="editValue"
+            type="date"
+            control-id="edit-field"
+          />
+          <FormInput
+            v-else
+            v-model="editValue"
+            control-id="edit-field"
+          />
+        </FormGroup>
         <FormActions>
           <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
           <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
@@ -147,6 +116,7 @@ import { useI18n } from '../composables/useI18n.js'
 import { getTemplate } from '../lib/configStore.js'
 import { daysRemaining } from '../lib/deadline.js'
 import Modal from '../components/Modal.vue'
+import PageHeader from '../components/PageHeader.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
@@ -156,8 +126,10 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
 import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
+import ActivityChecklist from '../components/ActivityChecklist.vue'
+import SectionCard from '../components/SectionCard.vue'
 import AppButton from '../components/AppButton.vue'
-import { FormActions } from '../components/form'
+import { FormGroup, FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 
 const route = useRoute()
 const router = useRouter()
@@ -184,52 +156,12 @@ const checklistDone = computed(() =>
   checkedCount.value === effectiveChecklist.value.length
 )
 
-function isChecked(itemId) {
-  return (activityItem.value?.checkedItems || []).includes(itemId)
-}
+const statusOptions = computed(() =>
+  Object.entries(t.activity.statusOptions || {}).map(([value, label]) => ({ value, label }))
+)
 
-function getItemLabel(ci) {
-  return activityItem.value?.checklistLabels?.[ci.id] || ci.label
-}
-
-const editingLabelId = ref(null)
-const editingLabelValue = ref('')
-
-function startEditLabel(ci) {
-  editingLabelId.value = ci.id
-  editingLabelValue.value = getItemLabel(ci)
-}
-
-function saveLabel(ci) {
-  store.updateChecklistLabel(activityItem.value.id, ci.id, editingLabelValue.value)
-  editingLabelId.value = null
-  editingLabelValue.value = ''
-}
-
-function resetLabel(ci) {
-  store.updateChecklistLabel(activityItem.value.id, ci.id, '')
-  editingLabelId.value = null
-  editingLabelValue.value = ''
-}
-
-function cancelEditLabel() {
-  editingLabelId.value = null
-  editingLabelValue.value = ''
-}
-
-const addingItem = ref(false)
-const newItemLabel = ref('')
-const newItemInput = ref(null)
-
-function submitNewItem() {
-  if (!newItemLabel.value.trim()) return
-  store.addCustomChecklistItem(activityItem.value.id, newItemLabel.value)
-  newItemLabel.value = ''
-  addingItem.value = false
-}
-
-function cancelNewItem() {
-  newItemLabel.value = ''
+function onAddChecklistItem(label) {
+  store.addCustomChecklistItem(activityItem.value.id, label)
   addingItem.value = false
 }
 
@@ -242,9 +174,8 @@ const breadcrumbs = computed(() => [
 const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
+const addingItem = ref(false)
 const editingField = ref(null)
-
-
 const editValue = ref('')
 
 const fieldLabels = {
@@ -296,29 +227,8 @@ function doDelete() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
-.status-badge-row { margin-top: var(--space-sm); }
-.deadline-overdue { color: var(--error); font-weight: 600; }
-.type-info-section { margin-top: var(--space-lg); padding: var(--space-md); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
-.type-info-title { margin: 0 0 var(--space-xs); font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.type-info-desc { margin: 0; font-size: 0.9rem; color: var(--text); }
-.checklist-section { margin-top: var(--space-lg); }
-.checklist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
-.checklist-title { margin: 0; font-size: 1rem; font-weight: 600; }
-.checklist-progress { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.checklist-done { color: #4caf50; font-weight: 600; }
-.checklist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.checklist-item { border-bottom: 1px solid var(--border); }
-.checklist-item:last-child { border-bottom: none; }
-.checklist-row { display: flex; align-items: flex-start; gap: var(--space-xs); }
-.checklist-label { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; cursor: pointer; font-size: 0.95rem; flex: 1; min-width: 0; }
-.checklist-checkbox { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); width: 1rem; height: 1rem; cursor: pointer; }
-.checklist-text-done { text-decoration: line-through; color: var(--text-muted); }
-.checklist-add-row { padding: var(--space-xs) 0; }
-.checklist-add-btn { display: flex; align-items: center; gap: 0.4em; color: var(--text-muted); }
-.checklist-add-btn:hover { color: var(--accent); }
-.checklist-add-form { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.checklist-item-editing { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.checklist-edit-input { font-size: 0.95rem; padding: 0.3rem 0.5rem; }
-.checklist-edit-actions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
+.deadline-overdue {
+  color: var(--error);
+  font-weight: 600;
+}
 </style>

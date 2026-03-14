@@ -24,9 +24,9 @@
     </header>
 
     <section class="detail-section">
-      <div v-if="computedPriority" class="priority-banner" :class="`priority-banner-${computedPriority}`" role="status">
+      <StatusBanner v-if="computedPriority" :variant="computedPriority">
         {{ t.bug.priority }}: <strong>{{ t.bug.priorityOptions[computedPriority] }}</strong>
-      </div>
+      </StatusBanner>
 
       <dl class="detail-list">
         <DetailField v-for="field in visibleFields" :key="field.key" :label="field.label" :empty="isFieldEmpty(field)" @edit="openEdit(field.key)">
@@ -78,6 +78,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
+import StatusBanner from '../components/StatusBanner.vue'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -125,16 +126,3 @@ function doDelete() {
 }
 </script>
 
-<style scoped>
-.priority-banner { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md); font-size: 0.9rem; }
-.priority-banner-critical { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-.priority-banner-high { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
-.priority-banner-medium { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
-.priority-banner-low { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-@media (prefers-color-scheme: dark) {
-  .priority-banner-critical { background: #450a0a; color: #fecaca; border-color: #991b1b; }
-  .priority-banner-high { background: #431407; color: #fed7aa; border-color: #9a3412; }
-  .priority-banner-medium { background: #422006; color: #fef08a; border-color: #854d0e; }
-  .priority-banner-low { background: #052e16; color: #bbf7d0; border-color: #166534; }
-}
-</style>
