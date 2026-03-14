@@ -1,7 +1,12 @@
 /**
  * Fulltextové vyhledávání přes kódy, názvy, popisy a další textové atributy.
  * Čisté funkce - vhodné pro unit testy.
+ *
+ * Prohledávaná pole jsou odvozena z ENTITY_FIELD_DEFAULTS (searchable: true)
+ * + vždy 'name', pro entity s kódem i 'code'.
  */
+
+import { ENTITY_FIELD_DEFAULTS, ENTITIES_WITH_CODE } from './entityFieldDefaults.js'
 
 /**
  * Normalizuje text pro vyhledávání (lowercase, trim).
@@ -40,20 +45,32 @@ function entityMatches(entity, searchFields, query) {
   return terms.every((term) => text.includes(term))
 }
 
+/**
+ * Sestaví mapování entit na prohledávaná pole z ENTITY_FIELD_DEFAULTS.
+ * Pro number-unit pole používá valueKey (skutečný klíč v datech, ne display key).
+ * Vždy přidá 'name'; pro entity s kódem také 'code'.
+ */
+function buildSearchFields() {
+  const result = {}
+  for (const [entityType, fields] of Object.entries(ENTITY_FIELD_DEFAULTS)) {
+    const searchFields = ['name']
+    if (ENTITIES_WITH_CODE.has(entityType)) searchFields.push('code')
+    for (const field of fields) {
+      if (!field.searchable) continue
+      const key = field.type === 'number-unit' ? field.valueKey : field.key
+      if (key) searchFields.push(key)
+    }
+    result[entityType] = searchFields
+  }
+  return result
+}
+
 /** Mapování entit na pole pro vyhledávání */
 const SEARCH_FIELDS = {
+  ...buildSearchFields(),
+  // Entity mimo ENTITY_FIELD_DEFAULTS
   project: ['name'],
-  goal: ['code', 'name', 'description', 'metrics', 'url'],
-  stakeholder: ['name', 'description', 'influenceLevel', 'interestLevel'],
-  competition: ['name', 'description', 'strengths', 'weaknesses', 'inspiration', 'url'],
-  hypothesis: ['code', 'name', 'description', 'explanation', 'url'],
-  persona: ['code', 'name', 'description', 'motivation', 'needs', 'problems', 'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue', 'url'],
-  scenario: ['code', 'name', 'type', 'description', 'frequency', 'value', 'url'],
-  requirement: ['code', 'name', 'description', 'motivation', 'wontHaveExplanation', 'url'],
   activity: ['name', 'description'],
-  teamMember: ['name', 'role', 'email', 'phone', 'note'],
-  task: ['code', 'name', 'description', 'metrics', 'achievability', 'relevance', 'assignee', 'url'],
-  bug: ['code', 'name', 'expectedBehavior', 'actualBehavior', 'stepsToReproduce', 'url'],
 }
 
 /**

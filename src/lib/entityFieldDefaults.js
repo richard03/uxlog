@@ -8,6 +8,7 @@
  *   labelKey   – cesta k překladu (tPath) pro výchozí popisek
  *   type       – typ vstupu: text | textarea | url | select | email | tel | number-unit
  *   sortOrder  – výchozí pořadí zobrazení
+ *   searchable – true pokud se má pole zahrnout do fulltextového vyhledávání
  *   options?   – pro select: pole { value, labelKey }
  *   valueKey?  – pro number-unit: klíč hodnoty v entitě
  *   unitKey?   – pro number-unit: klíč jednotky v entitě
@@ -17,15 +18,15 @@
 
 export const ENTITY_FIELD_DEFAULTS = {
   goal: [
-    { key: 'description', labelKey: 'goal.description', type: 'textarea', sortOrder: 10 },
-    { key: 'metrics', labelKey: 'goal.metrics', type: 'textarea', sortOrder: 20 },
-    { key: 'url', labelKey: 'goal.url', type: 'url', sortOrder: 30 },
+    { key: 'description', labelKey: 'goal.description', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'metrics', labelKey: 'goal.metrics', type: 'textarea', sortOrder: 20, searchable: true },
+    { key: 'url', labelKey: 'goal.url', type: 'url', sortOrder: 30, searchable: true },
   ],
 
   stakeholder: [
-    { key: 'description', labelKey: 'stakeholder.description', type: 'textarea', sortOrder: 10 },
+    { key: 'description', labelKey: 'stakeholder.description', type: 'textarea', sortOrder: 10, searchable: true },
     {
-      key: 'influenceLevel', labelKey: 'stakeholder.influenceLevel', type: 'select', sortOrder: 20,
+      key: 'influenceLevel', labelKey: 'stakeholder.influenceLevel', type: 'select', sortOrder: 20, searchable: true,
       options: [
         { value: '', labelKey: 'stakeholderLevel.' },
         { value: 'high', labelKey: 'stakeholderLevel.high' },
@@ -34,7 +35,7 @@ export const ENTITY_FIELD_DEFAULTS = {
       ],
     },
     {
-      key: 'interestLevel', labelKey: 'stakeholder.interestLevel', type: 'select', sortOrder: 30,
+      key: 'interestLevel', labelKey: 'stakeholder.interestLevel', type: 'select', sortOrder: 30, searchable: true,
       options: [
         { value: '', labelKey: 'stakeholderLevel.' },
         { value: 'high', labelKey: 'stakeholderLevel.high' },
@@ -45,15 +46,15 @@ export const ENTITY_FIELD_DEFAULTS = {
   ],
 
   competition: [
-    { key: 'description', labelKey: 'competition.description', type: 'textarea', sortOrder: 10 },
-    { key: 'strengths', labelKey: 'competition.strengths', type: 'textarea', sortOrder: 20 },
-    { key: 'weaknesses', labelKey: 'competition.weaknesses', type: 'textarea', sortOrder: 30 },
-    { key: 'inspiration', labelKey: 'competition.inspiration', type: 'textarea', sortOrder: 40 },
-    { key: 'url', labelKey: 'competition.url', type: 'url', sortOrder: 50 },
+    { key: 'description', labelKey: 'competition.description', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'strengths', labelKey: 'competition.strengths', type: 'textarea', sortOrder: 20, searchable: true },
+    { key: 'weaknesses', labelKey: 'competition.weaknesses', type: 'textarea', sortOrder: 30, searchable: true },
+    { key: 'inspiration', labelKey: 'competition.inspiration', type: 'textarea', sortOrder: 40, searchable: true },
+    { key: 'url', labelKey: 'competition.url', type: 'url', sortOrder: 50, searchable: true },
   ],
 
   hypothesis: [
-    { key: 'description', labelKey: 'hypothesis.description', type: 'textarea', sortOrder: 10 },
+    { key: 'description', labelKey: 'hypothesis.description', type: 'textarea', sortOrder: 10, searchable: true },
     {
       key: 'status', labelKey: 'hypothesis.status', type: 'select', sortOrder: 20,
       options: [
@@ -62,8 +63,8 @@ export const ENTITY_FIELD_DEFAULTS = {
         { value: 'refuted', labelKey: 'hypothesisStatus.refuted' },
       ],
     },
-    { key: 'explanation', labelKey: 'hypothesis.explanation', type: 'textarea', sortOrder: 30 },
-    { key: 'url', labelKey: 'hypothesis.url', type: 'url', sortOrder: 40 },
+    { key: 'explanation', labelKey: 'hypothesis.explanation', type: 'textarea', sortOrder: 30, searchable: true },
+    { key: 'url', labelKey: 'hypothesis.url', type: 'url', sortOrder: 40, searchable: true },
   ],
 
   persona: [
@@ -74,21 +75,21 @@ export const ENTITY_FIELD_DEFAULTS = {
         { value: 'persona', labelKey: 'personaStatus.persona' },
       ],
     },
-    { key: 'description', labelKey: 'persona.description', type: 'textarea', sortOrder: 10 },
-    { key: 'motivation', labelKey: 'persona.motivation', type: 'textarea', sortOrder: 20 },
-    { key: 'needs', labelKey: 'persona.needs', type: 'textarea', sortOrder: 30 },
-    { key: 'problems', labelKey: 'persona.problems', type: 'textarea', sortOrder: 40 },
-    { key: 'context', labelKey: 'persona.context', type: 'textarea', sortOrder: 50 },
-    { key: 'recruitmentCriteria', labelKey: 'persona.recruitmentCriteria', type: 'textarea', sortOrder: 60 },
-    { key: 'targetGroupSize', labelKey: 'persona.targetGroupSize', type: 'text', sortOrder: 70 },
-    { key: 'targetGroupValue', labelKey: 'persona.targetGroupValue', type: 'text', sortOrder: 80 },
-    { key: 'url', labelKey: 'persona.url', type: 'url', sortOrder: 90 },
+    { key: 'description', labelKey: 'persona.description', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'motivation', labelKey: 'persona.motivation', type: 'textarea', sortOrder: 20, searchable: true },
+    { key: 'needs', labelKey: 'persona.needs', type: 'textarea', sortOrder: 30, searchable: true },
+    { key: 'problems', labelKey: 'persona.problems', type: 'textarea', sortOrder: 40, searchable: true },
+    { key: 'context', labelKey: 'persona.context', type: 'textarea', sortOrder: 50, searchable: true },
+    { key: 'recruitmentCriteria', labelKey: 'persona.recruitmentCriteria', type: 'textarea', sortOrder: 60, searchable: true },
+    { key: 'targetGroupSize', labelKey: 'persona.targetGroupSize', type: 'text', sortOrder: 70, searchable: true },
+    { key: 'targetGroupValue', labelKey: 'persona.targetGroupValue', type: 'text', sortOrder: 80, searchable: true },
+    { key: 'url', labelKey: 'persona.url', type: 'url', sortOrder: 90, searchable: true },
   ],
 
   scenario: [
-    { key: 'description', labelKey: 'scenario.description', type: 'textarea', sortOrder: 10 },
+    { key: 'description', labelKey: 'scenario.description', type: 'textarea', sortOrder: 10, searchable: true },
     {
-      key: 'type', labelKey: 'scenario.type', type: 'select', sortOrder: 20,
+      key: 'type', labelKey: 'scenario.type', type: 'select', sortOrder: 20, searchable: true,
       options: [
         { value: 'main', labelKey: 'scenario.scenarioType.main' },
         { value: 'secondary', labelKey: 'scenario.scenarioType.secondary' },
@@ -114,7 +115,7 @@ export const ENTITY_FIELD_DEFAULTS = {
       ],
     },
     {
-      key: 'frequency', labelKey: 'scenario.frequency', type: 'number-unit', sortOrder: 50,
+      key: 'frequency', labelKey: 'scenario.frequency', type: 'number-unit', sortOrder: 50, searchable: true,
       valueKey: 'frequencyValue', unitKey: 'frequencyUnit',
       units: [
         { value: 'daily', labelKey: 'scenario.unit.daily' },
@@ -123,7 +124,7 @@ export const ENTITY_FIELD_DEFAULTS = {
       ],
     },
     {
-      key: 'value', labelKey: 'scenario.value', type: 'number-unit', sortOrder: 60,
+      key: 'value', labelKey: 'scenario.value', type: 'number-unit', sortOrder: 60, searchable: true,
       valueKey: 'valueAmount', unitKey: 'valueUnit',
       units: [
         { value: 'daily', labelKey: 'scenario.unit.daily' },
@@ -131,12 +132,12 @@ export const ENTITY_FIELD_DEFAULTS = {
         { value: 'yearly', labelKey: 'scenario.unit.yearly' },
       ],
     },
-    { key: 'url', labelKey: 'scenario.url', type: 'url', sortOrder: 70 },
+    { key: 'url', labelKey: 'scenario.url', type: 'url', sortOrder: 70, searchable: true },
   ],
 
   requirement: [
-    { key: 'description', labelKey: 'requirement.description', type: 'textarea', sortOrder: 10 },
-    { key: 'motivation', labelKey: 'requirement.motivation', type: 'textarea', sortOrder: 20 },
+    { key: 'description', labelKey: 'requirement.description', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'motivation', labelKey: 'requirement.motivation', type: 'textarea', sortOrder: 20, searchable: true },
     {
       key: 'priority', labelKey: 'requirement.priority', type: 'select', sortOrder: 30,
       options: [
@@ -147,20 +148,20 @@ export const ENTITY_FIELD_DEFAULTS = {
       ],
     },
     {
-      key: 'wontHaveExplanation', labelKey: 'requirement.wontHaveExplanation', type: 'textarea', sortOrder: 40,
+      key: 'wontHaveExplanation', labelKey: 'requirement.wontHaveExplanation', type: 'textarea', sortOrder: 40, searchable: true,
       visibleWhen: { field: 'priority', value: 'wont' },
     },
-    { key: 'url', labelKey: 'requirement.url', type: 'url', sortOrder: 50 },
+    { key: 'url', labelKey: 'requirement.url', type: 'url', sortOrder: 50, searchable: true },
   ],
 
   task: [
-    { key: 'description', labelKey: 'task.description', type: 'textarea', sortOrder: 10 },
-    { key: 'metrics', labelKey: 'task.metrics', type: 'textarea', sortOrder: 20 },
-    { key: 'achievability', labelKey: 'task.achievability', type: 'textarea', sortOrder: 30 },
-    { key: 'relevance', labelKey: 'task.relevance', type: 'textarea', sortOrder: 40 },
+    { key: 'description', labelKey: 'task.description', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'metrics', labelKey: 'task.metrics', type: 'textarea', sortOrder: 20, searchable: true },
+    { key: 'achievability', labelKey: 'task.achievability', type: 'textarea', sortOrder: 30, searchable: true },
+    { key: 'relevance', labelKey: 'task.relevance', type: 'textarea', sortOrder: 40, searchable: true },
     { key: 'dueDate', labelKey: 'task.dueDate', type: 'text', sortOrder: 50 },
-    { key: 'assignee', labelKey: 'task.assignee', type: 'text', sortOrder: 60 },
-    { key: 'url', labelKey: 'task.url', type: 'url', sortOrder: 70 },
+    { key: 'assignee', labelKey: 'task.assignee', type: 'text', sortOrder: 60, searchable: true },
+    { key: 'url', labelKey: 'task.url', type: 'url', sortOrder: 70, searchable: true },
     {
       key: 'status', labelKey: 'task.status', type: 'select', sortOrder: 80,
       options: [
@@ -173,9 +174,9 @@ export const ENTITY_FIELD_DEFAULTS = {
   ],
 
   bug: [
-    { key: 'expectedBehavior', labelKey: 'bug.expectedBehavior', type: 'textarea', sortOrder: 10 },
-    { key: 'actualBehavior', labelKey: 'bug.actualBehavior', type: 'textarea', sortOrder: 20 },
-    { key: 'stepsToReproduce', labelKey: 'bug.stepsToReproduce', type: 'textarea', sortOrder: 30 },
+    { key: 'expectedBehavior', labelKey: 'bug.expectedBehavior', type: 'textarea', sortOrder: 10, searchable: true },
+    { key: 'actualBehavior', labelKey: 'bug.actualBehavior', type: 'textarea', sortOrder: 20, searchable: true },
+    { key: 'stepsToReproduce', labelKey: 'bug.stepsToReproduce', type: 'textarea', sortOrder: 30, searchable: true },
     {
       key: 'severity', labelKey: 'bug.severity', type: 'select', sortOrder: 40,
       options: [
@@ -195,7 +196,7 @@ export const ENTITY_FIELD_DEFAULTS = {
         { value: 'low', labelKey: 'bug.impactOptions.low' },
       ],
     },
-    { key: 'url', labelKey: 'bug.url', type: 'url', sortOrder: 60 },
+    { key: 'url', labelKey: 'bug.url', type: 'url', sortOrder: 60, searchable: true },
     {
       key: 'status', labelKey: 'bug.status', type: 'select', sortOrder: 70,
       options: [
@@ -207,10 +208,10 @@ export const ENTITY_FIELD_DEFAULTS = {
   ],
 
   teamMember: [
-    { key: 'role', labelKey: 'teamMember.role', type: 'text', sortOrder: 10 },
-    { key: 'email', labelKey: 'teamMember.email', type: 'email', sortOrder: 20 },
-    { key: 'phone', labelKey: 'teamMember.phone', type: 'tel', sortOrder: 30 },
-    { key: 'note', labelKey: 'teamMember.note', type: 'textarea', sortOrder: 40 },
+    { key: 'role', labelKey: 'teamMember.role', type: 'text', sortOrder: 10, searchable: true },
+    { key: 'email', labelKey: 'teamMember.email', type: 'email', sortOrder: 20, searchable: true },
+    { key: 'phone', labelKey: 'teamMember.phone', type: 'tel', sortOrder: 30, searchable: true },
+    { key: 'note', labelKey: 'teamMember.note', type: 'textarea', sortOrder: 40, searchable: true },
   ],
 }
 

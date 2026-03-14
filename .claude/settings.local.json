@@ -4,7 +4,8 @@
       "Bash(cd C:/Prokoho/uxlog && npm run build 2>&1 | tail -5)",
       "Bash(find:*)",
       "Bash(wc:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm test:*)"
     ]
   }
 }
