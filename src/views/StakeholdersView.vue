@@ -38,7 +38,6 @@
         <div v-if="getStrategy(s) || s.influenceLevel || s.interestLevel" class="card-meta">
           <AppBadge
             v-if="getStrategy(s)"
-            pill
             :variant="`strategy-${getStrategy(s)}`"
           >{{ t.stakeholderStrategy[getStrategy(s)] }}</AppBadge>
           <AppBadge v-if="s.influenceLevel">{{ t.stakeholder.influenceLevel }}: {{ t.stakeholderLevel[s.influenceLevel] }}</AppBadge>
@@ -152,7 +151,3 @@ function save() {
   closeForm()
 }
 </script>
-
-<style scoped>
-.card-meta { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); flex-wrap: wrap; }
-</style>

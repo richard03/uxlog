@@ -1,11 +1,10 @@
 <template>
-  <span class="badge" :class="[variant, { pill }]"><slot /></span>
+  <span class="badge" :class="[variant]"><slot /></span>
 </template>
 
 <script setup>
 defineProps({
   variant: { type: String, default: '' },
-  pill: { type: Boolean, default: false },
 })
 </script>
 
@@ -18,12 +17,6 @@ defineProps({
   border-radius: 4px;
   background: var(--bg-muted);
   color: var(--text-muted);
-}
-
-.pill {
-  border-radius: 999px;
-  padding: 0.15em 0.55em;
-  border: 1px solid var(--border);
 }
 
 /* Accent / semantic variants */

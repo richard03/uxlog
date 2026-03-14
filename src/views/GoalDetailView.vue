@@ -123,9 +123,3 @@ function doDelete() {
   showConfirm.value = false
 }
 </script>
-
-<style scoped>
-.number-unit-row { display: flex; gap: var(--space-sm); }
-.number-unit-row .form-control:first-child { flex: 1; }
-.unit-select { width: 8rem; flex-shrink: 0; }
-</style>

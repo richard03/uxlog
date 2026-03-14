@@ -10,7 +10,7 @@
           </button>
           <p class="entity-type">
             {{ t.stakeholder.label }}
-            <AppBadge v-if="strategy" pill :variant="`strategy-${strategy}`">{{ t.stakeholderStrategy[strategy] }}</AppBadge>
+            <AppBadge v-if="strategy" :variant="`strategy-${strategy}`">{{ t.stakeholderStrategy[strategy] }}</AppBadge>
           </p>
         </div>
         <div class="header-actions">

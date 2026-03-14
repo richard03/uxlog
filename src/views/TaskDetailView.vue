@@ -126,7 +126,3 @@ function doDelete() {
 }
 </script>
 
-<style scoped>
-.header-url-link { display: inline-flex; align-items: center; color: var(--text-muted); align-self: center; flex-shrink: 0; }
-.header-url-link:hover { color: var(--accent); }
-</style>

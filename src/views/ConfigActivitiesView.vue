@@ -35,7 +35,7 @@
       <ul class="deleted-list" role="list">
         <li v-for="tpl in deletedTemplates" :key="tpl.key" class="deleted-item">
           <span class="deleted-name">{{ tpl.name }}</span>
-          <AppBadge :variant="`group-${tpl.group}`" pill>{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
+          <AppBadge :variant="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
           <AppButton variant="secondary" size="sm" @click="config.restoreTemplate(tpl.key)">{{ t.config.restoreTemplate }}</AppButton>
         </li>
       </ul>

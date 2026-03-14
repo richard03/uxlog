@@ -12,7 +12,7 @@
         </div>
       </div>
       <div class="header-meta">
-        <AppBadge :variant="`group-${template.group}`" pill>{{ t.config.groupLabels[template.group] || template.group }}</AppBadge>
+        <AppBadge :variant="`group-${template.group}`">{{ t.config.groupLabels[template.group] || template.group }}</AppBadge>
       </div>
     </header>
 
