@@ -3,12 +3,8 @@
     <header class="page-header">
       <h1>{{ t.nav.projects }}</h1>
       <div class="header-actions">
-        <button type="button" class="btn btn-ghost" @click="showImport = true">
-          {{ t.project.import }}
-        </button>
-        <button type="button" class="btn btn-primary" @click="openForm()">
-          {{ t.project.add }}
-        </button>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="primary" @click="openForm()">{{ t.project.add }}</AppButton>
       </div>
     </header>
 
@@ -81,10 +77,8 @@
           <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
         </FormGroup>
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeForm">
-            {{ t.common.cancel }}
-          </button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeForm">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -109,6 +103,7 @@ import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()

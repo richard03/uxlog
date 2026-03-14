@@ -13,12 +13,12 @@
       <div class="modal-body">
         <p>{{ message }}</p>
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" @click="cancel">
+          <AppButton variant="secondary" @click="cancel">
             {{ t.common.cancel }}
-          </button>
-          <button type="button" class="btn btn-danger" @click="confirm">
+          </AppButton>
+          <AppButton variant="danger" @click="confirm">
             {{ t.common.delete }}
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>
@@ -28,6 +28,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
+import AppButton from './AppButton.vue'
 
 const props = defineProps({
   title: { type: String, default: '' },

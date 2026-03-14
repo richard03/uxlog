@@ -9,14 +9,9 @@
     <div class="modal search-modal" ref="modalRef">
       <header class="modal-header">
         <h2>{{ t.common.search }}</h2>
-        <button
-          type="button"
-          class="btn btn-ghost icon-btn"
-          :aria-label="t.common.close"
-          @click="emit('close')"
-        >
+        <AppButton variant="tertiary" icon-only :aria-label="t.common.close" @click="emit('close')">
           ×
-        </button>
+        </AppButton>
       </header>
       <div class="modal-body">
         <FormInput
@@ -118,6 +113,7 @@ import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import SearchResultsSection from './SearchResultsSection.vue'
 import { FormInput } from './form'
+import AppButton from './AppButton.vue'
 
 const emit = defineEmits(['close'])
 const router = useRouter()

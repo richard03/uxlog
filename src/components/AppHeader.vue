@@ -5,23 +5,14 @@
         {{ t.app.title }}
       </router-link>
       <nav class="nav" :aria-label="t.nav.mainNav">
-        <router-link to="/" class="nav-link">{{ t.nav.projects }}</router-link>
-        <router-link to="/config" class="nav-link">{{ t.nav.config }}</router-link>
-        <button
-          type="button"
-          class="btn btn-ghost icon-btn"
-          :aria-label="isDark ? t.nav.lightMode : t.nav.darkMode"
-          @click="theme.toggle"
-        >
+        <router-link to="/" class="nav-link btn btn-secondary">{{ t.nav.projects }}</router-link>
+        <router-link to="/config" class="nav-link btn btn-secondary">{{ t.nav.config }}</router-link>
+        <AppButton variant="tertiary" icon-only :aria-label="isDark ? t.nav.lightMode : t.nav.darkMode" @click="theme.toggle">
           {{ isDark ? '☀' : '☽' }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="showSearch = true"
-        >
+        </AppButton>
+        <AppButton variant="secondary" @click="showSearch = true">
           {{ t.common.search }}
-        </button>
+        </AppButton>
       </nav>
     </div>
     <SearchModal v-if="showSearch" @close="showSearch = false" />
@@ -35,6 +26,7 @@ import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import SearchModal from './SearchModal.vue'
+import AppButton from './AppButton.vue'
 
 const theme = useTheme()
 const { t } = useI18n()
@@ -92,10 +84,15 @@ const projectColor = computed(() => {
 .nav-link {
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  text-decoration: none;
 }
 
 .nav-link.router-link-active {
-  background: var(--bg-muted);
+  background: var(--border);
   font-weight: 500;
 }
 

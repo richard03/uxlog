@@ -5,7 +5,7 @@
       <div class="header-title-row">
         <h1><ProjectColorTag :color="project.color" />{{ project.name }}</h1>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
           <KebabMenu
             :items="[{ label: t.common.edit, action: 'edit' }, { label: t.common.delete, action: 'delete', variant: 'danger' }]"
@@ -85,10 +85,8 @@
           <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
         </FormGroup>
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeForm">
-            {{ t.common.cancel }}
-          </button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeForm">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -133,6 +131,7 @@ import NotebookCard from '../components/NotebookCard.vue'
 import ActivitiesPanel from '../components/ActivitiesPanel.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
 import { generateNextCode } from '../lib/code.js'

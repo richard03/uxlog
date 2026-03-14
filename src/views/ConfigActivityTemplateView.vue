@@ -53,9 +53,7 @@
                 class="form-control checklist-editor-input"
                 :placeholder="t.config.checklistItemPlaceholder"
               />
-              <button type="button" class="btn btn-ghost btn-sm" @click="removeChecklistItem(idx)" :aria-label="t.config.removeChecklistItem">
-                ✕
-              </button>
+              <AppButton variant="tertiary" size="sm" :aria-label="t.config.removeChecklistItem" @click="removeChecklistItem(idx)">✕</AppButton>
             </li>
           </ul>
           <div class="checklist-add-row">
@@ -65,15 +63,13 @@
               :placeholder="t.config.checklistItemPlaceholder"
               @keydown.enter.prevent="addChecklistItem"
             />
-            <button type="button" class="btn btn-secondary btn-sm" @click="addChecklistItem">
-              {{ t.config.addChecklistItem }}
-            </button>
+            <AppButton variant="secondary" size="sm" @click="addChecklistItem">{{ t.config.addChecklistItem }}</AppButton>
           </div>
         </FormGroup>
 
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="goBack">{{ t.common.back }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="goBack">{{ t.common.back }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </section>
@@ -105,6 +101,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { FormGroup, FormInput, FormTextarea, FormSelect, FormCheckbox, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const router = useRouter()

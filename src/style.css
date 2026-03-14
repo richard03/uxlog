@@ -179,6 +179,14 @@ a:focus-visible {
   opacity: 0.9;
 }
 
+.btn-ghost.danger-btn {
+  color: var(--error);
+}
+
+.btn-ghost.danger-btn:hover {
+  background: rgba(201, 42, 42, 0.12);
+}
+
 /* Form controls */
 input, textarea, select {
   font-family: inherit;
@@ -305,6 +313,12 @@ label {
 .btn-sm {
   font-size: 0.85rem;
   padding: 0.25rem 0.75rem;
+}
+
+.icon-btn {
+  padding: var(--space-sm);
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 /* Entity list */

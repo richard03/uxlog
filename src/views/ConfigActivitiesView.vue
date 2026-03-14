@@ -4,9 +4,7 @@
       <Breadcrumb :items="breadcrumbs" />
       <div class="header-row">
         <h1>{{ t.config.activityTemplates }}</h1>
-        <button type="button" class="btn btn-primary btn-sm" @click="openAddTemplate">
-          {{ t.config.addTemplate }}
-        </button>
+        <AppButton variant="primary" size="sm" @click="openAddTemplate">{{ t.config.addTemplate }}</AppButton>
       </div>
     </header>
 
@@ -37,9 +35,7 @@
         <li v-for="tpl in deletedTemplates" :key="tpl.key" class="deleted-item">
           <span class="deleted-name">{{ tpl.name }}</span>
           <AppBadge :variant="`group-${tpl.group}`" pill>{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
-          <button type="button" class="btn btn-secondary btn-sm" @click="config.restoreTemplate(tpl.key)">
-            {{ t.config.restoreTemplate }}
-          </button>
+          <AppButton variant="secondary" size="sm" @click="config.restoreTemplate(tpl.key)">{{ t.config.restoreTemplate }}</AppButton>
         </li>
       </ul>
     </details>
@@ -77,17 +73,17 @@
           <ul class="checklist-editor-list" role="list">
             <li v-for="(item, idx) in templateForm.checklist" :key="item.id" class="checklist-editor-item">
               <input v-model="item.label" class="form-control checklist-editor-input" :placeholder="t.config.checklistItemPlaceholder" />
-              <button type="button" class="btn btn-ghost btn-sm" @click="removeChecklistItem(idx)" :aria-label="t.config.removeChecklistItem">✕</button>
+              <AppButton variant="tertiary" size="sm" :aria-label="t.config.removeChecklistItem" @click="removeChecklistItem(idx)">✕</AppButton>
             </li>
           </ul>
           <div class="checklist-add-row">
             <input v-model="newChecklistLabel" class="form-control checklist-editor-input" :placeholder="t.config.checklistItemPlaceholder" @keydown.enter.prevent="addChecklistItem" />
-            <button type="button" class="btn btn-secondary btn-sm" @click="addChecklistItem">{{ t.config.addChecklistItem }}</button>
+            <AppButton variant="secondary" size="sm" @click="addChecklistItem">{{ t.config.addChecklistItem }}</AppButton>
           </div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeTemplateModal">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeTemplateModal">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </div>
       </form>
     </Modal>
@@ -106,6 +102,7 @@ import { generateId } from '../lib/id.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import Modal from '../components/Modal.vue'
 import AppBadge from '../components/AppBadge.vue'
+import AppButton from '../components/AppButton.vue'
 
 const router = useRouter()
 const config = useConfig()

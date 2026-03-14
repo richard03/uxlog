@@ -5,9 +5,9 @@
       <div class="header-row">
         <h1><ProjectColorTag :color="project?.color" />{{ t.sections.goals }}</h1>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'goals')" :filename="t.sections.goals" />
-          <button type="button" class="btn btn-primary" @click="openForm()">{{ t.goal.add }}</button>
+          <AppButton variant="primary" @click="openForm()">{{ t.goal.add }}</AppButton>
         </div>
       </div>
     </header>
@@ -47,8 +47,8 @@
         <FormInput v-model="form.name" :label="t.goal.name" control-id="goal-name" required />
         <FormTextarea v-model="form.description" :label="t.goal.description" control-id="goal-desc" />
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeForm">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -83,6 +83,7 @@ import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const store = useStore()

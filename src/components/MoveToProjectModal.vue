@@ -20,12 +20,12 @@
             :options="otherProjects.map((p) => ({ value: p.id, label: p.name }))"
           />
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="$emit('close')">{{ t.common.cancel }}</button>
-            <button type="button" class="btn btn-primary" :disabled="!selectedProjectId" @click="doMove">{{ t.common.moveConfirm }}</button>
+            <AppButton variant="secondary" @click="$emit('close')">{{ t.common.cancel }}</AppButton>
+            <AppButton variant="primary" :disabled="!selectedProjectId" @click="doMove">{{ t.common.moveConfirm }}</AppButton>
           </div>
         </template>
         <div v-if="otherProjects.length === 0" class="modal-actions">
-          <button type="button" class="btn btn-secondary" @click="$emit('close')">{{ t.common.cancel }}</button>
+          <AppButton variant="secondary" @click="$emit('close')">{{ t.common.cancel }}</AppButton>
         </div>
       </div>
     </div>
@@ -37,6 +37,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { FormSelect } from './form'
+import AppButton from './AppButton.vue'
 
 const props = defineProps({
   stateKey: { type: String, required: true },

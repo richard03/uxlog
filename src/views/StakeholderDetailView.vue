@@ -14,7 +14,7 @@
           </p>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('stakeholders', item?.id)" :filename="item?.name || t.stakeholder.label" />
           <KebabMenu
             :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.stakeholder.delete, action: 'delete', variant: 'danger' }]"
@@ -44,8 +44,8 @@
           </select>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </div>
       </form>
     </Modal>
@@ -75,6 +75,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -5,9 +5,9 @@
       <div class="header-row">
         <h1><ProjectColorTag :color="project?.color" />{{ t.sections.bugs }}</h1>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'bugs')" :filename="t.sections.bugs" />
-          <button type="button" class="btn btn-primary" @click="openForm()">{{ t.bug.add }}</button>
+          <AppButton variant="primary" @click="openForm()">{{ t.bug.add }}</AppButton>
         </div>
       </div>
     </header>
@@ -46,8 +46,8 @@
         <FormTextarea v-model="form.expectedBehavior" :label="t.bug.expectedBehavior" control-id="bug-expected" :rows="3" />
         <FormTextarea v-model="form.actualBehavior" :label="t.bug.actualBehavior" control-id="bug-actual" :rows="3" />
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeForm">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -82,6 +82,7 @@ import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const store = useStore()

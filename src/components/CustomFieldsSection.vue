@@ -32,8 +32,8 @@
         />
         <FormInput v-else v-model="editValue" :label="editingField.label" control-id="custom-field-edit" />
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -46,6 +46,7 @@ import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from './Modal.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from './form'
+import AppButton from './AppButton.vue'
 
 const props = defineProps({
   entityType: {

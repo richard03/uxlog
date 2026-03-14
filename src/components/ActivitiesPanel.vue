@@ -2,7 +2,7 @@
   <section class="activities-panel" aria-labelledby="activities-heading">
     <div class="activities-header">
       <h2 id="activities-heading" class="activities-title">{{ t.activity.panelTitle }}</h2>
-      <button type="button" class="btn btn-secondary btn-sm" @click="openAddActivity">{{ t.activity.add }}</button>
+      <AppButton variant="secondary" size="sm" @click="openAddActivity">{{ t.activity.add }}</AppButton>
     </div>
 
     <ul v-if="activities.length" class="entity-list" role="list">
@@ -44,8 +44,8 @@
         </FormSelect>
         <FormInput v-if="typeKey === 'custom'" v-model="customName" :label="t.activity.name" control-id="activity-custom-name" required />
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeAdd">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.add }}</button>
+          <AppButton variant="secondary" @click="closeAdd">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.add }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -64,6 +64,7 @@ import EntityCard from './EntityCard.vue'
 import AppBadge from './AppBadge.vue'
 import ActivityStatusBadge from './ActivityStatusBadge.vue'
 import { FormInput, FormSelect, FormActions } from './form'
+import AppButton from './AppButton.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true },

@@ -13,7 +13,7 @@
           <p class="entity-type">{{ t.goal.label }} <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.goal.code}`"><span>{{ item.code || '–' }}</span><svg class="pencil" aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></p>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('goals', item?.id)" :filename="item?.name || t.goal.label" />
           <KebabMenu
             :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.goal.delete, action: 'delete', variant: 'danger' }]"
@@ -49,8 +49,8 @@
           </div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </div>
       </form>
     </Modal>
@@ -79,6 +79,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const router = useRouter()

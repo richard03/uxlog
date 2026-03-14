@@ -9,14 +9,9 @@
     <div class="modal" :class="{ 'modal-large': size === 'large' }" ref="modalRef">
       <header class="modal-header">
         <h2 :id="titleId">{{ title }}</h2>
-        <button
-          type="button"
-          class="btn btn-ghost icon-btn"
-          :aria-label="t.common.close"
-          @click="emit('close')"
-        >
+        <AppButton variant="tertiary" icon-only :aria-label="t.common.close" @click="emit('close')">
           ×
-        </button>
+        </AppButton>
       </header>
       <div class="modal-body">
         <slot />
@@ -28,6 +23,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
+import AppButton from './AppButton.vue'
 
 const { t } = useI18n()
 

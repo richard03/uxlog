@@ -5,9 +5,9 @@
       <div class="header-row">
         <h1><ProjectColorTag :color="project?.color" />{{ t.sections.stakeholders }}</h1>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'stakeholders')" :filename="t.sections.stakeholders" />
-          <button type="button" class="btn btn-primary" @click="openForm()">{{ t.stakeholder.add }}</button>
+          <AppButton variant="primary" @click="openForm()">{{ t.stakeholder.add }}</AppButton>
         </div>
       </div>
     </header>
@@ -61,8 +61,8 @@
           :options="Object.entries(t.stakeholderLevel || {}).map(([val, label]) => ({ value: val, label }))"
         />
         <FormActions>
-          <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="secondary" @click="closeForm">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </FormActions>
       </form>
     </Modal>
@@ -96,6 +96,7 @@ import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
+import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const store = useStore()
