@@ -63,4 +63,9 @@ defineProps({
 .status-in_progress { background: #fef3c7; color: #92400e; }
 .status-cancelled  { background: var(--bg-elevated); color: var(--text-muted); text-decoration: line-through; }
 
+/* Stakeholder strategy – zbarvení podle významu (Mendelovova matice) */
+.strategy-key_player    { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); font-weight: 600; }
+.strategy-keep_satisfied { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-weight: 500; }
+.strategy-keep_informed { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 400; }
+.strategy-monitor       { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
 </style>

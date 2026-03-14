@@ -11,7 +11,7 @@
           <p class="entity-type">{{ t.activity.label }}</p>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn btn-ghost" @click="showImport = true">{{ t.project.import }}</button>
+          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
           <KebabMenu
             :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.activity.delete, action: 'delete', variant: 'danger' }]"
@@ -75,24 +75,18 @@
               @keydown.escape="cancelEditLabel"
             />
             <div class="checklist-edit-actions">
-              <button
-                v-if="activityItem.checklistLabels?.[ci.id]"
-                type="button"
-                class="btn btn-ghost btn-sm"
-                @click="resetLabel(ci)"
-                :title="t.activity.resetChecklistLabel"
-              >{{ t.activity.resetChecklistLabel }}</button>
-              <button type="button" class="btn btn-secondary btn-sm" @click="cancelEditLabel">{{ t.common.cancel }}</button>
-              <button type="button" class="btn btn-primary btn-sm" @click="saveLabel(ci)">{{ t.common.save }}</button>
+              <AppButton v-if="activityItem.checklistLabels?.[ci.id]" variant="tertiary" size="sm" @click="resetLabel(ci)" :title="t.activity.resetChecklistLabel">{{ t.activity.resetChecklistLabel }}</AppButton>
+              <AppButton variant="secondary" size="sm" @click="cancelEditLabel">{{ t.common.cancel }}</AppButton>
+              <AppButton variant="primary" size="sm" @click="saveLabel(ci)">{{ t.common.save }}</AppButton>
             </div>
           </div>
         </li>
       </ul>
       <div class="checklist-add-row" v-if="!addingItem">
-        <button class="btn btn-ghost btn-sm checklist-add-btn" @click="addingItem = true">
+        <AppButton variant="tertiary" size="sm" class="checklist-add-btn" @click="addingItem = true">
           <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           {{ t.activity.addChecklistItem }}
-        </button>
+        </AppButton>
       </div>
       <div class="checklist-add-form" v-else>
         <input
@@ -105,8 +99,8 @@
           ref="newItemInput"
         />
         <div class="checklist-edit-actions">
-          <button type="button" class="btn btn-secondary btn-sm" @click="cancelNewItem">{{ t.common.cancel }}</button>
-          <button type="button" class="btn btn-primary btn-sm" :disabled="!newItemLabel.trim()" @click="submitNewItem">{{ t.common.save }}</button>
+          <AppButton variant="secondary" size="sm" @click="cancelNewItem">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" size="sm" :disabled="!newItemLabel.trim()" @click="submitNewItem">{{ t.common.save }}</AppButton>
         </div>
       </div>
     </section>
@@ -129,10 +123,10 @@
           <input v-else-if="editingField === 'deadline'" id="edit-field" type="date" v-model="editValue" class="form-control" />
           <input v-else id="edit-field" v-model="editValue" class="form-control" />
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        <FormActions>
+          <AppButton variant="secondary" @click="closeEdit">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
+        </FormActions>
       </form>
     </Modal>
 
@@ -162,6 +156,8 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
 import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
+import AppButton from '../components/AppButton.vue'
+import { FormActions } from '../components/form'
 
 const route = useRoute()
 const router = useRouter()

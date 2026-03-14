@@ -63,3 +63,80 @@ export default {
   inheritAttrs: false,
 }
 </script>
+
+<style scoped>
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-muted);
+}
+
+.btn-danger {
+  background: var(--error);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-ghost.danger-btn {
+  color: var(--error);
+}
+
+.btn-ghost.danger-btn:hover {
+  background: rgba(201, 42, 42, 0.12);
+}
+
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.icon-btn {
+  padding: var(--space-sm);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+</style>

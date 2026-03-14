@@ -143,7 +143,7 @@ export default {
   },
   stakeholderStrategy: {
     key_player: 'Klíčový hráč',
-    keep_satisfied: 'Udržovat spokojené',
+    keep_satisfied: 'Udržovat spokojenost',
     keep_informed: 'Informovat',
     monitor: 'Monitorovat',
   },

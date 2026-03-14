@@ -90,3 +90,34 @@ export default {
   inheritAttrs: false,
 }
 </script>
+
+<style scoped>
+.form-control {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color var(--transition);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+/* Checkbox a radio – nemají width 100 % */
+.form-control[type="checkbox"],
+.form-control[type="radio"] {
+  width: auto;
+  padding: 0;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+</style>

@@ -61,3 +61,29 @@ export default {
   inheritAttrs: false,
 }
 </script>
+
+<style scoped>
+.form-control {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+</style>

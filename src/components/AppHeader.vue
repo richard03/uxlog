@@ -5,8 +5,12 @@
         {{ t.app.title }}
       </router-link>
       <nav class="nav" :aria-label="t.nav.mainNav">
-        <router-link to="/" class="nav-link btn btn-secondary">{{ t.nav.projects }}</router-link>
-        <router-link to="/config" class="nav-link btn btn-secondary">{{ t.nav.config }}</router-link>
+        <router-link to="/" custom v-slot="{ navigate, isActive }">
+          <AppButton variant="secondary" :class="{ 'nav-active': isActive }" @click="navigate">{{ t.nav.projects }}</AppButton>
+        </router-link>
+        <router-link to="/config" custom v-slot="{ navigate, isActive }">
+          <AppButton variant="secondary" :class="{ 'nav-active': isActive }" @click="navigate">{{ t.nav.config }}</AppButton>
+        </router-link>
         <AppButton variant="tertiary" icon-only :aria-label="isDark ? t.nav.lightMode : t.nav.darkMode" @click="theme.toggle">
           {{ isDark ? '☀' : '☽' }}
         </AppButton>
@@ -81,18 +85,8 @@ const projectColor = computed(() => {
   flex-shrink: 0;
 }
 
-.nav-link {
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  text-decoration: none;
-}
-
-.nav-link.router-link-active {
-  background: var(--border);
+.nav-active {
+  background: var(--border) !important;
   font-weight: 500;
 }
 

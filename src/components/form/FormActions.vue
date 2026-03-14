@@ -16,3 +16,12 @@ export default {
   name: 'FormActions',
 }
 </script>
+
+<style scoped>
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+}
+</style>

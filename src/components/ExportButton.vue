@@ -1,8 +1,8 @@
 <template>
   <div class="export-btn-wrap" ref="wrapRef">
-    <button type="button" class="btn btn-secondary" @click="toggle" :aria-expanded="open" aria-haspopup="menu">
+    <AppButton variant="secondary" @click="toggle" :aria-expanded="open" aria-haspopup="menu">
       {{ t.project.export }}
-    </button>
+    </AppButton>
     <ul v-if="open" class="export-menu" role="menu">
       <li role="none">
         <button type="button" role="menuitem" @click="handleClipboard">{{ t.project.exportClipboard }}</button>
@@ -17,6 +17,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
+import AppButton from './AppButton.vue'
 import { downloadYaml, copyYaml } from '../utils/exportHelper.js'
 
 const props = defineProps({

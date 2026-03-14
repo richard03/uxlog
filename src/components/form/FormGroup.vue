@@ -36,3 +36,39 @@ export default {
   name: 'FormGroup',
 }
 </script>
+
+<style scoped>
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: var(--space-xs);
+}
+
+.form-group-hint {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.form-group-row {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.form-group-half {
+  flex: 1;
+  min-width: 140px;
+}
+
+.form-group-checkbox {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 0.2rem;
+}
+</style>

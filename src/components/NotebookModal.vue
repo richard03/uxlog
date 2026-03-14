@@ -11,9 +11,9 @@
         autofocus
       ></textarea>
       <div v-if="aiKeyAvailable" class="nb-ai-bar">
-        <button type="button" class="btn btn-secondary btn-sm" @click="runAiProcess">
+        <AppButton variant="secondary" size="sm" @click="runAiProcess">
           {{ t.notebook.process }}
-        </button>
+        </AppButton>
         <span v-if="aiError" class="nb-error" role="alert">{{ aiError }}</span>
       </div>
     </div>
@@ -26,17 +26,17 @@
     <!-- Actions view -->
     <div v-else class="nb-actions">
       <div class="nb-actions-header">
-        <button type="button" class="btn btn-ghost btn-sm" @click="backToEdit">
+        <AppButton variant="tertiary" size="sm" @click="backToEdit">
           ← {{ t.notebook.backToEdit }}
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="aiActions.some(a => a._status === 'pending')"
-          type="button"
-          class="btn btn-primary btn-sm"
+          variant="primary"
+          size="sm"
           @click="confirmAllActions"
         >
           {{ t.notebook.actionConfirmAll }}
-        </button>
+        </AppButton>
       </div>
       <div class="nb-action-list" role="list">
         <div
@@ -69,12 +69,12 @@
           </div>
           <blockquote v-if="action.sourceText" class="nb-action-source">{{ action.sourceText }}</blockquote>
           <div v-if="action._status === 'pending'" class="nb-action-btns">
-            <button type="button" class="btn btn-primary btn-sm" @click="handleConfirmAction(action)">
+            <AppButton variant="primary" size="sm" @click="handleConfirmAction(action)">
               {{ t.notebook.actionConfirm }}
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" @click="action._status = 'skipped'">
+            </AppButton>
+            <AppButton variant="tertiary" size="sm" @click="action._status = 'skipped'">
               {{ t.notebook.actionSkip }}
-            </button>
+            </AppButton>
           </div>
           <div v-else class="nb-action-status">
             {{ action._status === 'confirmed' ? t.notebook.actionDone : t.notebook.actionSkipped }}
@@ -88,6 +88,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import Modal from './Modal.vue'
+import AppButton from './AppButton.vue'
 import { useI18n } from '../composables/useI18n.js'
 import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
 

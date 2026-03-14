@@ -35,7 +35,12 @@
         </div>
         <h3 class="card-title">{{ s.name || t.stakeholder.name }}</h3>
         <p v-if="s.description" class="card-desc">{{ s.description }}</p>
-        <div v-if="s.influenceLevel || s.interestLevel" class="card-meta">
+        <div v-if="getStrategy(s) || s.influenceLevel || s.interestLevel" class="card-meta">
+          <AppBadge
+            v-if="getStrategy(s)"
+            pill
+            :variant="`strategy-${getStrategy(s)}`"
+          >{{ t.stakeholderStrategy[getStrategy(s)] }}</AppBadge>
           <AppBadge v-if="s.influenceLevel">{{ t.stakeholder.influenceLevel }}: {{ t.stakeholderLevel[s.influenceLevel] }}</AppBadge>
           <AppBadge v-if="s.interestLevel">{{ t.stakeholder.interestLevel }}: {{ t.stakeholderLevel[s.interestLevel] }}</AppBadge>
         </div>
@@ -94,6 +99,7 @@ import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
+import { getStakeholderStrategy } from '../lib/models.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
@@ -129,6 +135,10 @@ function doDeleteItem() {
 const moveTarget = ref(null)
 function confirmMoveItem(id) { moveTarget.value = id }
 
+/** Vrátí strategii stakeholdera pro Mendelovu matici (klíčový hráč, informovat, …). */
+function getStrategy(s) {
+  return getStakeholderStrategy(s?.influenceLevel, s?.interestLevel)
+}
 
 function openForm() {
   form.value = { name: '', description: '', influenceLevel: '', interestLevel: '' }

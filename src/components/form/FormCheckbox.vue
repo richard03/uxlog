@@ -40,3 +40,14 @@ export default {
   inheritAttrs: false,
 }
 </script>
+
+<style scoped>
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: normal;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+</style>

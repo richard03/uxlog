@@ -4,9 +4,9 @@
       <Breadcrumb :items="breadcrumbs" />
       <div class="section-header">
         <h1>{{ t.config.entityFields }}: {{ entityLabel }}</h1>
-        <button type="button" class="btn btn-primary btn-sm" @click="openAddField">
+        <AppButton variant="primary" size="sm" @click="openAddField">
           {{ t.config.addField }}
-        </button>
+        </AppButton>
       </div>
     </header>
 
@@ -40,18 +40,18 @@
                 </span>
               </td>
               <td class="row-actions">
-                <button type="button" class="btn btn-ghost btn-sm" @click="field.builtIn ? openEditBuiltIn(field) : openEditField(field)">
+                <AppButton variant="tertiary" size="sm" @click="field.builtIn ? openEditBuiltIn(field) : openEditField(field)">
                   {{ t.config.editField }}
-                </button>
-                <button v-if="field.builtIn" type="button" class="btn btn-ghost btn-sm danger-btn" @click="hideBuiltInField(field.key)">
+                </AppButton>
+                <AppButton v-if="field.builtIn" variant="dangerTertiary" size="sm" @click="hideBuiltInField(field.key)">
                   {{ t.config.hideField }}
-                </button>
-                <button v-if="field.builtIn && isOverridden(field.key)" type="button" class="btn btn-ghost btn-sm" @click="confirmResetBuiltIn(field)">
+                </AppButton>
+                <AppButton v-if="field.builtIn && isOverridden(field.key)" variant="tertiary" size="sm" @click="confirmResetBuiltIn(field)">
                   {{ t.config.resetField }}
-                </button>
-                <button v-if="field.isCustom" type="button" class="btn btn-ghost btn-sm danger-btn" @click="confirmDeleteField(field)">
+                </AppButton>
+                <AppButton v-if="field.isCustom" variant="dangerTertiary" size="sm" @click="confirmDeleteField(field)">
                   {{ t.config.deleteField }}
-                </button>
+                </AppButton>
               </td>
             </tr>
             <tr v-if="currentEffectiveFields.length === 0">
@@ -67,9 +67,9 @@
           <li v-for="field in currentHiddenFields" :key="field.key" class="deleted-item">
             <span class="deleted-name">{{ field.label }}</span>
             <span class="type-badge">{{ fieldTypeLabel(field.type) }}</span>
-            <button type="button" class="btn btn-secondary btn-sm" @click="showBuiltInField(field.key)">
+            <AppButton variant="secondary" size="sm" @click="showBuiltInField(field.key)">
               {{ t.config.showField }}
-            </button>
+            </AppButton>
           </li>
         </ul>
       </details>
@@ -98,12 +98,12 @@
             <li v-for="(opt, idx) in builtInForm.options" :key="idx" class="options-editor-item">
               <input v-model="opt.value" class="form-control options-value-input" :placeholder="t.config.optionValue" />
               <input v-model="opt.label" class="form-control options-label-input" :placeholder="t.config.optionLabel" />
-              <button type="button" class="btn btn-ghost btn-sm" @click="builtInForm.options.splice(idx, 1)" :aria-label="t.config.removeOption">✕</button>
+              <AppButton variant="tertiary" size="sm" :aria-label="t.config.removeOption" @click="builtInForm.options.splice(idx, 1)">✕</AppButton>
             </li>
           </ul>
-          <button type="button" class="btn btn-secondary btn-sm" @click="builtInForm.options.push({ value: '', label: '' })">
+          <AppButton variant="secondary" size="sm" @click="builtInForm.options.push({ value: '', label: '' })">
             {{ t.config.addOption }}
-          </button>
+          </AppButton>
         </div>
 
         <div v-if="editingBuiltIn?.type === 'number-unit'" class="form-group">
@@ -112,18 +112,18 @@
             <li v-for="(u, idx) in builtInForm.units" :key="idx" class="options-editor-item">
               <input v-model="u.value" class="form-control options-value-input" :placeholder="t.config.unitValue" />
               <input v-model="u.label" class="form-control options-label-input" :placeholder="t.config.unitLabel" />
-              <button type="button" class="btn btn-ghost btn-sm" @click="builtInForm.units.splice(idx, 1)" :aria-label="t.config.removeUnit">✕</button>
+              <AppButton variant="tertiary" size="sm" :aria-label="t.config.removeUnit" @click="builtInForm.units.splice(idx, 1)">✕</AppButton>
             </li>
           </ul>
-          <button type="button" class="btn btn-secondary btn-sm" @click="builtInForm.units.push({ value: '', label: '' })">
+          <AppButton variant="secondary" size="sm" @click="builtInForm.units.push({ value: '', label: '' })">
             {{ t.config.addUnit }}
-          </button>
+          </AppButton>
         </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeBuiltInModal">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        <FormActions>
+          <AppButton variant="secondary" @click="closeBuiltInModal">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
+        </FormActions>
       </form>
     </Modal>
 
@@ -154,18 +154,18 @@
             <li v-for="(opt, idx) in fieldForm.options" :key="idx" class="options-editor-item">
               <input v-model="opt.value" class="form-control options-value-input" :placeholder="t.config.optionValue" />
               <input v-model="opt.label" class="form-control options-label-input" :placeholder="t.config.optionLabel" />
-              <button type="button" class="btn btn-ghost btn-sm" @click="fieldForm.options.splice(idx, 1)" :aria-label="t.config.removeOption">✕</button>
+              <AppButton variant="tertiary" size="sm" :aria-label="t.config.removeOption" @click="fieldForm.options.splice(idx, 1)">✕</AppButton>
             </li>
           </ul>
-          <button type="button" class="btn btn-secondary btn-sm" @click="fieldForm.options.push({ value: '', label: '' })">
+          <AppButton variant="secondary" size="sm" @click="fieldForm.options.push({ value: '', label: '' })">
             {{ t.config.addOption }}
-          </button>
+          </AppButton>
         </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="closeFieldModal">{{ t.common.cancel }}</button>
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        <FormActions>
+          <AppButton variant="secondary" @click="closeFieldModal">{{ t.common.cancel }}</AppButton>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
+        </FormActions>
       </form>
     </Modal>
 
@@ -198,6 +198,8 @@ import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import AppButton from '../components/AppButton.vue'
+import { FormActions } from '../components/form'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
 
 const route = useRoute()
@@ -387,8 +389,6 @@ function doDeleteField() {
 @media (prefers-color-scheme: dark) { .source-builtin { background: #1e3a5f; color: #93c5fd; } .source-custom { background: #14532d; color: #86efac; } }
 .modified-badge { display: inline-block; font-size: 0.68rem; font-weight: 500; padding: 0.1em 0.4em; border-radius: 4px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; margin-left: var(--space-xs); vertical-align: middle; }
 @media (prefers-color-scheme: dark) { .modified-badge { background: #451a03; color: #fde68a; border-color: #92400e; } }
-.danger-btn { color: var(--color-danger, #dc2626); }
-.danger-btn:hover { background: rgba(220, 38, 38, 0.08); }
 .deleted-section { margin-top: var(--space-md); border-top: 1px solid var(--border); padding-top: var(--space-md); }
 .deleted-summary { cursor: pointer; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; padding: var(--space-xs) 0; user-select: none; }
 .deleted-list { list-style: none; margin: var(--space-sm) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }

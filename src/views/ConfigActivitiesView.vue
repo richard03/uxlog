@@ -13,20 +13,21 @@
     </p>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="tpl in templates" :key="tpl.key" class="card card-clickable">
-        <router-link :to="{ name: 'configActivityTemplate', params: { templateKey: tpl.key } }" class="card-link">
-          <div class="card-header">
-            <h3 class="card-title">{{ tpl.name }}</h3>
-            <p v-if="tpl.description" class="card-desc">{{ tpl.description }}</p>
-          </div>
-          <div class="card-meta">
-            <AppBadge :variant="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
-            <span v-if="(tpl.checklist || []).length" class="checklist-count">
-              {{ t.config.checklist }}: {{ (tpl.checklist || []).length }} {{ t.config.items }}
-            </span>
-          </div>
-        </router-link>
-      </li>
+      <EntityCard
+        v-for="tpl in templates"
+        :key="tpl.key"
+        :to="{ name: 'configActivityTemplate', params: { templateKey: tpl.key } }"
+        :entity-id="tpl.key"
+      >
+        <h3 class="card-title">{{ tpl.name }}</h3>
+        <p v-if="tpl.description" class="card-desc">{{ tpl.description }}</p>
+        <div class="card-meta">
+          <AppBadge :variant="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
+          <span v-if="(tpl.checklist || []).length" class="checklist-count">
+            {{ t.config.checklist }}: {{ (tpl.checklist || []).length }} {{ t.config.items }}
+          </span>
+        </div>
+      </EntityCard>
     </ul>
 
     <details class="deleted-section" v-if="deletedTemplates.length > 0">
@@ -100,6 +101,7 @@ import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { generateId } from '../lib/id.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import EntityCard from '../components/EntityCard.vue'
 import Modal from '../components/Modal.vue'
 import AppBadge from '../components/AppBadge.vue'
 import AppButton from '../components/AppButton.vue'
@@ -171,9 +173,6 @@ function saveTemplate() {
 .header-row { gap: var(--space-md); flex-wrap: wrap; }
 .header-row h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
 
-.card { display: flex; align-items: stretch; }
-.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
-.card-meta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-sm); }
 .checklist-count { display: inline-block; font-size: 0.8rem; color: var(--text-muted); }
 
 .deleted-section { margin-top: var(--space-lg); border-top: 1px solid var(--border); padding-top: var(--space-md); }

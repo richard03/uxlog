@@ -8,7 +8,7 @@
       <div class="file-area">
         <label class="file-label" :for="fileInputId">
           <span class="file-label-text">{{ t.import.fileHint }}</span>
-          <span class="btn btn-secondary btn-sm">{{ t.import.fileLabel }}</span>
+          <AppButton tag="span" variant="secondary" size="sm">{{ t.import.fileLabel }}</AppButton>
           <input
             :id="fileInputId"
             type="file"
@@ -33,27 +33,18 @@
 
       <p v-if="parseError" class="import-error" role="alert">{{ parseError }}</p>
 
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" @click="$emit('close')">
-          {{ t.common.cancel }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          :disabled="!pastedYaml.trim()"
-          @click="processPasted"
-        >
-          {{ t.common.next }}
-        </button>
-      </div>
+      <FormActions>
+        <AppButton variant="secondary" @click="$emit('close')">{{ t.common.cancel }}</AppButton>
+        <AppButton variant="primary" :disabled="!pastedYaml.trim()" @click="processPasted">{{ t.common.next }}</AppButton>
+      </FormActions>
     </div>
 
     <!-- Step 2: přehled importu -->
     <div v-else-if="step === 'preview' && !plan" class="import-preview-step">
       <p class="import-error" role="alert">{{ t.import.previewError }}</p>
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" @click="goBack">{{ t.import.back }}</button>
-      </div>
+      <FormActions>
+        <AppButton variant="secondary" @click="goBack">{{ t.import.back }}</AppButton>
+      </FormActions>
     </div>
 
     <div v-else-if="step === 'preview' && plan" class="import-preview-step">
@@ -82,10 +73,8 @@
             <strong class="im-card-name">{{ plan.project.item.name }}</strong>
           </div>
           <div class="im-card-btns">
-            <button v-if="projectStatus !== 'skipped'" type="button" class="btn btn-secondary btn-sm"
-              @click="projectStatus = 'skipped'">{{ t.import.skip }}</button>
-            <button v-else type="button" class="btn btn-secondary btn-sm"
-              @click="projectStatus = 'included'">{{ t.import.include }}</button>
+            <AppButton v-if="projectStatus !== 'skipped'" variant="secondary" size="sm" @click="projectStatus = 'skipped'">{{ t.import.skip }}</AppButton>
+            <AppButton v-else variant="secondary" size="sm" @click="projectStatus = 'included'">{{ t.import.include }}</AppButton>
           </div>
         </div>
       </section>
@@ -100,10 +89,8 @@
           <span class="im-section-title">{{ section.label }}</span>
           <span class="badge">{{ plan[section.key].length }}</span>
           <div class="im-section-actions">
-            <button type="button" class="btn btn-secondary btn-sm"
-              @click="setAllInSection(section.key, 'included')">{{ t.import.includeAll }}</button>
-            <button type="button" class="btn btn-secondary btn-sm"
-              @click="setAllInSection(section.key, 'skipped')">{{ t.import.skipAll }}</button>
+            <AppButton variant="secondary" size="sm" @click="setAllInSection(section.key, 'included')">{{ t.import.includeAll }}</AppButton>
+            <AppButton variant="secondary" size="sm" @click="setAllInSection(section.key, 'skipped')">{{ t.import.skipAll }}</AppButton>
           </div>
         </div>
 
@@ -135,18 +122,18 @@
             </div>
 
             <div class="im-card-btns">
-              <button
+              <AppButton
                 v-if="statuses[section.key]?.[i] !== 'skipped'"
-                type="button"
-                class="btn btn-ghost btn-sm"
+                variant="tertiary"
+                size="sm"
                 @click="statuses[section.key][i] = 'skipped'"
-              >{{ t.import.skip }}</button>
-              <button
+              >{{ t.import.skip }}</AppButton>
+              <AppButton
                 v-else
-                type="button"
-                class="btn btn-ghost btn-sm"
+                variant="tertiary"
+                size="sm"
                 @click="statuses[section.key][i] = 'included'"
-              >{{ t.import.include }}</button>
+              >{{ t.import.include }}</AppButton>
             </div>
           </div>
         </div>
@@ -157,19 +144,10 @@
         {{ t.import.nothingSelected }}
       </p>
 
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" @click="goBack">
-          {{ t.import.back }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          :disabled="selectedCount === 0"
-          @click="doImport"
-        >
-          {{ t.import.doImport }} ({{ selectedCount }})
-        </button>
-      </div>
+      <FormActions>
+        <AppButton variant="secondary" @click="goBack">{{ t.import.back }}</AppButton>
+        <AppButton variant="primary" :disabled="selectedCount === 0" @click="doImport">{{ t.import.doImport }} ({{ selectedCount }})</AppButton>
+      </FormActions>
     </div>
   </Modal>
 </template>
@@ -177,6 +155,8 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import Modal from './Modal.vue'
+import AppButton from './AppButton.vue'
+import { FormActions } from './form'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import { parseYaml } from '../lib/yaml.js'

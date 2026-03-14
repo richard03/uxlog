@@ -10,9 +10,16 @@
     </p>
 
     <ul v-else class="entity-list" role="list">
-      <li v-for="entityType in entityTypes" :key="entityType" class="card card-clickable">
-        <router-link :to="{ name: 'configEntityAttrs', params: { entityType } }" class="card-body">
+      <EntityCard
+        v-for="entityType in entityTypes"
+        :key="entityType"
+        :to="{ name: 'configEntityAttrs', params: { entityType } }"
+        :entity-id="entityType"
+      >
+        <div class="card-header">
           <h3 class="card-title">{{ t.config.entityTypes[entityType] || entityType }}</h3>
+        </div>
+        <div class="card-meta">
           <div class="field-badges" aria-hidden="true">
             <span
               v-for="label in getEntityFieldInfo(entityType).visible"
@@ -23,8 +30,8 @@
               … a {{ getEntityFieldInfo(entityType).rest }} dalších
             </span>
           </div>
-        </router-link>
-      </li>
+        </div>
+      </EntityCard>
     </ul>
   </div>
 </template>
@@ -38,6 +45,7 @@ import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import EntityCard from '../components/EntityCard.vue'
 
 const { t, tPath } = useI18n()
 const config = useConfig()
@@ -72,23 +80,6 @@ function getEntityFieldInfo(entityType) {
 .page-header h1 {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.card {
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-}
-
-.card-clickable:hover {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-}
-
-.card-title {
-  margin: 0 0 var(--space-xs);
-  font-size: 1rem;
   font-weight: 600;
 }
 

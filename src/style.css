@@ -122,73 +122,8 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--accent-hover);
-}
-
-.btn-secondary {
-  background: var(--bg-muted);
-  color: var(--text);
-}
-
-.btn-secondary:hover {
-  background: var(--border);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text);
-}
-
-.btn-ghost:hover {
-  background: var(--bg-muted);
-}
-
-.btn-danger {
-  background: var(--error);
-  color: white;
-}
-
-.btn-danger:hover {
-  opacity: 0.9;
-}
-
-.btn-ghost.danger-btn {
-  color: var(--error);
-}
-
-.btn-ghost.danger-btn:hover {
-  background: rgba(201, 42, 42, 0.12);
-}
-
-/* Form controls */
-input, textarea, select {
+/* Form controls – width 100% jen pro textové/výběrové prvky, ne pro checkbox/radio */
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   font-family: inherit;
   font-size: 1rem;
   padding: var(--space-sm) var(--space-md);
@@ -198,6 +133,11 @@ input, textarea, select {
   border-radius: var(--radius-sm);
   width: 100%;
   transition: border-color var(--transition);
+}
+
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  padding: 0;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -251,29 +191,34 @@ label {
   transition: border-color var(--transition);
 }
 
+/* Checkbox a radio nemají roztažení na 100 % */
+.form-control[type="checkbox"],
+.form-control[type="radio"] {
+  width: auto;
+  padding: 0;
+}
+
 .form-control:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--accent-muted);
 }
 
+/* Ikona kalendáře u date inputu – v dark mode invertovat (ikona je nativně černá) */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] .form-control[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 .form-control::placeholder {
   color: var(--text-muted);
 }
 
-/* Cards */
-.card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  transition: border-color var(--transition);
+/* Select – šipka dolů má mít stejný odstup od pravého okraje jako ikona u date inputu */
+select,
+select.form-control {
+  padding-inline-end: calc(var(--space-md) + 1.25em);
 }
-
-.card:hover {
-  border-color: var(--text-muted);
-}
-
 
 /* Layout */
 .container {
@@ -299,26 +244,6 @@ label {
 .header-actions {
   display: flex;
   gap: var(--space-xs);
-}
-
-/* Form actions row */
-.form-actions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-
-/* Button size modifier */
-.btn-sm {
-  font-size: 0.85rem;
-  padding: 0.25rem 0.75rem;
-}
-
-.icon-btn {
-  padding: var(--space-sm);
-  font-size: 1.5rem;
-  line-height: 1;
 }
 
 /* Entity list */

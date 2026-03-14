@@ -21,14 +21,14 @@
               autocomplete="off"
               spellcheck="false"
             />
-            <button
-              type="button"
-              class="btn btn-ghost icon-btn"
+            <AppButton
+              variant="tertiary"
+              icon-only
               :aria-label="visible[service.id] ? t.settings.hideKey : t.settings.showKey"
               @click="visible[service.id] = !visible[service.id]"
             >
               {{ visible[service.id] ? '🙈' : '👁' }}
-            </button>
+            </AppButton>
           </div>
           <p class="field-hint">{{ service.hint }}</p>
           <div class="model-row">
@@ -46,7 +46,7 @@
           <p class="field-hint">{{ t.settings.modelHint }}</p>
         </div>
         <div class="actions">
-          <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
+          <AppButton variant="primary" native-type="submit">{{ t.common.save }}</AppButton>
         </div>
         <p v-if="saved" class="saved-msg" role="status">{{ t.settings.saved }}</p>
       </form>
@@ -62,6 +62,7 @@ import { reactive, ref, computed } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { AI_SERVICES, loadAiKeys, saveAiKeys } from '../lib/aiKeys.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
+import AppButton from '../components/AppButton.vue'
 
 const { t } = useI18n()
 
@@ -100,10 +101,6 @@ function save() {
   margin: var(--space-xs) 0 var(--space-md);
   color: var(--text-muted);
   font-size: 0.95rem;
-}
-
-.config-section {
-  max-width: 520px;
 }
 
 .field {

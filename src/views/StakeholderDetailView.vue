@@ -10,7 +10,7 @@
           </button>
           <p class="entity-type">
             {{ t.stakeholder.label }}
-            <span v-if="strategy" class="strategy-badge">{{ t.stakeholderStrategy[strategy] }}</span>
+            <AppBadge v-if="strategy" pill :variant="`strategy-${strategy}`">{{ t.stakeholderStrategy[strategy] }}</AppBadge>
           </p>
         </div>
         <div class="header-actions">
@@ -75,6 +75,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import DetailField from '../components/DetailField.vue'
+import AppBadge from '../components/AppBadge.vue'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -123,5 +124,4 @@ function doDelete() {
 
 <style scoped>
 .entity-type { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
-.strategy-badge { font-size: 0.75rem; font-weight: 500; padding: 0.15em 0.55em; border-radius: 999px; background: var(--surface-raised, var(--border)); color: var(--text-muted); border: 1px solid var(--border); }
 </style>
