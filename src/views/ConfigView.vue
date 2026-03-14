@@ -4,20 +4,34 @@
       <h1>{{ t.config.title }}</h1>
     </header>
 
-    <nav class="config-nav" aria-label="Sekce konfigurace">
-      <router-link :to="{ name: 'configEntities' }" class="config-box">
-        {{ t.config.entities }}
-        <span class="config-count">{{ entityCount }}</span>
-      </router-link>
-      <router-link :to="{ name: 'configActivities' }" class="config-box">
-        {{ t.config.activities }}
-        <span class="config-count">{{ activityCount }}</span>
-      </router-link>
-      <router-link :to="{ name: 'configDeadlines' }" class="config-box">
-        {{ t.config.deadlines }}
-        <span class="config-count config-count-icon">📅</span>
-      </router-link>
-    </nav>
+    <AppCardGrid aria-label="Sekce konfigurace">
+      <CounterCard
+        :to="{ name: 'configEntities' }"
+        :label="t.config.entities"
+        :count="entityCount"
+        variant="config"
+      />
+      <CounterCard
+        :to="{ name: 'configActivities' }"
+        :label="t.config.activities"
+        :count="activityCount"
+        variant="config"
+      />
+      <CounterCard
+        :to="{ name: 'configDeadlines' }"
+        :label="t.config.deadlines"
+        count="📅"
+        variant="config"
+        count-as-icon
+      />
+      <CounterCard
+        :to="{ name: 'configApiKeys' }"
+        :label="t.config.apiKeys"
+        count="🔑"
+        variant="config"
+        count-as-icon
+      />
+    </AppCardGrid>
   </div>
 </template>
 
@@ -30,6 +44,8 @@ import { computed } from 'vue'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
+import CounterCard from '../components/CounterCard.vue'
+import AppCardGrid from '../components/AppCardGrid.vue'
 
 const config = useConfig()
 const { t } = useI18n()
@@ -48,10 +64,4 @@ const activityCount = computed(() => config.getEffectiveTemplates().length)
   font-weight: 700;
 }
 
-.config-nav {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-md);
-  max-width: 600px;
-}
 </style>

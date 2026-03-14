@@ -179,6 +179,12 @@ const routes = [
     component: () => import('../views/ConfigDeadlinesView.vue'),
     meta: { title: 'Termíny' },
   },
+  {
+    path: '/config/api-keys',
+    name: 'configApiKeys',
+    component: () => import('../views/ConfigApiKeysView.vue'),
+    meta: { title: 'API klíče' },
+  },
 ]
 
 const router = createRouter({

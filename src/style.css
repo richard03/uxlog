@@ -345,54 +345,6 @@ label {
 }
 
 
-/* Nav box pattern (section-link, config-box) */
-.section-link,
-.config-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text);
-  text-align: center;
-  text-decoration: none;
-  font-weight: 600;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.section-link:hover,
-.section-link.router-link-active,
-.config-box:hover,
-.config-box.router-link-active {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.section-link {
-  padding: var(--space-md);
-  font-weight: 400;
-}
-
-.config-box {
-  padding: var(--space-lg);
-}
-
-.section-count,
-.config-count {
-  display: block;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1.2;
-  margin-top: var(--space-xs);
-}
-
-.section-count { font-size: 1.5rem; }
-.config-count { font-size: 2rem; }
-.config-count-icon { font-size: 1.8rem; }
-
 /* Config section card */
 .config-section {
   margin-bottom: var(--space-xl);

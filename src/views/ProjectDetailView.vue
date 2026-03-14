@@ -20,17 +20,16 @@
       </div>
     </header>
 
-    <nav class="section-nav" aria-label="Sekce projektu">
-      <router-link
+    <AppCardGrid aria-label="Sekce projektu">
+      <CounterCard
         v-for="s in sections"
         :key="s.id"
         :to="{ name: s.route, params: { id: projectId } }"
-        class="section-link"
-      >
-        {{ tPath(`sections.${s.id}`) }}
-        <span class="section-count">{{ s.count }}</span>
-      </router-link>
-    </nav>
+        :label="tPath(`sections.${s.id}`)"
+        :count="s.count"
+        variant="section"
+      />
+    </AppCardGrid>
 
     <!-- Notebook card -->
     <NotebookCard
@@ -139,6 +138,8 @@ import NotebookModal from '../components/NotebookModal.vue'
 import NotebookCard from '../components/NotebookCard.vue'
 import ActivitiesPanel from '../components/ActivitiesPanel.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import CounterCard from '../components/CounterCard.vue'
+import AppCardGrid from '../components/AppCardGrid.vue'
 import { generateNextCode } from '../lib/code.js'
 
 const route = useRoute()
@@ -324,20 +325,6 @@ function handleImported({ projectId: importedProjectId }) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-}
-
-.section-nav {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--space-sm);
-}
-
-@media (max-width: 640px) {
-  .section-nav { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (min-width: 641px) and (max-width: 800px) {
-  .section-nav { grid-template-columns: repeat(3, 1fr); }
 }
 
 </style>

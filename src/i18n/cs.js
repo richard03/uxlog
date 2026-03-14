@@ -406,6 +406,7 @@ export default {
     entities: 'Entity',
     activities: 'Aktivity',
     deadlines: 'Termíny',
+    apiKeys: 'API klíče',
     deadlinesTitle: 'Nastavení termínů',
     deadlinesHint: 'Výchozí délky projektů a aktivit slouží k automatickému výpočtu termínů při vytvoření.',
     projectDurationSmall: 'Malý projekt (dny)',
