@@ -223,6 +223,14 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="edit-project-created">{{ t.project.createdAt }}</label>
+          <input id="edit-project-created" type="date" v-model="form.createdAt" />
+        </div>
+        <div class="form-group">
+          <label for="edit-project-deadline">{{ t.project.deadlineLabel }}</label>
+          <input id="edit-project-deadline" type="date" v-model="form.deadline" />
+        </div>
+        <div class="form-group">
           <label>{{ t.project.color }}</label>
           <div class="color-swatches" role="radiogroup" :aria-label="t.project.color">
             <button
@@ -302,6 +310,8 @@ const form = ref({
   scope: 'medium',
   priority: 'medium',
   color: '',
+  deadline: '',
+  createdAt: '',
 })
 
 const projectId = computed(() => route.params.id)
@@ -322,6 +332,8 @@ function openForm() {
       scope: project.value.scope,
       priority: project.value.priority,
       color: project.value.color || '',
+      deadline: project.value.deadline || '',
+      createdAt: project.value.createdAt ? project.value.createdAt.split('T')[0] : '',
     }
     showForm.value = true
   }
@@ -339,7 +351,14 @@ function closeForm() {
  */
 function saveProject() {
   if (!project.value) return
-  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color }
+  const formData = {
+    name: form.value.name,
+    scope: form.value.scope,
+    priority: form.value.priority,
+    color: form.value.color,
+    deadline: form.value.deadline,
+    createdAt: form.value.createdAt ? new Date(form.value.createdAt + 'T12:00:00').toISOString() : undefined,
+  }
   store.updateProject(project.value.id, formData)
   closeForm()
 }

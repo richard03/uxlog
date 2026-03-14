@@ -22,6 +22,9 @@ import {
   updateFieldOverride,
   resetFieldOverride,
   isFieldOverridden,
+  getProjectDurationDays,
+  updateProjectDurationDays,
+  getTemplateDurationDays,
 } from '../lib/configStore.js'
 
 export function useConfig() {
@@ -44,5 +47,8 @@ export function useConfig() {
     updateFieldOverride,
     resetFieldOverride,
     isFieldOverridden,
+    getProjectDurationDays,
+    updateProjectDurationDays,
+    getTemplateDurationDays,
   }
 }

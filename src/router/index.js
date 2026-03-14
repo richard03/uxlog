@@ -173,6 +173,12 @@ const routes = [
     component: () => import('../views/ConfigActivityTemplateView.vue'),
     meta: { title: 'Šablona aktivity' },
   },
+  {
+    path: '/config/deadlines',
+    name: 'configDeadlines',
+    component: () => import('../views/ConfigDeadlinesView.vue'),
+    meta: { title: 'Termíny' },
+  },
 ]
 
 const router = createRouter({

@@ -6,7 +6,7 @@
         <button type="button" class="btn btn-ghost" @click="showImport = true">
           {{ t.project.import }}
         </button>
-        <button type="button" class="btn btn-primary" @click="openForm">
+        <button type="button" class="btn btn-primary" @click="openForm()">
           {{ t.project.add }}
         </button>
       </div>
@@ -41,6 +41,17 @@
               class="badge"
               :class="{ 'badge-warning': isActivityOverdue(p) }"
             >{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</span>
+            <span
+              v-if="p.deadline && deadlineBadgeLabel(p.deadline)"
+              class="badge"
+              :class="deadlineBadgeClass(p.deadline)"
+            >{{ t.project.deadline }}: {{ formatDeadlineDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</span>
+            <span v-if="getUncheckedCount(p.id) > 0" class="badge badge-info">
+              {{ t.project.uncheckedItems(getUncheckedCount(p.id)) }}
+            </span>
+            <span v-if="projectDelayed(p)" class="badge badge-warning">
+              {{ t.project.delayed }}
+            </span>
           </div>
         </router-link>
       </li>
@@ -75,6 +86,10 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="project-deadline">{{ t.project.deadlineLabel }}</label>
+          <input id="project-deadline" type="date" v-model="form.deadline" />
+        </div>
+        <div class="form-group">
           <label>{{ t.project.color }}</label>
           <div class="color-swatches" role="radiogroup" :aria-label="t.project.color">
             <button
@@ -103,11 +118,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import { useConfig } from '../composables/useConfig.js'
 import { formatDate } from '../utils/formatDate.js'
 import { isActivityOverdue } from '../lib/activity.js'
+import { daysRemaining, countUncheckedItems, isProjectDelayed, todayISO, addDays } from '../lib/deadline.js'
 import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
@@ -117,6 +134,7 @@ import ProjectColorTag from '../components/ProjectColorTag.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
+const config = useConfig()
 const router = useRouter()
 
 const showForm = ref(false)
@@ -128,6 +146,7 @@ const form = ref({
   scope: 'medium',
   priority: 'medium',
   color: '',
+  deadline: '',
 })
 
 const projects = computed(() => store.getProjects())
@@ -141,11 +160,47 @@ function priorityLabel(p) {
   return tPath(`priority.${p}`) || p
 }
 
+function deadlineBadgeLabel(deadline) {
+  const dr = daysRemaining(deadline)
+  if (dr === null) return null
+  if (dr < 0) return t.project.daysOverdue(Math.abs(dr))
+  if (dr === 0) return t.project.daysRemainingToday
+  return t.project.daysRemaining(dr)
+}
+
+function deadlineBadgeClass(deadline) {
+  const dr = daysRemaining(deadline)
+  if (dr === null) return ''
+  if (dr < 0) return 'badge-danger'
+  if (dr <= 7) return 'badge-warning'
+  return ''
+}
+
+function getUncheckedCount(projectId) {
+  return countUncheckedItems(store.getAllActivities(projectId))
+}
+
+function projectDelayed(project) {
+  return isProjectDelayed(project, store.getAllActivities(project.id), config.getTemplateDurationDays)
+}
+
+function formatDeadlineDate(ymd) {
+  if (!ymd) return ''
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function defaultDeadlineForNewProject() {
+  const templates = config.getEffectiveTemplates().filter((t) => t.createOnNewProject)
+  const totalDays = templates.reduce((sum, t) => sum + (t.defaultDurationDays || 0), 0)
+  return totalDays > 0 ? addDays(todayISO(), totalDays) : ''
+}
+
 function openForm(project = null) {
   editing.value = project
   form.value = project
-    ? { name: project.name, scope: project.scope, priority: project.priority, color: project.color || '' }
-    : { name: '', scope: 'medium', priority: 'medium', color: '' }
+    ? { name: project.name, scope: project.scope, priority: project.priority, color: project.color || '', deadline: project.deadline || '' }
+    : { name: '', scope: 'medium', priority: 'medium', color: '', deadline: defaultDeadlineForNewProject() }
   showForm.value = true
 }
 
@@ -163,7 +218,7 @@ function handleImported({ projectId }) {
 }
 
 function saveProject() {
-  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color }
+  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color, deadline: form.value.deadline }
   const projectToEdit = editing.value
   const isEdit = !!projectToEdit && store.state.projects?.some((p) => p.id === projectToEdit.id)
   console.log('[UXLog] saveProject, editing:', !!projectToEdit, 'projekt v seznamu:', isEdit, 'form:', formData, 'projektů před:', store.state.projects?.length ?? 0)

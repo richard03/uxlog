@@ -22,7 +22,8 @@ import {
 } from './models.js'
 import { searchAll } from './search.js'
 import { ACTIVITY_TYPES } from './activityTypes.js'
-import { getEffectiveTemplates, getTemplate } from './configStore.js'
+import { getEffectiveTemplates, getTemplate, getTemplateDurationDays } from './configStore.js'
+import { todayISO, addDays, getActivityDeadlineDefault } from './deadline.js'
 import { generateId } from './id.js'
 import { pickProjectColor } from './projectColors.js'
 
@@ -76,17 +77,29 @@ export function getProject(id) {
 export function addProject(overrides = {}) {
   const usedColors = (state.projects || []).map((p) => p.color).filter(Boolean)
   const color = overrides.color || pickProjectColor(usedColors)
-  const project = createProject({ color, ...overrides })
+
+  // Aktivity seřazené dle sortOrder – deadliny se počítají kumulativně
+  const templates = getEffectiveTemplates().filter((t) => t.createOnNewProject)
+  const today = todayISO()
+  const totalDays = templates.reduce((sum, t) => sum + (t.defaultDurationDays || 0), 0)
+  const deadline = overrides.deadline || (totalDays > 0 ? addDays(today, totalDays) : '')
+
+  const project = createProject({ color, deadline, ...overrides })
   state.projects = state.projects || []
   state.projects.push(project)
-  // Přidat všechny předdefinované aktivity jako výchozí
+
+  // Přidat aktivity s postupnými deadliny (každá navazuje na předchozí)
   state.activities = state.activities || []
-  for (const template of getEffectiveTemplates().filter((t) => t.createOnNewProject)) {
+  let cumulativeDays = 0
+  for (const template of templates) {
+    cumulativeDays += template.defaultDurationDays || 0
+    const activityDeadline = cumulativeDays > 0 ? addDays(today, cumulativeDays) : ''
     state.activities.push(createActivity(project.id, {
       typeKey: template.key,
       name: template.name,
       sortOrder: template.sortOrder,
       baseChecklist: template.checklist ? [...template.checklist] : [],
+      deadline: activityDeadline,
     }))
   }
   console.log('[UXLog] addProject:', project.name, 'celkem projektů:', state.projects.length)
@@ -409,6 +422,9 @@ export function addActivity(projectId, overrides = {}) {
     const template = getTemplate(overrides.typeKey)
     if (template?.checklist) {
       finalOverrides.baseChecklist = [...template.checklist]
+    }
+    if (!overrides.deadline && template?.defaultDurationDays) {
+      finalOverrides.deadline = getActivityDeadlineDefault(template.defaultDurationDays) || ''
     }
   }
   const a = createActivity(projectId, finalOverrides)

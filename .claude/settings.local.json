@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/Prokoho/uxlog && npm run build 2>&1 | tail -5)"
+    ]
+  }
+}

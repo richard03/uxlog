@@ -33,6 +33,7 @@ function getEmptyConfig() {
     customActivityTemplates: [],
     entityCustomFields: {},
     entityFieldOverrides: {},
+    projectDurationDays: { small: 30, medium: 60, large: 120 },
   }
 }
 
@@ -68,6 +69,7 @@ export function getEffectiveTemplates() {
         sortOrder: o.sortOrder !== undefined ? o.sortOrder : t.sortOrder,
         createOnNewProject: o.createOnNewProject !== undefined ? o.createOnNewProject : true,
         checklist: o.checklist !== undefined ? o.checklist : t.checklist,
+        defaultDurationDays: o.defaultDurationDays !== undefined ? o.defaultDurationDays : t.defaultDurationDays,
         isBuiltIn: true,
         isCustom: false,
       }
@@ -187,6 +189,42 @@ export function restoreTemplate(key) {
     configState.activityTemplateOverrides[key] = o
     persist()
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Termíny projektů a aktivit
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Vrátí konfiguraci výchozích délek projektů (dny per rozsah).
+ * @returns {{ small: number, medium: number, large: number }}
+ */
+export function getProjectDurationDays() {
+  return {
+    ...{ small: 30, medium: 60, large: 120 },
+    ...(configState.projectDurationDays || {}),
+  }
+}
+
+/**
+ * Aktualizuje výchozí délku projektu pro daný rozsah.
+ * @param {'small'|'medium'|'large'} scope
+ * @param {number} days
+ */
+export function updateProjectDurationDays(scope, days) {
+  if (!configState.projectDurationDays) configState.projectDurationDays = {}
+  configState.projectDurationDays[scope] = days
+  persist()
+}
+
+/**
+ * Vrátí výchozí počet dní pro šablonu aktivity dle klíče.
+ * @param {string} templateKey
+ * @returns {number|null}
+ */
+export function getTemplateDurationDays(templateKey) {
+  const tpl = getTemplate(templateKey)
+  return tpl?.defaultDurationDays ?? null
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -13,6 +13,10 @@
         {{ t.config.activities }}
         <span class="config-count">{{ activityCount }}</span>
       </router-link>
+      <router-link :to="{ name: 'configDeadlines' }" class="config-box">
+        {{ t.config.deadlines }}
+        <span class="config-count config-count-icon">📅</span>
+      </router-link>
     </nav>
   </div>
 </template>
@@ -50,7 +54,7 @@ const activityCount = computed(() => config.getEffectiveTemplates().length)
 
 .config-nav {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-md);
   max-width: 600px;
 }
@@ -88,5 +92,9 @@ const activityCount = computed(() => config.getEffectiveTemplates().length)
   color: var(--accent);
   line-height: 1.2;
   margin-top: var(--space-xs);
+}
+
+.config-count-icon {
+  font-size: 1.8rem;
 }
 </style>

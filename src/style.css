@@ -292,6 +292,17 @@ label {
   font-weight: 600;
 }
 
+.badge-danger {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+  font-weight: 600;
+}
+
+.badge-info {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

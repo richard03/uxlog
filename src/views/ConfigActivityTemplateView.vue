@@ -41,12 +41,23 @@
             <label for="tpl-sort">{{ t.config.templateSortOrder }}</label>
             <input id="tpl-sort" v-model.number="form.sortOrder" type="number" class="form-control" />
           </div>
-          <div class="form-group-half form-group-checkbox">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="form.createOnNewProject" />
-              {{ t.config.createOnNewProject }}
-            </label>
+          <div class="form-group-half">
+            <label for="tpl-duration">{{ t.config.templateDefaultDuration }}</label>
+            <input
+              id="tpl-duration"
+              v-model.number="form.defaultDurationDays"
+              type="number"
+              min="1"
+              class="form-control"
+              :placeholder="t.config.templateDefaultDurationPlaceholder"
+            />
           </div>
+        </div>
+        <div class="form-group form-group-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="form.createOnNewProject" />
+            {{ t.config.createOnNewProject }}
+          </label>
         </div>
 
         <div class="form-group">
@@ -130,6 +141,7 @@ const form = reactive({
   group: 'project',
   description: '',
   sortOrder: 9999,
+  defaultDurationDays: null,
   createOnNewProject: false,
   checklist: [],
 })
@@ -141,6 +153,7 @@ watch(template, (tpl) => {
     form.group = tpl.group || 'project'
     form.description = tpl.description || ''
     form.sortOrder = tpl.sortOrder ?? 9999
+    form.defaultDurationDays = tpl.defaultDurationDays ?? null
     form.createOnNewProject = tpl.createOnNewProject ?? true
     form.checklist = (tpl.checklist || []).map((ci) => ({ ...ci }))
   }
@@ -169,6 +182,7 @@ function saveTemplate() {
     group: form.group,
     description: form.description,
     sortOrder: form.sortOrder,
+    defaultDurationDays: form.defaultDurationDays || undefined,
     createOnNewProject: form.createOnNewProject,
     checklist: form.checklist.map((ci) => ({ id: ci.id, label: ci.label })),
   })

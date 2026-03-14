@@ -11,6 +11,7 @@
  * @property {string} defaultName - Výchozí název
  * @property {string} defaultDescription - Výchozí popis (jen pro čtení)
  * @property {number} sortOrder - Pořadí v UX procesu
+ * @property {number} defaultDurationDays - Výchozí délka trvání ve dnech
  */
 
 /**
@@ -27,6 +28,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Kick-off meeting',
     defaultDescription: 'Úvodní setkání týmu k nastavení záměrů, cílů a způsobu spolupráce na projektu.',
     sortOrder: 10,
+    defaultDurationDays: 1,
     checklist: [
       { id: 'scope', label: 'Odsouhlasili jsme záměr a rozsah projektu' },
       { id: 'collaboration', label: 'Nastavili jsme způsob spolupráce a komunikace' },
@@ -41,6 +43,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Definování cílů a metrik',
     defaultDescription: 'Stanovení měřitelných cílů projektu a KPI pro vyhodnocení úspěchu.',
     sortOrder: 20,
+    defaultDurationDays: 3,
     checklist: [
       { id: 'smart', label: 'Definovali jsme měřitelné cíle (SMART)' },
       { id: 'kpi', label: 'Stanovili jsme KPI pro každý cíl' },
@@ -54,6 +57,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Analýza stakeholderů',
     defaultDescription: 'Identifikace a analýza klíčových zainteresovaných stran projektu.',
     sortOrder: 30,
+    defaultDurationDays: 5,
     checklist: [
       { id: 'identified', label: 'Identifikovali jsme všechny relevantní stakeholdery' },
       { id: 'matrix', label: 'Známe úroveň vlivu a zájmu každého stakeholdera' },
@@ -67,6 +71,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Rozhovory s uživateli',
     defaultDescription: 'Kvalitativní výzkum formou polostrukturovaných rozhovorů s cílovými uživateli.',
     sortOrder: 70,
+    defaultDurationDays: 14,
     checklist: [
       { id: 'guide', label: 'Připravili jsme diskuzní scénář (discussion guide)' },
       { id: 'conducted', label: 'Provedli jsme alespoň 5 rozhovorů s uživateli' },
@@ -81,6 +86,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Analýza konkurence',
     defaultDescription: 'Zmapování konkurenčních řešení – silné stránky, slabiny a inspirace.',
     sortOrder: 40,
+    defaultDurationDays: 5,
     checklist: [
       { id: 'identified', label: 'Identifikovali jsme přímé i nepřímé konkurenty' },
       { id: 'strengths', label: 'Zmapovali jsme silné a slabé stránky konkurence' },
@@ -94,6 +100,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Tvorba person',
     defaultDescription: 'Vytvoření reprezentativních profilů cílových uživatelů na základě výzkumu.',
     sortOrder: 60,
+    defaultDurationDays: 5,
     checklist: [
       { id: 'proto_personas', label: 'Vytvořili jsme protopersony podle cílových skupin' },
       { id: 'goals_needs', label: 'Zdokumentovali jsme cíle, potřeby a frustrace protoperson' },
@@ -107,6 +114,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Definování scénářů',
     defaultDescription: 'Popis typických situací, ve kterých uživatelé produkt nebo službu využívají.',
     sortOrder: 100,
+    defaultDurationDays: 5,
     checklist: [
       { id: 'main_scenarios', label: 'definovali jsme všechny hlavní scénáře' },
       { id: 'secondary_scenarios', label: 'Definovali jsme všechny vedlejší scénáře, které chceme implementovat' },
@@ -121,6 +129,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Sběr požadavků',
     defaultDescription: 'Specifikace funkčních a nefunkčních požadavků na produkt či službu.',
     sortOrder: 90,
+    defaultDurationDays: 7,
     checklist: [
       { id: 'business', label: 'Zmapovali jsme požadavky byznysu' },
       { id: 'legal', label: 'Zmapovali jsme právní požadavky' },
@@ -139,6 +148,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Informační architektura',
     defaultDescription: 'Návrh struktury obsahu, navigace a organizace informací.',
     sortOrder: 110,
+    defaultDurationDays: 7,
     checklist: [
       { id: 'data_model', label: 'Zmapovali jsme pojmy a entity (datový model)' },
       { id: 'card_sorting', label: 'Provedli jsme výzkum IA (cardsorting apod.) s uživateli' },
@@ -152,6 +162,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Wireframing',
     defaultDescription: 'Tvorba drátěných modelů obrazovek zachycujících rozvržení a funkce bez vizuálního designu.',
     sortOrder: 120,
+    defaultDurationDays: 14,
     checklist: [
       { id: 'main_flows', label: 'Navrhli jsme všechny obrazovky hlavních flows' },
       { id: 'secondary_flows', label: 'Navrhli jsme všechny obrazovky vedlejších flows' },
@@ -167,6 +178,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Usability testing',
     defaultDescription: 'Testování použitelnosti s reálnými uživateli k odhalení problémů v rozhraní.',
     sortOrder: 140,
+    defaultDurationDays: 14,
     checklist: [
       { id: 'hypotheses', label: 'Formulovali jsme hypotézy' },
       { id: 'tasks', label: 'Definovali jsme testovací scénáře a úkoly' },
@@ -187,6 +199,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Předání výstupů',
     defaultDescription: 'Finalizace a předání podkladů vývojářskému týmu včetně specifikací a assetů.',
     sortOrder: 150,
+    defaultDurationDays: 3,
     checklist: [
       { id: 'specs', label: 'Finalizovali jsme designové specifikace' },
       { id: 'assets', label: 'Připravili jsme assety pro vývojáře' },
@@ -200,6 +213,7 @@ export const ACTIVITY_TYPES = [
     defaultName: 'Retrospektiva',
     defaultDescription: 'Zpětné hodnocení průběhu projektu a identifikace příležitostí ke zlepšení.',
     sortOrder: 160,
+    defaultDurationDays: 1,
     checklist: [
       { id: 'positives', label: 'Zhodnotili jsme, co fungovalo dobře' },
       { id: 'improvements', label: 'Identifikovali jsme oblasti ke zlepšení' },
