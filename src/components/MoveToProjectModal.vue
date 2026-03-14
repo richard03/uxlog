@@ -13,12 +13,12 @@
       <div class="modal-body">
         <p v-if="otherProjects.length === 0" class="no-projects">{{ t.common.moveNoOtherProjects }}</p>
         <template v-else>
-          <div class="form-group">
-            <label for="move-project-select">{{ t.common.moveSelectProject }}</label>
-            <select id="move-project-select" v-model="selectedProjectId" class="form-control">
-              <option v-for="p in otherProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
-            </select>
-          </div>
+          <FormSelect
+            v-model="selectedProjectId"
+            :label="t.common.moveSelectProject"
+            control-id="move-project-select"
+            :options="otherProjects.map((p) => ({ value: p.id, label: p.name }))"
+          />
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="$emit('close')">{{ t.common.cancel }}</button>
             <button type="button" class="btn btn-primary" :disabled="!selectedProjectId" @click="doMove">{{ t.common.moveConfirm }}</button>
@@ -36,6 +36,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import { FormSelect } from './form'
 
 const props = defineProps({
   stateKey: { type: String, required: true },
@@ -119,27 +120,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.form-control {
-  width: 100%;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 1rem;
 }
 
 .modal-actions {

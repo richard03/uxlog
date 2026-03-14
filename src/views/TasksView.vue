@@ -41,22 +41,13 @@
 
     <Modal v-if="showForm" :title="t.task.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="task-code">{{ t.task.code }}</label>
-          <input id="task-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="task-name">{{ t.task.name }}</label>
-          <input id="task-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="task-desc">{{ t.task.description }}</label>
-          <textarea id="task-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.task.code" control-id="task-code" />
+        <FormInput v-model="form.name" :label="t.task.name" control-id="task-name" required />
+        <FormTextarea v-model="form.description" :label="t.task.description" control-id="task-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -88,6 +79,7 @@ import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

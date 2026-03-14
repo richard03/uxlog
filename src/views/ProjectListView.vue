@@ -55,40 +55,37 @@
 
     <Modal v-if="showForm" :title="editing ? t.project.edit : t.project.add" @close="closeForm">
       <form @submit.prevent="saveProject">
-        <div class="form-group">
-          <label for="project-name">{{ t.project.name }}</label>
-          <input id="project-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="project-scope">{{ t.project.scope }}</label>
-          <select id="project-scope" v-model="form.scope">
-            <option value="small">{{ t.scope.small }}</option>
-            <option value="medium">{{ t.scope.medium }}</option>
-            <option value="large">{{ t.scope.large }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="project-priority">{{ t.project.priority }}</label>
-          <select id="project-priority" v-model="form.priority">
-            <option value="high">{{ t.priority.high }}</option>
-            <option value="medium">{{ t.priority.medium }}</option>
-            <option value="low">{{ t.priority.low }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="project-deadline">{{ t.project.deadlineLabel }}</label>
-          <input id="project-deadline" type="date" v-model="form.deadline" />
-        </div>
-        <div class="form-group">
-          <label>{{ t.project.color }}</label>
+        <FormInput v-model="form.name" :label="t.project.name" control-id="project-name" required />
+        <FormSelect
+          v-model="form.scope"
+          :label="t.project.scope"
+          control-id="project-scope"
+          :options="[
+            { value: 'small', label: t.scope.small },
+            { value: 'medium', label: t.scope.medium },
+            { value: 'large', label: t.scope.large },
+          ]"
+        />
+        <FormSelect
+          v-model="form.priority"
+          :label="t.project.priority"
+          control-id="project-priority"
+          :options="[
+            { value: 'high', label: t.priority.high },
+            { value: 'medium', label: t.priority.medium },
+            { value: 'low', label: t.priority.low },
+          ]"
+        />
+        <FormInput v-model="form.deadline" :label="t.project.deadlineLabel" type="date" control-id="project-deadline" />
+        <FormGroup :label="t.project.color">
           <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
-        </div>
-        <div class="form-actions">
+        </FormGroup>
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">
             {{ t.common.cancel }}
           </button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -111,6 +108,7 @@ import ProjectColorTag from '../components/ProjectColorTag.vue'
 import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
+import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
 
 const store = useStore()
 const { t, tPath } = useI18n()

@@ -44,22 +44,13 @@
 
     <Modal v-if="showForm" :title="t.hypothesis.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="h-code">{{ t.hypothesis.code }}</label>
-          <input id="h-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="h-name">{{ t.hypothesis.name }}</label>
-          <input id="h-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="h-desc">{{ t.hypothesis.description }}</label>
-          <textarea id="h-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.hypothesis.code" control-id="h-code" />
+        <FormInput v-model="form.name" :label="t.hypothesis.name" control-id="h-name" required />
+        <FormTextarea v-model="form.description" :label="t.hypothesis.description" control-id="h-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -92,6 +83,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

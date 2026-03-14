@@ -34,25 +34,19 @@
     <!-- Add activity modal -->
     <Modal v-if="showAdd" :title="t.activity.add" @close="closeAdd">
       <form @submit.prevent="saveActivity">
-        <div class="form-group">
-          <label for="activity-type">{{ t.activity.label }}</label>
-          <select id="activity-type" v-model="typeKey">
-            <optgroup v-for="group in activityGroups" :key="group.key" :label="group.label">
-              <option v-for="type in group.types" :key="type.key" :value="type.key">{{ type.defaultName }}</option>
-            </optgroup>
-            <optgroup :label="t.activity.addCustom">
-              <option value="custom">{{ t.activity.customName }}</option>
-            </optgroup>
-          </select>
-        </div>
-        <div v-if="typeKey === 'custom'" class="form-group">
-          <label for="activity-custom-name">{{ t.activity.name }}</label>
-          <input id="activity-custom-name" v-model="customName" autofocus required />
-        </div>
-        <div class="form-actions">
+        <FormSelect v-model="typeKey" :label="t.activity.label" control-id="activity-type">
+          <optgroup v-for="group in activityGroups" :key="group.key" :label="group.label">
+            <option v-for="type in group.types" :key="type.key" :value="type.key">{{ type.defaultName }}</option>
+          </optgroup>
+          <optgroup :label="t.activity.addCustom">
+            <option value="custom">{{ t.activity.customName }}</option>
+          </optgroup>
+        </FormSelect>
+        <FormInput v-if="typeKey === 'custom'" v-model="customName" :label="t.activity.name" control-id="activity-custom-name" required />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeAdd">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.add }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   </section>
@@ -69,6 +63,7 @@ import KebabMenu from './KebabMenu.vue'
 import EntityCard from './EntityCard.vue'
 import AppBadge from './AppBadge.vue'
 import ActivityStatusBadge from './ActivityStatusBadge.vue'
+import { FormInput, FormSelect, FormActions } from './form'
 
 const props = defineProps({
   projectId: { type: String, required: true },

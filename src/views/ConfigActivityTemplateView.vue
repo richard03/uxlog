@@ -20,46 +20,32 @@
       <h2 id="template-form-heading" class="visually-hidden">{{ t.config.editTemplate }}</h2>
 
       <form @submit.prevent="saveTemplate" class="template-form">
-        <div class="form-group">
-          <label for="tpl-name">{{ t.config.templateName }}</label>
-          <input id="tpl-name" v-model="form.name" class="form-control" required />
-        </div>
-        <div class="form-group">
-          <label for="tpl-group">{{ t.config.templateGroup }}</label>
-          <select id="tpl-group" v-model="form.group" class="form-control">
-            <option v-for="(label, key) in t.config.groupLabels" :key="key" :value="key">{{ label }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="tpl-desc">{{ t.config.templateDescription }}</label>
-          <textarea id="tpl-desc" v-model="form.description" class="form-control" rows="3" />
-        </div>
+        <FormInput v-model="form.name" :label="t.config.templateName" control-id="tpl-name" required />
+        <FormSelect
+          v-model="form.group"
+          :label="t.config.templateGroup"
+          control-id="tpl-group"
+          :options="Object.entries(t.config.groupLabels || {}).map(([key, label]) => ({ value: key, label }))"
+        />
+        <FormTextarea v-model="form.description" :label="t.config.templateDescription" control-id="tpl-desc" :rows="3" />
         <div class="form-group form-group-row">
           <div class="form-group-half">
-            <label for="tpl-sort">{{ t.config.templateSortOrder }}</label>
-            <input id="tpl-sort" v-model.number="form.sortOrder" type="number" class="form-control" />
+            <FormInput v-model.number="form.sortOrder" :label="t.config.templateSortOrder" type="number" control-id="tpl-sort" />
           </div>
           <div class="form-group-half">
-            <label for="tpl-duration">{{ t.config.templateDefaultDuration }}</label>
-            <input
-              id="tpl-duration"
+            <FormInput
               v-model.number="form.defaultDurationDays"
+              :label="t.config.templateDefaultDuration"
               type="number"
               min="1"
-              class="form-control"
+              control-id="tpl-duration"
               :placeholder="t.config.templateDefaultDurationPlaceholder"
             />
           </div>
         </div>
-        <div class="form-group form-group-checkbox">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="form.createOnNewProject" />
-            {{ t.config.createOnNewProject }}
-          </label>
-        </div>
+        <FormCheckbox v-model="form.createOnNewProject" :label="t.config.createOnNewProject" />
 
-        <div class="form-group">
-          <label>{{ t.config.checklist }}</label>
+        <FormGroup :label="t.config.checklist">
           <ul class="checklist-editor-list" role="list">
             <li v-for="(item, idx) in form.checklist" :key="item.id" class="checklist-editor-item">
               <input
@@ -83,12 +69,12 @@
               {{ t.config.addChecklistItem }}
             </button>
           </div>
-        </div>
+        </FormGroup>
 
-        <div class="form-actions">
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="goBack">{{ t.common.back }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </section>
 
@@ -118,6 +104,7 @@ import Breadcrumb from '../components/Breadcrumb.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AppBadge from '../components/AppBadge.vue'
+import { FormGroup, FormInput, FormTextarea, FormSelect, FormCheckbox, FormActions } from '../components/form'
 
 const route = useRoute()
 const router = useRouter()

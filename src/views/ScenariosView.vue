@@ -44,30 +44,23 @@
 
     <Modal v-if="showForm" :title="t.scenario.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="s-code">{{ t.scenario.code }}</label>
-          <input id="s-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="s-name">{{ t.scenario.name }}</label>
-          <input id="s-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="s-type">{{ t.scenario.type }}</label>
-          <select id="s-type" v-model="form.type">
-            <option value="main">{{ t.scenario.scenarioType.main }}</option>
-            <option value="secondary">{{ t.scenario.scenarioType.secondary }}</option>
-            <option value="error">{{ t.scenario.scenarioType.error }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="s-desc">{{ t.scenario.description }}</label>
-          <textarea id="s-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.scenario.code" control-id="s-code" />
+        <FormInput v-model="form.name" :label="t.scenario.name" control-id="s-name" required />
+        <FormSelect
+          v-model="form.type"
+          :label="t.scenario.type"
+          control-id="s-type"
+          :options="[
+            { value: 'main', label: t.scenario.scenarioType.main },
+            { value: 'secondary', label: t.scenario.scenarioType.secondary },
+            { value: 'error', label: t.scenario.scenarioType.error },
+          ]"
+        />
+        <FormTextarea v-model="form.description" :label="t.scenario.description" control-id="s-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -100,6 +93,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

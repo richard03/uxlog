@@ -40,30 +40,15 @@
 
     <Modal v-if="showForm" :title="t.teamMember.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="tm-name">{{ t.teamMember.name }}</label>
-          <input id="tm-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="tm-role">{{ t.teamMember.role }}</label>
-          <input id="tm-role" v-model="form.role" />
-        </div>
-        <div class="form-group">
-          <label for="tm-email">{{ t.teamMember.email }}</label>
-          <input id="tm-email" type="email" v-model="form.email" />
-        </div>
-        <div class="form-group">
-          <label for="tm-phone">{{ t.teamMember.phone }}</label>
-          <input id="tm-phone" type="tel" v-model="form.phone" />
-        </div>
-        <div class="form-group">
-          <label for="tm-note">{{ t.teamMember.note }}</label>
-          <textarea id="tm-note" v-model="form.note" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.name" :label="t.teamMember.name" control-id="tm-name" required />
+        <FormInput v-model="form.role" :label="t.teamMember.role" control-id="tm-role" />
+        <FormInput v-model="form.email" :label="t.teamMember.email" type="email" control-id="tm-email" />
+        <FormInput v-model="form.phone" :label="t.teamMember.phone" type="tel" control-id="tm-phone" />
+        <FormTextarea v-model="form.note" :label="t.teamMember.note" control-id="tm-note" :rows="3" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -94,6 +79,7 @@ import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

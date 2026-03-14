@@ -43,22 +43,13 @@
 
     <Modal v-if="showForm" :title="t.goal.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="goal-code">{{ t.goal.code }}</label>
-          <input id="goal-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="goal-name">{{ t.goal.name }}</label>
-          <input id="goal-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="goal-desc">{{ t.goal.description }}</label>
-          <textarea id="goal-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.goal.code" control-id="goal-code" />
+        <FormInput v-model="form.name" :label="t.goal.name" control-id="goal-name" required />
+        <FormTextarea v-model="form.description" :label="t.goal.description" control-id="goal-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -91,6 +82,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

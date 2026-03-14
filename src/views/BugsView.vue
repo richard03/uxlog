@@ -41,26 +41,14 @@
 
     <Modal v-if="showForm" :title="t.bug.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="bug-code">{{ t.bug.code }}</label>
-          <input id="bug-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="bug-name">{{ t.bug.name }}</label>
-          <input id="bug-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="bug-expected">{{ t.bug.expectedBehavior }}</label>
-          <textarea id="bug-expected" v-model="form.expectedBehavior" rows="3" />
-        </div>
-        <div class="form-group">
-          <label for="bug-actual">{{ t.bug.actualBehavior }}</label>
-          <textarea id="bug-actual" v-model="form.actualBehavior" rows="3" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.bug.code" control-id="bug-code" />
+        <FormInput v-model="form.name" :label="t.bug.name" control-id="bug-name" required />
+        <FormTextarea v-model="form.expectedBehavior" :label="t.bug.expectedBehavior" control-id="bug-expected" :rows="3" />
+        <FormTextarea v-model="form.actualBehavior" :label="t.bug.actualBehavior" control-id="bug-actual" :rows="3" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -93,6 +81,7 @@ import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

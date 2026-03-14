@@ -19,18 +19,16 @@
         </button>
       </header>
       <div class="modal-body">
-        <div class="form-group">
-          <label for="search-input">{{ t.common.searchPlaceholder }}</label>
-          <input
-            id="search-input"
-            ref="inputRef"
-            type="search"
-            v-model="query"
-            :placeholder="t.common.searchPlaceholder"
-            autocomplete="off"
-            @keydown.enter.prevent="runSearch"
-          />
-        </div>
+        <FormInput
+          ref="inputRef"
+          v-model="query"
+          :label="t.common.searchPlaceholder"
+          type="search"
+          control-id="search-input"
+          :placeholder="t.common.searchPlaceholder"
+          autocomplete="off"
+          @keydown.enter.prevent="runSearch"
+        />
         <div v-if="results" class="search-results">
           <p v-if="!hasResults" class="empty-state">{{ t.common.noResults }}</p>
           <div v-else>
@@ -119,6 +117,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import SearchResultsSection from './SearchResultsSection.vue'
+import { FormInput } from './form'
 
 const emit = defineEmits(['close'])
 const router = useRouter()

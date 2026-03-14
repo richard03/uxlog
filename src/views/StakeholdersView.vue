@@ -46,30 +46,24 @@
 
     <Modal v-if="showForm" :title="t.stakeholder.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="sh-name">{{ t.stakeholder.name }}</label>
-          <input id="sh-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="sh-desc">{{ t.stakeholder.description }}</label>
-          <textarea id="sh-desc" v-model="form.description" />
-        </div>
-        <div class="form-group">
-          <label for="sh-influence">{{ t.stakeholder.influenceLevel }}</label>
-          <select id="sh-influence" v-model="form.influenceLevel">
-            <option v-for="(label, val) in t.stakeholderLevel" :key="val" :value="val">{{ label }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="sh-interest">{{ t.stakeholder.interestLevel }}</label>
-          <select id="sh-interest" v-model="form.interestLevel">
-            <option v-for="(label, val) in t.stakeholderLevel" :key="val" :value="val">{{ label }}</option>
-          </select>
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.name" :label="t.stakeholder.name" control-id="sh-name" required />
+        <FormTextarea v-model="form.description" :label="t.stakeholder.description" control-id="sh-desc" />
+        <FormSelect
+          v-model="form.influenceLevel"
+          :label="t.stakeholder.influenceLevel"
+          control-id="sh-influence"
+          :options="Object.entries(t.stakeholderLevel || {}).map(([val, label]) => ({ value: val, label }))"
+        />
+        <FormSelect
+          v-model="form.interestLevel"
+          :label="t.stakeholder.interestLevel"
+          control-id="sh-interest"
+          :options="Object.entries(t.stakeholderLevel || {}).map(([val, label]) => ({ value: val, label }))"
+        />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -101,6 +95,7 @@ import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

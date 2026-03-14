@@ -42,18 +42,12 @@
 
     <Modal v-if="showForm" :title="t.competition.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="c-name">{{ t.competition.name }}</label>
-          <input id="c-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="c-desc">{{ t.competition.description }}</label>
-          <textarea id="c-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.name" :label="t.competition.name" control-id="c-name" required />
+        <FormTextarea v-model="form.description" :label="t.competition.description" control-id="c-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -85,6 +79,7 @@ import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()

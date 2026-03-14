@@ -16,34 +16,25 @@
 
     <Modal v-if="editingField" :title="editingField.label" @close="closeEdit">
       <form @submit.prevent="saveEdit">
-        <div class="form-group">
-          <label for="custom-field-edit">{{ editingField.label }}</label>
-          <textarea
-            v-if="editingField.type === 'textarea'"
-            id="custom-field-edit"
-            v-model="editValue"
-            class="form-control"
-            rows="4"
-          />
-          <select
-            v-else-if="editingField.type === 'select'"
-            id="custom-field-edit"
-            v-model="editValue"
-            class="form-control"
-          >
-            <option v-for="opt in (editingField.options || [])" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-          <input
-            v-else
-            id="custom-field-edit"
-            v-model="editValue"
-            class="form-control"
-          />
-        </div>
-        <div class="form-actions">
+        <FormTextarea
+          v-if="editingField.type === 'textarea'"
+          v-model="editValue"
+          :label="editingField.label"
+          control-id="custom-field-edit"
+          :rows="4"
+        />
+        <FormSelect
+          v-else-if="editingField.type === 'select'"
+          v-model="editValue"
+          :label="editingField.label"
+          control-id="custom-field-edit"
+          :options="(editingField.options || []).map((o) => ({ value: o.value, label: o.label }))"
+        />
+        <FormInput v-else v-model="editValue" :label="editingField.label" control-id="custom-field-edit" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeEdit">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   </section>
@@ -54,6 +45,7 @@ import { ref, computed } from 'vue'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from './Modal.vue'
+import { FormInput, FormTextarea, FormSelect, FormActions } from './form'
 
 const props = defineProps({
   entityType: {

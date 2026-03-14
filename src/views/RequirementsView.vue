@@ -44,31 +44,24 @@
 
     <Modal v-if="showForm" :title="t.requirement.add" @close="closeForm">
       <form @submit.prevent="save">
-        <div class="form-group">
-          <label for="r-code">{{ t.requirement.code }}</label>
-          <input id="r-code" v-model="form.code" />
-        </div>
-        <div class="form-group">
-          <label for="r-name">{{ t.requirement.name }}</label>
-          <input id="r-name" v-model="form.name" required />
-        </div>
-        <div class="form-group">
-          <label for="r-moscow">{{ t.requirement.priority }}</label>
-          <select id="r-moscow" v-model="form.priority">
-            <option value="must">{{ t.moscow.must }}</option>
-            <option value="should">{{ t.moscow.should }}</option>
-            <option value="could">{{ t.moscow.could }}</option>
-            <option value="wont">{{ t.moscow.wont }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="r-desc">{{ t.requirement.description }}</label>
-          <textarea id="r-desc" v-model="form.description" />
-        </div>
-        <div class="form-actions">
+        <FormInput v-model="form.code" :label="t.requirement.code" control-id="r-code" />
+        <FormInput v-model="form.name" :label="t.requirement.name" control-id="r-name" required />
+        <FormSelect
+          v-model="form.priority"
+          :label="t.requirement.priority"
+          control-id="r-moscow"
+          :options="[
+            { value: 'must', label: t.moscow.must },
+            { value: 'should', label: t.moscow.should },
+            { value: 'could', label: t.moscow.could },
+            { value: 'wont', label: t.moscow.wont },
+          ]"
+        />
+        <FormTextarea v-model="form.description" :label="t.requirement.description" control-id="r-desc" />
+        <FormActions>
           <button type="button" class="btn btn-secondary" @click="closeForm">{{ t.common.cancel }}</button>
           <button type="submit" class="btn btn-primary">{{ t.common.save }}</button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
 
@@ -101,6 +94,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 
 const route = useRoute()
 const store = useStore()
