@@ -42,9 +42,14 @@ const emit = defineEmits(['action'])
 
 const open = ref(false)
 const containerRef = ref(null)
+const uid = Symbol()
 
 function toggle() {
-  open.value = !open.value
+  const next = !open.value
+  if (next) {
+    document.dispatchEvent(new CustomEvent('kebab-open', { detail: uid }))
+  }
+  open.value = next
 }
 
 function select(item) {
@@ -58,8 +63,18 @@ function onOutsideClick(e) {
   }
 }
 
-onMounted(() => document.addEventListener('click', onOutsideClick))
-onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
+function onKebabOpen(e) {
+  if (e.detail !== uid) open.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', onOutsideClick)
+  document.addEventListener('kebab-open', onKebabOpen)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onOutsideClick)
+  document.removeEventListener('kebab-open', onKebabOpen)
+})
 </script>
 
 <style scoped>

@@ -57,6 +57,8 @@
       </form>
     </Modal>
 
+    <EntityConnections :project-id="projectId" entity-type="teamMembers" :entity-id="item.id" />
+
     <ConfirmDialog v-if="showConfirm" :title="t.teamMember.delete" :message="t.teamMember.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="teamMembers" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'team', params: { id: projectId } })" />
@@ -82,6 +84,7 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import AppButton from '../components/AppButton.vue'
+import EntityConnections from '../components/EntityConnections.vue'
 
 const route = useRoute()
 const router = useRouter()

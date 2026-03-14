@@ -38,6 +38,9 @@ export {
   exportData, exportSectionData, exportEntityData, exportProjectData,
   importProjectData, buildImport,
 } from './exportImport.js'
+export {
+  getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,
+} from './connections.js'
 
 import { searchAll } from '../search.js'
 import { getData } from './state.js'

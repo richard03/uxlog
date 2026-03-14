@@ -5,6 +5,29 @@
 
 import { generateId } from './id.js'
 
+/**
+ * Vytvoří novou souvislost mezi dvěma entitami.
+ * @param {string} projectId
+ * @param {string} entityType1 - klíč store (např. 'goals', 'personas')
+ * @param {string} entityId1
+ * @param {string} entityType2
+ * @param {string} entityId2
+ * @param {string} [note]
+ * @returns {Object}
+ */
+export function createConnection(projectId, entityType1, entityId1, entityType2, entityId2, note = '') {
+  return {
+    id: generateId(),
+    projectId,
+    entityType1,
+    entityId1,
+    entityType2,
+    entityId2,
+    note,
+    createdAt: new Date().toISOString(),
+  }
+}
+
 /** @typedef {'small'|'medium'|'large'} Scope */
 /** @typedef {'high'|'medium'|'low'} Priority */
 /** @typedef {'research'|'design'|'development'} Phase */

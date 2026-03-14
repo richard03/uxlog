@@ -99,6 +99,8 @@
       </form>
     </Modal>
 
+    <EntityConnections :project-id="projectId" entity-type="activities" :entity-id="item.id" />
+
     <ConfirmDialog v-if="showConfirm" :title="t.activity.delete" :message="t.activity.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'project', params: { id: projectId } })" />
@@ -130,6 +132,7 @@ import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
 import ActivityChecklist from '../components/ActivityChecklist.vue'
 import SectionCard from '../components/SectionCard.vue'
 import AppButton from '../components/AppButton.vue'
+import EntityConnections from '../components/EntityConnections.vue'
 
 const route = useRoute()
 const router = useRouter()

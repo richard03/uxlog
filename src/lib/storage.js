@@ -50,5 +50,6 @@ export function getEmptyData() {
     teamMembers: [],
     tasks: [],
     bugs: [],
+    connections: [],
   }
 }
