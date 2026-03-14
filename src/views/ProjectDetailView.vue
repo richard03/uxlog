@@ -14,9 +14,9 @@
         </div>
       </div>
       <div class="header-meta">
-        <span class="badge">{{ t.project.priority }}: {{ tPath(`priority.${project.priority}`) }}</span>
-        <span class="badge">{{ t.project.scopeLabel }}: {{ tPath(`scope.${project.scope}`) }}</span>
-        <span class="badge">{{ t.project.lastActivity }}: {{ formatDate(project.lastWorkedAt) }}</span>
+        <AppBadge>{{ t.project.priority }}: {{ tPath(`priority.${project.priority}`) }}</AppBadge>
+        <AppBadge>{{ t.project.scopeLabel }}: {{ tPath(`scope.${project.scope}`) }}</AppBadge>
+        <AppBadge>{{ t.project.lastActivity }}: {{ formatDate(project.lastWorkedAt) }}</AppBadge>
       </div>
     </header>
 
@@ -132,6 +132,7 @@ import ActivitiesPanel from '../components/ActivitiesPanel.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import AppBadge from '../components/AppBadge.vue'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
 import { generateNextCode } from '../lib/code.js'
