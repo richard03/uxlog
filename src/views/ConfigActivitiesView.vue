@@ -22,8 +22,8 @@
             <p v-if="tpl.description" class="card-desc">{{ tpl.description }}</p>
           </div>
           <div class="card-meta">
-            <span class="badge" :class="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</span>
-            <span v-if="(tpl.checklist || []).length" class="badge checklist-count">
+            <AppBadge :variant="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
+            <span v-if="(tpl.checklist || []).length" class="checklist-count">
               {{ t.config.checklist }}: {{ (tpl.checklist || []).length }} {{ t.config.items }}
             </span>
           </div>
@@ -36,7 +36,7 @@
       <ul class="deleted-list" role="list">
         <li v-for="tpl in deletedTemplates" :key="tpl.key" class="deleted-item">
           <span class="deleted-name">{{ tpl.name }}</span>
-          <span class="group-badge" :class="`group-${tpl.group}`">{{ t.config.groupLabels[tpl.group] || tpl.group }}</span>
+          <AppBadge :variant="`group-${tpl.group}`" pill>{{ t.config.groupLabels[tpl.group] || tpl.group }}</AppBadge>
           <button type="button" class="btn btn-secondary btn-sm" @click="config.restoreTemplate(tpl.key)">
             {{ t.config.restoreTemplate }}
           </button>
@@ -105,6 +105,7 @@ import { useI18n } from '../composables/useI18n.js'
 import { generateId } from '../lib/id.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import Modal from '../components/Modal.vue'
+import AppBadge from '../components/AppBadge.vue'
 
 const router = useRouter()
 const config = useConfig()

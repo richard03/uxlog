@@ -18,30 +18,22 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="m in items"
         :key="m.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(m.id), dragging: dnd.isDragging(m.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, m.id)"
-        @dragover="dnd.onDragOver($event, m.id)"
-        @drop="dnd.onDrop($event, m.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'teamMemberDetail', params: { id: projectId, memberId: m.id } }"
+        :entity-id="m.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.teamMember.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(m.id); else if (a === 'move') confirmMoveItem(m.id) }"
       >
-        <router-link :to="{ name: 'teamMemberDetail', params: { id: projectId, memberId: m.id } }" class="card-body" draggable="false">
-          <h3 class="card-title">{{ m.name || t.teamMember.name }}</h3>
-          <p v-if="m.role" class="card-role">{{ m.role }}</p>
-          <div class="card-meta">
-            <span v-if="m.email" class="badge">{{ m.email }}</span>
-            <span v-if="m.phone" class="badge">{{ m.phone }}</span>
-          </div>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.teamMember.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(m.id); else if (a === 'move') confirmMoveItem(m.id) }"
-        />
-      </li>
+        <h3 class="card-title">{{ m.name || t.teamMember.name }}</h3>
+        <div v-if="m.email || m.phone || m.role" class="card-meta">
+          <AppBadge v-if="m.role">{{ m.role }}</AppBadge>
+          <AppBadge v-if="m.email">{{ m.email }}</AppBadge>
+          <AppBadge v-if="m.phone">{{ m.phone }}</AppBadge>
+        </div>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -98,6 +90,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 
@@ -145,8 +139,3 @@ function save() {
   closeForm()
 }
 </script>
-
-<style scoped>
-.card-role { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
-.card-meta { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); flex-wrap: wrap; }
-</style>

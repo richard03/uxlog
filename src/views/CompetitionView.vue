@@ -18,31 +18,24 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="c in items"
         :key="c.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(c.id), dragging: dnd.isDragging(c.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, c.id)"
-        @dragover="dnd.onDragOver($event, c.id)"
-        @drop="dnd.onDrop($event, c.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'competitionDetail', params: { id: projectId, competitionId: c.id } }"
+        :entity-id="c.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.competition.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(c.id); else if (a === 'move') confirmMoveItem(c.id) }"
       >
-        <router-link :to="{ name: 'competitionDetail', params: { id: projectId, competitionId: c.id } }" class="card-body" draggable="false">
-          <span
-            class="badge completeness-badge"
-            :class="{ 'completeness-done': getEntityCompleteness(c, 'competition').filled === getEntityCompleteness(c, 'competition').total }"
+        <div class="card-badges">
+          <AppBadge
+            :variant="getEntityCompleteness(c, 'competition').filled === getEntityCompleteness(c, 'competition').total ? 'completeness-done' : 'completeness'"
             :aria-label="t.completeness.ariaLabel(getEntityCompleteness(c, 'competition').filled, getEntityCompleteness(c, 'competition').total)"
-          >{{ getEntityCompleteness(c, 'competition').filled }}/{{ getEntityCompleteness(c, 'competition').total }}</span>
-          <h3 class="card-title">{{ c.name || t.competition.name }}</h3>
-          <p v-if="c.description" class="card-desc">{{ c.description }}</p>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.competition.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(c.id); else if (a === 'move') confirmMoveItem(c.id) }"
-        />
-      </li>
+          >{{ getEntityCompleteness(c, 'competition').filled }}/{{ getEntityCompleteness(c, 'competition').total }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ c.name || t.competition.name }}</h3>
+        <p v-if="c.description" class="card-desc">{{ c.description }}</p>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -87,6 +80,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'

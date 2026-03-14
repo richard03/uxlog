@@ -27,14 +27,10 @@
 
     <section class="detail-section">
       <dl class="detail-list">
-        <div v-for="field in visibleFields" :key="field.key" class="detail-item" @click="openEdit(field.key)">
-          <dt>{{ field.label }}</dt>
-          <dd :class="{ 'value-empty': isFieldEmpty(field) }">
-            <a v-if="field.type === 'url' && isUrl(getFieldValue(field))" :href="getFieldValue(field)" target="_blank" rel="noopener noreferrer" @click.stop>{{ getFieldValue(field) }}</a>
-            <template v-else>{{ displayFieldValue(field) }}</template>
-          </dd>
-          <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
+        <DetailField v-for="field in visibleFields" :key="field.key" :label="field.label" :empty="isFieldEmpty(field)" @edit="openEdit(field.key)">
+          <a v-if="field.type === 'url' && isUrl(getFieldValue(field))" :href="getFieldValue(field)" target="_blank" rel="noopener noreferrer" @click.stop>{{ getFieldValue(field) }}</a>
+          <template v-else>{{ displayFieldValue(field) }}</template>
+        </DetailField>
       </dl>
     </section>
 
@@ -78,6 +74,7 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import DetailField from '../components/DetailField.vue'
 
 const route = useRoute()
 const router = useRouter()

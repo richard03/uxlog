@@ -20,30 +20,21 @@
         </div>
       </div>
       <div class="status-badge-row">
-        <span class="status-dot" :class="`status-${item.status}`" aria-hidden="true"></span>
-        <span class="status-label">{{ t.activity.statusOptions[item.status] }}</span>
+        <ActivityStatusBadge :status="item.status" :label="t.activity.statusOptions[item.status]" />
       </div>
     </header>
 
     <section class="detail-section">
       <dl class="detail-list">
-        <div class="detail-item" @click="openEdit('description')">
-          <dt>{{ t.activity.description }}</dt>
-          <dd :class="{ 'value-empty': !item.description }">{{ item.description || '—' }}</dd>
-          <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
-        <div class="detail-item" @click="openEdit('status')">
-          <dt>{{ t.activity.status }}</dt>
-          <dd>{{ t.activity.statusOptions[item.status] }}</dd>
-          <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
-        <div class="detail-item" @click="openEdit('deadline')">
-          <dt>{{ t.activity.deadline }}</dt>
-          <dd :class="{ 'value-empty': !item.deadline, 'deadline-overdue': deadlineOverdue }">
-            {{ item.deadline ? formatDeadlineDate(item.deadline) : '—' }}
-          </dd>
-          <svg class="pencil edit-btn" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
+        <DetailField :label="t.activity.description" :empty="!item.description" @edit="openEdit('description')">
+          {{ item.description || '—' }}
+        </DetailField>
+        <DetailField :label="t.activity.status" @edit="openEdit('status')">
+          {{ t.activity.statusOptions[item.status] }}
+        </DetailField>
+        <DetailField :label="t.activity.deadline" :empty="!item.deadline" @edit="openEdit('deadline')">
+          <span :class="{ 'deadline-overdue': deadlineOverdue }">{{ item.deadline ? formatDeadlineDate(item.deadline) : '—' }}</span>
+        </DetailField>
       </dl>
     </section>
 
@@ -169,6 +160,8 @@ import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import DetailField from '../components/DetailField.vue'
+import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -308,12 +301,7 @@ function doDelete() {
 
 <style scoped>
 .page-header { margin-bottom: var(--space-lg); }
-.status-badge-row { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-sm); }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.status-dot.status-pending { background: var(--color-muted, #9ca3af); }
-.status-dot.status-in_progress { background: var(--color-amber, #f59e0b); }
-.status-dot.status-done { background: #4caf50; }
-.status-label { font-size: 0.85rem; color: var(--text-muted); }
+.status-badge-row { margin-top: var(--space-sm); }
 .deadline-overdue { color: var(--error); font-weight: 600; }
 .type-info-section { margin-top: var(--space-lg); padding: var(--space-md); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .type-info-title { margin: 0 0 var(--space-xs); font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }

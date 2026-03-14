@@ -231,16 +231,6 @@ label {
   border-color: var(--text-muted);
 }
 
-.card-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.card-link:hover {
-  color: inherit;
-  text-decoration: none;
-}
 
 /* Layout */
 .container {
@@ -292,47 +282,6 @@ label {
   gap: var(--space-md);
 }
 
-.entity-list .card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
-}
-
-.entity-list [draggable="true"] { cursor: grab; }
-.entity-list [draggable="true"]:active { cursor: grabbing; }
-
-/* Card content patterns */
-.card-body {
-  flex: 1;
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.card-title {
-  margin: var(--space-xs) 0;
-  font-size: 1rem;
-}
-
-.card-desc {
-  margin: var(--space-xs) 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.card-clickable:hover {
-  border-color: var(--accent);
-}
-
-/* Drag and drop states */
-.drag-over {
-  border-color: var(--accent) !important;
-  background: var(--bg-elevated);
-}
-
-.dragging {
-  opacity: 0.4;
-}
 
 /* Text utility */
 .text-muted {
@@ -356,38 +305,6 @@ label {
   top: var(--space-md);
 }
 
-/* Badges */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  background: var(--bg-muted);
-  color: var(--text-muted);
-}
-
-.badge-accent {
-  background: var(--accent-muted);
-  color: var(--accent);
-}
-
-.badge-warning {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
-  color: var(--warning);
-  font-weight: 600;
-}
-
-.badge-danger {
-  background: color-mix(in srgb, var(--error) 15%, transparent);
-  color: var(--error);
-  font-weight: 600;
-}
-
-.badge-info {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
-}
 
 /* Empty state */
 .empty-state {
@@ -427,45 +344,6 @@ label {
   }
 }
 
-.completeness-badge {
-  font-variant-numeric: tabular-nums;
-  background: var(--bg-elevated);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.completeness-done {
-  color: var(--success);
-  border-color: var(--success);
-}
-
-/* Group badges (activity groups) */
-.group-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.15em 0.55em;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg-muted);
-  color: var(--text-muted);
-}
-
-.group-badge.group-project,
-.badge.group-project { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.group-badge.group-research,
-.badge.group-research { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
-.group-badge.group-design,
-.badge.group-design { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
-
-@media (prefers-color-scheme: dark) {
-  .group-badge.group-project,
-  .badge.group-project { background: #0c4a6e; color: #bae6fd; }
-  .group-badge.group-research,
-  .badge.group-research { background: #451a03; color: #fef08a; }
-  .group-badge.group-design,
-  .badge.group-design { background: #3b0764; color: #e9d5ff; }
-}
 
 /* Nav box pattern (section-link, config-box) */
 .section-link,
@@ -532,32 +410,6 @@ label {
 .detail-list {
   margin: 0;
   padding: 0;
-}
-
-.detail-item {
-  display: grid;
-  grid-template-columns: 10rem 1fr auto;
-  align-items: baseline;
-  gap: 0 var(--space-sm);
-  border-bottom: 1px solid var(--border);
-  padding: var(--space-xs) 0;
-  cursor: pointer;
-}
-
-.detail-item:last-child { border-bottom: none; }
-.detail-item dt { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0; }
-.detail-item dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
-
-.value-empty { color: var(--text-muted); font-style: italic; }
-
-.edit-btn { opacity: 0; transition: opacity 0.15s; color: var(--text-muted); }
-.detail-item:hover .edit-btn,
-.detail-item:focus-within .edit-btn { opacity: 1; }
-
-@media (max-width: 600px) {
-  .detail-item { grid-template-columns: 1fr auto; }
-  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
-  .detail-item dd { grid-column: 1; }
 }
 
 /* Detail view header layout */

@@ -18,33 +18,26 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="r in items"
         :key="r.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(r.id), dragging: dnd.isDragging(r.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, r.id)"
-        @dragover="dnd.onDragOver($event, r.id)"
-        @drop="dnd.onDrop($event, r.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }"
+        :entity-id="r.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id) }"
       >
-        <router-link :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }" class="card-body" draggable="false">
-          <span v-if="r.code" class="badge badge-accent">{{ r.code }}</span>
-          <span class="badge">{{ tPath(`moscow.${r.priority}`) }}</span>
-          <span
-            class="badge completeness-badge"
-            :class="{ 'completeness-done': getEntityCompleteness(r, 'requirement').filled === getEntityCompleteness(r, 'requirement').total }"
+        <div class="card-badges">
+          <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
+          <AppBadge>{{ tPath(`moscow.${r.priority}`) }}</AppBadge>
+          <AppBadge
+            :variant="getEntityCompleteness(r, 'requirement').filled === getEntityCompleteness(r, 'requirement').total ? 'completeness-done' : 'completeness'"
             :aria-label="t.completeness.ariaLabel(getEntityCompleteness(r, 'requirement').filled, getEntityCompleteness(r, 'requirement').total)"
-          >{{ getEntityCompleteness(r, 'requirement').filled }}/{{ getEntityCompleteness(r, 'requirement').total }}</span>
-          <h3 class="card-title">{{ r.name || t.requirement.name }}</h3>
-          <p v-if="r.description" class="card-desc">{{ r.description }}</p>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id) }"
-        />
-      </li>
+          >{{ getEntityCompleteness(r, 'requirement').filled }}/{{ getEntityCompleteness(r, 'requirement').total }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ r.name || t.requirement.name }}</h3>
+        <p v-if="r.description" class="card-desc">{{ r.description }}</p>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -102,6 +95,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'

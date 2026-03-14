@@ -6,40 +6,25 @@
     </div>
 
     <ul v-if="activities.length" class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="activity in activities"
         :key="activity.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(activity.id), dragging: dnd.isDragging(activity.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, activity.id)"
-        @dragover="dnd.onDragOver($event, activity.id)"
-        @drop="dnd.onDrop($event, activity.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'activityDetail', params: { id: projectId, activityId: activity.id } }"
+        :entity-id="activity.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') $emit('dismiss', activity.id); else if (a === 'move') $emit('move', activity.id) }"
       >
-        <router-link
-          class="card-body"
-          :to="{ name: 'activityDetail', params: { id: projectId, activityId: activity.id } }"
-          draggable="false"
-        >
-          <div class="card-badges">
-            <span class="status-dot" :class="`status-${activity.status}`" aria-hidden="true"></span>
-            <span class="badge">{{ t.activity.statusOptions[activity.status] }}</span>
-            <span
-              v-if="getChecklist(activity).total > 0"
-              class="badge checklist-badge"
-              :class="{ 'checklist-badge-done': getChecklist(activity).done === getChecklist(activity).total }"
-              :aria-label="t.activity.checklistProgress(getChecklist(activity).done, getChecklist(activity).total)"
-            >{{ getChecklist(activity).done }}/{{ getChecklist(activity).total }}</span>
-          </div>
-          <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
-          :aria-label="t.activity.notInterested"
-          @action="(a) => { if (a === 'delete') $emit('dismiss', activity.id); else if (a === 'move') $emit('move', activity.id) }"
-        />
-      </li>
+        <div class="card-badges">
+          <ActivityStatusBadge :status="activity.status" :label="t.activity.statusOptions[activity.status]" />
+          <AppBadge
+            v-if="getChecklist(activity).total > 0"
+            :variant="getChecklist(activity).done === getChecklist(activity).total ? 'completeness-done' : 'completeness'"
+            :aria-label="t.activity.checklistProgress(getChecklist(activity).done, getChecklist(activity).total)"
+          >{{ getChecklist(activity).done }}/{{ getChecklist(activity).total }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
+      </EntityCard>
     </ul>
     <p v-else class="activities-empty">
       {{ t.activity.emptyState }}<br />
@@ -81,6 +66,9 @@ import { useDraggableList } from '../composables/useDraggableList.js'
 import { ACTIVITY_TYPES, getActivityType } from '../lib/activityTypes.js'
 import Modal from './Modal.vue'
 import KebabMenu from './KebabMenu.vue'
+import EntityCard from './EntityCard.vue'
+import AppBadge from './AppBadge.vue'
+import ActivityStatusBadge from './ActivityStatusBadge.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true },
@@ -151,42 +139,6 @@ function saveActivity() {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-}
-
-.card {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-md);
-}
-
-.card-badges {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.status-dot.status-pending { background: var(--text-muted); }
-.status-dot.status-in_progress { background: #f59e0b; }
-.status-dot.status-done { background: #4caf50; }
-
-.checklist-badge {
-  font-variant-numeric: tabular-nums;
-  background: var(--bg-elevated);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.checklist-badge-done {
-  color: #4caf50;
-  border-color: #4caf50;
 }
 
 .activities-empty {

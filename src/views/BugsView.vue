@@ -18,31 +18,23 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="bug in bugs"
         :key="bug.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(bug.id), dragging: dnd.isDragging(bug.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, bug.id)"
-        @dragover="dnd.onDragOver($event, bug.id)"
-        @drop="dnd.onDrop($event, bug.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }"
+        :entity-id="bug.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id) }"
       >
-        <router-link :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }" class="card-body" draggable="false">
-          <div class="card-badges">
-            <span v-if="bug.code" class="badge badge-accent">{{ bug.code }}</span>
-            <span v-if="bug.severity" class="badge" :class="`severity-badge-${bug.severity}`">{{ t.bug.severityOptions[bug.severity] }}</span>
-            <span v-if="bugPriority(bug)" class="badge" :class="`priority-badge-${bugPriority(bug)}`">{{ t.bug.priorityOptions[bugPriority(bug)] }}</span>
-            <span class="badge" :class="`status-badge-${bug.status}`">{{ t.bug.statusOptions[bug.status] }}</span>
-          </div>
-          <h3 class="card-title">{{ bug.name || t.bug.name }}</h3>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id) }"
-        />
-      </li>
+        <div class="card-badges">
+          <AppBadge v-if="bug.code" variant="badge-accent">{{ bug.code }}</AppBadge>
+          <AppBadge v-if="bug.severity" :variant="`severity-${bug.severity}`">{{ t.bug.severityOptions[bug.severity] }}</AppBadge>
+          <AppBadge v-if="bugPriority(bug)" :variant="`priority-${bugPriority(bug)}`">{{ t.bug.priorityOptions[bugPriority(bug)] }}</AppBadge>
+          <AppBadge :variant="`status-${bug.status}`">{{ t.bug.statusOptions[bug.status] }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ bug.name || t.bug.name }}</h3>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -95,6 +87,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -148,13 +142,3 @@ function save() {
 }
 </script>
 
-<style scoped>
-.card-badges { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-xs); }
-.severity-badge-critical, .priority-badge-critical { background: #fee2e2; color: #991b1b; }
-.severity-badge-high, .priority-badge-high { background: #ffedd5; color: #9a3412; }
-.severity-badge-medium, .priority-badge-medium { background: #fef3c7; color: #92400e; }
-.severity-badge-low, .priority-badge-low { background: #ecfdf5; color: #065f46; }
-.status-badge-opraveno { background: #d1fae5; color: #065f46; }
-.status-badge-neopravime { background: var(--bg-elevated); color: var(--text-muted); }
-.status-badge-zadano { background: #fef3c7; color: #92400e; }
-</style>

@@ -17,44 +17,34 @@
       <p>{{ t.common.emptyHint }}</p>
     </div>
 
-    <ul v-else class="project-list" role="list">
-      <li
+    <ul v-else class="project-list entity-list" role="list">
+      <EntityCard
         v-for="p in projects"
         :key="p.id"
-        class="card"
-        :class="{ 'drag-over': dnd.isDragOver(p.id), dragging: dnd.isDragging(p.id) }"
-        :style="p.color ? { borderLeftColor: p.color, borderLeftWidth: '4px' } : {}"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, p.id)"
-        @dragover="dnd.onDragOver($event, p.id)"
-        @drop="dnd.onDrop($event, p.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'project', params: { id: p.id } }"
+        :entity-id="p.id"
+        :dnd="dnd"
+        :left-border-color="p.color || ''"
       >
-        <router-link :to="{ name: 'project', params: { id: p.id } }" class="card-link" draggable="false">
-          <div class="card-header">
-            <h3 class="card-title"><ProjectColorTag :color="p.color" />{{ p.name || t.project.name }}</h3>
-          </div>
-          <div class="card-meta">
-            <span class="badge">{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</span>
-            <span class="badge">{{ t.project.scopeLabel }}: {{ scopeLabel(p.scope) }}</span>
-            <span
-              class="badge"
-              :class="{ 'badge-warning': isActivityOverdue(p) }"
-            >{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</span>
-            <span
-              v-if="p.deadline && deadlineBadgeLabel(p.deadline)"
-              class="badge"
-              :class="deadlineBadgeClass(p.deadline)"
-            >{{ t.project.deadline }}: {{ formatDeadlineDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</span>
-            <span v-if="getUncheckedCount(p.id) > 0" class="badge badge-info">
-              {{ t.project.uncheckedItems(getUncheckedCount(p.id)) }}
-            </span>
-            <span v-if="projectDelayed(p)" class="badge badge-warning">
-              {{ t.project.delayed }}
-            </span>
-          </div>
-        </router-link>
-      </li>
+        <div class="card-header">
+          <h3 class="card-title"><ProjectColorTag :color="p.color" />{{ p.name || t.project.name }}</h3>
+        </div>
+        <div class="card-meta">
+          <AppBadge>{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</AppBadge>
+          <AppBadge>{{ t.project.scopeLabel }}: {{ scopeLabel(p.scope) }}</AppBadge>
+          <AppBadge :variant="isActivityOverdue(p) ? 'badge-warning' : ''">{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</AppBadge>
+          <AppBadge
+            v-if="p.deadline && deadlineBadgeLabel(p.deadline)"
+            :variant="deadlineBadgeClass(p.deadline)"
+          >{{ t.project.deadline }}: {{ formatDeadlineDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</AppBadge>
+          <AppBadge v-if="getUncheckedCount(p.id) > 0" variant="badge-info">
+            {{ t.project.uncheckedItems(getUncheckedCount(p.id)) }}
+          </AppBadge>
+          <AppBadge v-if="projectDelayed(p)" variant="badge-warning">
+            {{ t.project.delayed }}
+          </AppBadge>
+        </div>
+      </EntityCard>
     </ul>
 
     <ImportModal
@@ -119,6 +109,8 @@ import ImportModal from '../components/ImportModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
@@ -244,26 +236,7 @@ function saveProject() {
 .project-list .drag-over { border-color: var(--accent); background: var(--bg-elevated); }
 .project-list .dragging { opacity: 0.4; }
 
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-.card-title {
-  margin: 0;
+.project-list :deep(.card-title) {
   font-size: 1.1rem;
-}
-
-.card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
-
-.project-list .card-link {
-  display: block;
 }
 </style>

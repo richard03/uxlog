@@ -18,35 +18,28 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="s in items"
         :key="s.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(s.id), dragging: dnd.isDragging(s.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, s.id)"
-        @dragover="dnd.onDragOver($event, s.id)"
-        @drop="dnd.onDrop($event, s.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'stakeholderDetail', params: { id: projectId, stakeholderId: s.id } }"
+        :entity-id="s.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.stakeholder.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(s.id); else if (a === 'move') confirmMoveItem(s.id) }"
       >
-        <router-link :to="{ name: 'stakeholderDetail', params: { id: projectId, stakeholderId: s.id } }" class="card-body" draggable="false">
-          <span
-            class="badge completeness-badge"
-            :class="{ 'completeness-done': getEntityCompleteness(s, 'stakeholder').filled === getEntityCompleteness(s, 'stakeholder').total }"
+        <div class="card-badges">
+          <AppBadge
+            :variant="getEntityCompleteness(s, 'stakeholder').filled === getEntityCompleteness(s, 'stakeholder').total ? 'completeness-done' : 'completeness'"
             :aria-label="t.completeness.ariaLabel(getEntityCompleteness(s, 'stakeholder').filled, getEntityCompleteness(s, 'stakeholder').total)"
-          >{{ getEntityCompleteness(s, 'stakeholder').filled }}/{{ getEntityCompleteness(s, 'stakeholder').total }}</span>
-          <h3 class="card-title">{{ s.name || t.stakeholder.name }}</h3>
-          <p v-if="s.description" class="card-desc">{{ s.description }}</p>
-          <div class="card-meta">
-            <span v-if="s.influenceLevel" class="badge">{{ t.stakeholder.influenceLevel }}: {{ t.stakeholderLevel[s.influenceLevel] }}</span>
-            <span v-if="s.interestLevel" class="badge">{{ t.stakeholder.interestLevel }}: {{ t.stakeholderLevel[s.interestLevel] }}</span>
-          </div>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.stakeholder.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(s.id); else if (a === 'move') confirmMoveItem(s.id) }"
-        />
-      </li>
+          >{{ getEntityCompleteness(s, 'stakeholder').filled }}/{{ getEntityCompleteness(s, 'stakeholder').total }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ s.name || t.stakeholder.name }}</h3>
+        <p v-if="s.description" class="card-desc">{{ s.description }}</p>
+        <div v-if="s.influenceLevel || s.interestLevel" class="card-meta">
+          <AppBadge v-if="s.influenceLevel">{{ t.stakeholder.influenceLevel }}: {{ t.stakeholderLevel[s.influenceLevel] }}</AppBadge>
+          <AppBadge v-if="s.interestLevel">{{ t.stakeholder.interestLevel }}: {{ t.stakeholderLevel[s.interestLevel] }}</AppBadge>
+        </div>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -103,6 +96,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
@@ -153,5 +148,5 @@ function save() {
 </script>
 
 <style scoped>
-.card-meta { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); }
+.card-meta { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); flex-wrap: wrap; }
 </style>

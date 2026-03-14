@@ -18,31 +18,23 @@
     </div>
 
     <ul v-else class="entity-list" role="list">
-      <li
+      <EntityCard
         v-for="task in tasks"
         :key="task.id"
-        class="card card-clickable"
-        :class="{ 'drag-over': dnd.isDragOver(task.id), dragging: dnd.isDragging(task.id) }"
-        draggable="true"
-        @dragstart="dnd.onDragStart($event, task.id)"
-        @dragover="dnd.onDragOver($event, task.id)"
-        @drop="dnd.onDrop($event, task.id)"
-        @dragend="dnd.onDragEnd()"
+        :to="{ name: 'taskDetail', params: { id: projectId, taskId: task.id } }"
+        :entity-id="task.id"
+        :dnd="dnd"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.task.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(task.id); else if (a === 'move') confirmMoveItem(task.id) }"
       >
-        <router-link :to="{ name: 'taskDetail', params: { id: projectId, taskId: task.id } }" class="card-body" draggable="false">
-          <div class="card-badges">
-            <span v-if="task.code" class="badge badge-accent">{{ task.code }}</span>
-            <span class="badge" :class="`status-badge-${task.status}`">{{ t.task.statusOptions[task.status] }}</span>
-            <span v-if="task.dueDate" class="badge">{{ task.dueDate }}</span>
-          </div>
-          <h3 class="card-title">{{ task.name || t.task.name }}</h3>
-          <p v-if="task.description" class="card-desc">{{ task.description }}</p>
-        </router-link>
-        <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.task.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'delete') confirmDeleteItem(task.id); else if (a === 'move') confirmMoveItem(task.id) }"
-        />
-      </li>
+        <div class="card-badges">
+          <AppBadge v-if="task.code" variant="badge-accent">{{ task.code }}</AppBadge>
+          <AppBadge :variant="`status-${task.status}`">{{ t.task.statusOptions[task.status] }}</AppBadge>
+          <AppBadge v-if="task.dueDate">{{ task.dueDate }}</AppBadge>
+        </div>
+        <h3 class="card-title">{{ task.name || t.task.name }}</h3>
+        <p v-if="task.description" class="card-desc">{{ task.description }}</p>
+      </EntityCard>
     </ul>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -91,6 +83,8 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import EntityCard from '../components/EntityCard.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
@@ -139,9 +133,3 @@ function save() {
 }
 </script>
 
-<style scoped>
-.card-badges { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-xs); }
-.status-badge-done { background: #d1fae5; color: #065f46; }
-.status-badge-in_progress { background: #fef3c7; color: #92400e; }
-.status-badge-cancelled { background: var(--bg-elevated); color: var(--text-muted); text-decoration: line-through; }
-</style>

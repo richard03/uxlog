@@ -12,9 +12,7 @@
         </div>
       </div>
       <div class="header-meta">
-        <span class="group-badge" :class="`group-${template.group}`">
-          {{ t.config.groupLabels[template.group] || template.group }}
-        </span>
+        <AppBadge :variant="`group-${template.group}`" pill>{{ t.config.groupLabels[template.group] || template.group }}</AppBadge>
       </div>
     </header>
 
@@ -119,6 +117,7 @@ import { generateId } from '../lib/id.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import AppBadge from '../components/AppBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
