@@ -369,11 +369,8 @@ function doDeleteField() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
 .section-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
 .section-header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
-
-.config-section { margin-bottom: var(--space-xl); padding: var(--space-lg); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .table-wrapper { overflow-x: auto; }
 .config-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .config-table th { text-align: left; font-weight: 600; font-size: 0.8rem; color: var(--text-muted); padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--border); }
@@ -405,6 +402,5 @@ function doDeleteField() {
 .options-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
 .options-value-input { flex: 1; max-width: 10rem; }
 .options-label-input { flex: 2; }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 </style>

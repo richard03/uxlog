@@ -42,10 +42,6 @@ const activityCount = computed(() => config.getEffectiveTemplates().length)
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: var(--space-lg);
-}
-
 .page-header h1 {
   margin: 0;
   font-size: 1.75rem;
@@ -57,44 +53,5 @@ const activityCount = computed(() => config.getEffectiveTemplates().length)
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-md);
   max-width: 600px;
-}
-
-.config-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-lg);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text);
-  text-align: center;
-  text-decoration: none;
-  font-weight: 600;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.config-box:hover {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-}
-
-.config-box.router-link-active {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-  font-weight: 600;
-}
-
-.config-count {
-  display: block;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1.2;
-  margin-top: var(--space-xs);
-}
-
-.config-count-icon {
-  font-size: 1.8rem;
 }
 </style>

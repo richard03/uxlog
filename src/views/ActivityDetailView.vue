@@ -308,34 +308,16 @@ function doDelete() {
 
 <style scoped>
 .page-header { margin-bottom: var(--space-lg); }
-.header-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
-.header-actions { display: flex; gap: var(--space-xs); }
-.header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
-.entity-type { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-.editable-name { display: inline-flex; align-items: baseline; gap: 0.3em; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font-family: inherit; }
-.editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
-.editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
-.editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
 .status-badge-row { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-sm); }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .status-dot.status-pending { background: var(--color-muted, #9ca3af); }
 .status-dot.status-in_progress { background: var(--color-amber, #f59e0b); }
 .status-dot.status-done { background: #4caf50; }
 .status-label { font-size: 0.85rem; color: var(--text-muted); }
-.detail-section { margin-top: var(--space-lg); }
-.detail-list { margin: 0; padding: 0; }
-.detail-item { display: grid; grid-template-columns: 10rem 1fr auto; align-items: baseline; gap: 0 var(--space-sm); border-bottom: 1px solid var(--border); padding: var(--space-xs) 0; cursor: pointer; }
-.detail-item:last-child { border-bottom: none; }
-.detail-item dt { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0; }
-.detail-item dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
-.value-empty { color: var(--text-muted); font-style: italic; }
 .deadline-overdue { color: var(--error); font-weight: 600; }
-.edit-btn { opacity: 0; transition: opacity 0.15s; color: var(--text-muted); }
-.detail-item:hover .edit-btn, .detail-item:focus-within .edit-btn { opacity: 1; }
 .type-info-section { margin-top: var(--space-lg); padding: var(--space-md); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .type-info-title { margin: 0 0 var(--space-xs); font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .type-info-desc { margin: 0; font-size: 0.9rem; color: var(--text); }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
 .checklist-section { margin-top: var(--space-lg); }
 .checklist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
 .checklist-title { margin: 0; font-size: 1rem; font-weight: 600; }
@@ -355,10 +337,4 @@ function doDelete() {
 .checklist-item-editing { padding: var(--space-xs) 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .checklist-edit-input { font-size: 0.95rem; padding: 0.3rem 0.5rem; }
 .checklist-edit-actions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
-.btn-sm { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
-@media (max-width: 600px) {
-  .detail-item { grid-template-columns: 1fr auto; }
-  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
-  .detail-item dd { grid-column: 1; }
-}
 </style>

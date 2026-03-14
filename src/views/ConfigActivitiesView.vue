@@ -170,47 +170,13 @@ function saveTemplate() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
-.header-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+.header-row { gap: var(--space-md); flex-wrap: wrap; }
 .header-row h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
 
-.entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
 .card { display: flex; align-items: stretch; }
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-.card-title {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
-
-.card-clickable:hover {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-}
-.card-title { margin: var(--space-xs) 0 0; font-size: 1rem; }
-.card-desc { margin: var(--space-xs) 0 0; font-size: 0.9rem; color: var(--text-muted); }
+.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
+.card-meta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-sm); }
 .checklist-count { display: inline-block; font-size: 0.8rem; color: var(--text-muted); }
-
-.badge.group-project { background: #e0f2fe; color: #0369a1;  }
-.badge.group-research { background: #fef9c3; color: #854d0e;  }
-.badge.group-design { background: #f3e8ff; color: #6b21a8; }
-@media (prefers-color-scheme: dark) { 
-  .badge.group-project { background: #0c4a6e; color: #bae6fd; } 
-  .badge.group-research { background: #451a03; color: #fef08a; } 
-  .badge.group-design { background: #3b0764; color: #e9d5ff; } 
-}
 
 .deleted-section { margin-top: var(--space-lg); border-top: 1px solid var(--border); padding-top: var(--space-md); }
 .deleted-summary { cursor: pointer; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; padding: var(--space-xs) 0; user-select: none; }
@@ -219,17 +185,9 @@ function saveTemplate() {
 .deleted-item:last-child { border-bottom: none; }
 .deleted-name { flex: 1; font-size: 0.92rem; color: var(--text-muted); }
 
-.form-group { margin-bottom: var(--space-md); }
 .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: var(--space-xs); }
-.form-group-row { display: flex; gap: var(--space-md); flex-wrap: wrap; }
-.form-group-half { flex: 1; min-width: 140px; }
-.form-group-checkbox { display: flex; align-items: flex-end; padding-bottom: 0.2rem; }
-.checkbox-label { display: flex; align-items: center; gap: var(--space-xs); font-weight: normal !important; font-size: 0.92rem; cursor: pointer; }
 .checklist-editor-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .checklist-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
 .checklist-editor-input { flex: 1; }
 .checklist-add-row { display: flex; gap: var(--space-xs); align-items: center; }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
-
-.empty-state { color: var(--text-muted); }
 </style>

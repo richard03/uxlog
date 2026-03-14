@@ -78,10 +78,8 @@ function updateDuration(scope, event) {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
 .page-header h1 { margin: 0 0 var(--space-xs); font-size: 1.75rem; font-weight: 700; }
 .page-hint { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-.config-section { margin-bottom: var(--space-xl); padding: var(--space-lg); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .config-section h2 { margin: 0 0 var(--space-md); font-size: 1rem; font-weight: 600; }
 .duration-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-md); }
 .form-group { margin: 0; }

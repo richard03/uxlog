@@ -207,30 +207,15 @@ function doDelete() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
-.header-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+.header-row { gap: var(--space-md); flex-wrap: wrap; }
 .header-row h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
 .header-meta { margin-top: var(--space-sm); }
-.header-actions { display: flex; gap: var(--space-xs); }
-
-.group-badge { display: inline-block; font-size: 0.75rem; font-weight: 500; padding: 0.15em 0.55em; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-muted); color: var(--text-muted); }
-.group-badge.group-project { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.group-badge.group-research { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
-.group-badge.group-design { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
-@media (prefers-color-scheme: dark) { .group-badge.group-project { background: #0c4a6e; color: #bae6fd; } .group-badge.group-research { background: #451a03; color: #fef08a; } .group-badge.group-design { background: #3b0764; color: #e9d5ff; } }
-
-.config-section { margin-bottom: var(--space-xl); padding: var(--space-lg); background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .template-form { max-width: 36rem; }
-.form-group { margin-bottom: var(--space-md); }
 .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: var(--space-xs); }
-.form-group-row { display: flex; gap: var(--space-md); flex-wrap: wrap; }
-.form-group-half { flex: 1; min-width: 140px; }
-.form-group-checkbox { display: flex; align-items: flex-end; padding-bottom: 0.2rem; }
-.checkbox-label { display: flex; align-items: center; gap: var(--space-xs); font-weight: normal !important; font-size: 0.92rem; cursor: pointer; }
 .checklist-editor-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .checklist-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
 .checklist-editor-input { flex: 1; }
 .checklist-add-row { display: flex; gap: var(--space-xs); align-items: center; }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-start; margin-top: var(--space-md); }
+.form-actions { justify-content: flex-start; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 </style>

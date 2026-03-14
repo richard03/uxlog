@@ -21,7 +21,7 @@ export default {
     label: 'Projekt',
     name: 'Název',
     scope: 'Rozsah',
-    scopeLabel: 'Rozsah projektu',
+    scopeLabel: 'Rozsah',
     priority: 'Priorita',
     phase: 'Fáze',
     lastWorked: 'Naposledy pracováno',

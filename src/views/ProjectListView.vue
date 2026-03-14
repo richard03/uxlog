@@ -91,19 +91,7 @@
         </div>
         <div class="form-group">
           <label>{{ t.project.color }}</label>
-          <div class="color-swatches" role="radiogroup" :aria-label="t.project.color">
-            <button
-              v-for="c in PROJECT_COLORS"
-              :key="c"
-              type="button"
-              class="color-swatch"
-              :class="{ selected: form.color === c }"
-              :style="{ background: c }"
-              :aria-checked="form.color === c"
-              role="radio"
-              @click="form.color = c"
-            ></button>
-          </div>
+          <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" @click="closeForm">
@@ -129,8 +117,8 @@ import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
-import { PROJECT_COLORS } from '../lib/projectColors.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
+import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
@@ -235,17 +223,11 @@ function saveProject() {
 
 <style scoped>
 .page-header {
-  display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.header-actions {
-  display: flex;
-  gap: var(--space-xs);
 }
 
 .project-list {
@@ -281,47 +263,7 @@ function saveProject() {
   margin-top: var(--space-sm);
 }
 
-.card-date {
-  margin-left: auto;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
 .project-list .card-link {
   display: block;
-}
-
-.form-actions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-
-.color-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-}
-
-.color-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
-  cursor: pointer;
-  padding: 0;
-  outline-offset: 2px;
-  transition: transform 0.1s, border-color 0.1s;
-}
-
-.color-swatch:hover {
-  transform: scale(1.15);
-}
-
-.color-swatch.selected {
-  border-color: var(--text);
-  transform: scale(1.15);
 }
 </style>

@@ -140,21 +140,7 @@ function save() {
 </script>
 
 <style scoped>
-.page-header { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
-.header-row { display: flex; align-items: center; justify-content: space-between; }
-.header-actions { display: flex; gap: var(--space-xs); }
-.entity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
-.card { display: flex; align-items: center; gap: var(--space-sm); }
-.card-body { flex: 1; text-decoration: none; color: inherit; display: block; }
 .card-badges { display: flex; gap: var(--space-xs); flex-wrap: wrap; margin-bottom: var(--space-xs); }
-.card-title { margin: var(--space-xs) 0; font-size: 1rem; }
-.card-desc { margin: var(--space-xs) 0; font-size: 0.9rem; color: var(--text-muted); }
-.card-clickable:hover { border-color: var(--accent); }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
-.entity-list [draggable="true"] { cursor: grab; }
-.entity-list [draggable="true"]:active { cursor: grabbing; }
-.drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
-.dragging { opacity: 0.4; }
 .status-badge-done { background: #d1fae5; color: #065f46; }
 .status-badge-in_progress { background: #fef3c7; color: #92400e; }
 .status-badge-cancelled { background: var(--bg-elevated); color: var(--text-muted); text-decoration: line-through; }

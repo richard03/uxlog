@@ -124,29 +124,6 @@ function doDelete() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: var(--space-lg); }
-.header-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
-.header-actions { display: flex; gap: var(--space-xs); }
-.header-title { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
-.entity-type { margin: 0; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.entity-type { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
 .strategy-badge { font-size: 0.75rem; font-weight: 500; padding: 0.15em 0.55em; border-radius: 999px; background: var(--surface-raised, var(--border)); color: var(--text-muted); border: 1px solid var(--border); }
-.editable-name { display: inline-flex; align-items: baseline; gap: 0.3em; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font-family: inherit; }
-.editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
-.editable-name .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
-.editable-name:hover .pencil, .editable-name:focus-visible .pencil { opacity: 1; }
-.detail-section { margin-top: var(--space-lg); }
-.detail-list { margin: 0; padding: 0; }
-.detail-item { display: grid; grid-template-columns: 10rem 1fr auto; align-items: baseline; gap: 0 var(--space-sm); border-bottom: 1px solid var(--border); padding: var(--space-xs) 0; cursor: pointer; }
-.detail-item:last-child { border-bottom: none; }
-.detail-item dt { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0; }
-.detail-item dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
-.value-empty { color: var(--text-muted); font-style: italic; }
-.edit-btn { opacity: 0; transition: opacity 0.15s; color: var(--text-muted); }
-.detail-item:hover .edit-btn, .detail-item:focus-within .edit-btn { opacity: 1; }
-.form-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; margin-top: var(--space-md); }
-@media (max-width: 600px) {
-  .detail-item { grid-template-columns: 1fr auto; }
-  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
-  .detail-item dd { grid-column: 1; }
-}
 </style>

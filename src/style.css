@@ -250,7 +250,93 @@ label {
 }
 
 .page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
   margin-bottom: var(--space-lg);
+}
+
+/* Section header row */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* Form actions row */
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+}
+
+/* Button size modifier */
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+}
+
+/* Entity list */
+.entity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.entity-list .card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.entity-list [draggable="true"] { cursor: grab; }
+.entity-list [draggable="true"]:active { cursor: grabbing; }
+
+/* Card content patterns */
+.card-body {
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-title {
+  margin: var(--space-xs) 0;
+  font-size: 1rem;
+}
+
+.card-desc {
+  margin: var(--space-xs) 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.card-clickable:hover {
+  border-color: var(--accent);
+}
+
+/* Drag and drop states */
+.drag-over {
+  border-color: var(--accent) !important;
+  background: var(--bg-elevated);
+}
+
+.dragging {
+  opacity: 0.4;
+}
+
+/* Text utility */
+.text-muted {
+  color: var(--text-muted);
 }
 
 /* Skip link pro přístupnost */
@@ -351,4 +437,192 @@ label {
 .completeness-done {
   color: var(--success);
   border-color: var(--success);
+}
+
+/* Group badges (activity groups) */
+.group-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+}
+
+.group-badge.group-project,
+.badge.group-project { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+.group-badge.group-research,
+.badge.group-research { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
+.group-badge.group-design,
+.badge.group-design { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+
+@media (prefers-color-scheme: dark) {
+  .group-badge.group-project,
+  .badge.group-project { background: #0c4a6e; color: #bae6fd; }
+  .group-badge.group-research,
+  .badge.group-research { background: #451a03; color: #fef08a; }
+  .group-badge.group-design,
+  .badge.group-design { background: #3b0764; color: #e9d5ff; }
+}
+
+/* Nav box pattern (section-link, config-box) */
+.section-link,
+.config-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.section-link:hover,
+.section-link.router-link-active,
+.config-box:hover,
+.config-box.router-link-active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.section-link {
+  padding: var(--space-md);
+  font-weight: 400;
+}
+
+.config-box {
+  padding: var(--space-lg);
+}
+
+.section-count,
+.config-count {
+  display: block;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-top: var(--space-xs);
+}
+
+.section-count { font-size: 1.5rem; }
+.config-count { font-size: 2rem; }
+.config-count-icon { font-size: 1.8rem; }
+
+/* Config section card */
+.config-section {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Detail panel (entity detail views) */
+.detail-section {
+  margin-top: var(--space-lg);
+}
+
+.detail-list {
+  margin: 0;
+  padding: 0;
+}
+
+.detail-item {
+  display: grid;
+  grid-template-columns: 10rem 1fr auto;
+  align-items: baseline;
+  gap: 0 var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+}
+
+.detail-item:last-child { border-bottom: none; }
+.detail-item dt { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+.detail-item dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
+
+.value-empty { color: var(--text-muted); font-style: italic; }
+
+.edit-btn { opacity: 0; transition: opacity 0.15s; color: var(--text-muted); }
+.detail-item:hover .edit-btn,
+.detail-item:focus-within .edit-btn { opacity: 1; }
+
+@media (max-width: 600px) {
+  .detail-item { grid-template-columns: 1fr auto; }
+  .detail-item dt { grid-column: 1 / -1; margin-bottom: 2px; }
+  .detail-item dd { grid-column: 1; }
+}
+
+/* Detail view header layout */
+.header-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.header-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.header-title-main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.entity-type {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Editable name / code buttons */
+.editable-name,
+.editable-code {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+
+.editable-name h1 { margin: 0; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+.editable-code { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+
+.editable-name .pencil,
+.editable-code .pencil { opacity: 0; transition: opacity 0.15s; flex-shrink: 0; align-self: center; }
+
+.editable-name:hover .pencil,
+.editable-name:focus-visible .pencil,
+.editable-code:hover .pencil,
+.editable-code:focus-visible .pencil { opacity: 1; }
+
+/* Form layout utilities */
+.form-group-row { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+.form-group-half { flex: 1; min-width: 140px; }
+.form-group-checkbox { display: flex; align-items: flex-end; padding-bottom: 0.2rem; }
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: normal;
+  font-size: 0.92rem;
+  cursor: pointer;
 }

@@ -69,36 +69,16 @@ function getEntityFieldInfo(entityType) {
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: var(--space-lg);
-}
-
 .page-header h1 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
-.entity-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
 .card {
   display: flex;
   justify-content: space-between;
   align-items: stretch;
-}
-
-.card-body {
-  flex: 1;
-  text-decoration: none;
-  color: inherit;
-  display: block;
 }
 
 .card-clickable:hover {
