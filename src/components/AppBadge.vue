@@ -40,16 +40,10 @@ defineProps({
   .group-design   { background: #3b0764; color: #e9d5ff; border-color: transparent; }
 }
 
-/* Severity / priority (bugs) */
-.severity-critical, .priority-critical { background: #fee2e2; color: #991b1b; }
-.severity-high,     .priority-high     { background: #ffedd5; color: #9a3412; }
-.severity-medium,   .priority-medium   { background: #fef3c7; color: #92400e; }
-.severity-low,      .priority-low      { background: #ecfdf5; color: #065f46; }
-
-/* Bug statuses */
-.status-opraveno   { background: #d1fae5; color: #065f46; }
-.status-neopravime { background: var(--bg-elevated); color: var(--text-muted); }
-.status-zadano     { background: #fef3c7; color: #92400e; }
+/* Severity / priority / impact (bugs) – 4-level danger scale */
+.severity-critical, .priority-critical           { background: #dc2626; color: #fff; }
+.severity-high,     .impact-high,  .priority-high    { background: #f97316; color: #fff; }
+.severity-medium,   .impact-medium, .priority-medium  { background: #fef3c7; color: #92400e; }
 
 /* Task statuses */
 .status-done       { background: #d1fae5; color: #065f46; }

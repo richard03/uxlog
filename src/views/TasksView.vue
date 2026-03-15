@@ -28,9 +28,9 @@
         @action="(a) => { if (a === 'delete') confirmDeleteItem(task.id); else if (a === 'move') confirmMoveItem(task.id) }"
       >
         <div class="card-badges">
-          <AppBadge v-if="task.code" variant="badge-accent">{{ task.code }}</AppBadge>
           <AppBadge :variant="`status-${task.status}`">{{ t.task.statusOptions[task.status] }}</AppBadge>
           <AppBadge v-if="task.dueDate">{{ task.dueDate }}</AppBadge>
+          <AppBadge v-if="task.assignee">{{ task.assignee }}</AppBadge>
         </div>
         <h3 class="card-title">{{ task.name || t.task.name }}</h3>
         <p v-if="task.description" class="card-desc">{{ task.description }}</p>
@@ -41,7 +41,6 @@
 
     <Modal v-if="showForm" :title="t.task.add" @close="closeForm">
       <form @submit.prevent="save">
-        <FormInput v-model="form.code" :label="t.task.code" control-id="task-code" />
         <FormInput v-model="form.name" :label="t.task.name" control-id="task-name" required />
         <FormTextarea v-model="form.description" :label="t.task.description" control-id="task-desc" />
         <FormActions>
@@ -76,7 +75,6 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
-import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
@@ -99,7 +97,8 @@ const breadcrumbs = computed(() => [
 
 const showForm = ref(false)
 const showImport = ref(false)
-const form = ref({ code: '', name: '', description: '' })
+const form = ref({ name: '', description: '' })
+
 
 const deleteTarget = ref(null)
 function confirmDeleteItem(id) { deleteTarget.value = id }
@@ -114,7 +113,7 @@ const moveTarget = ref(null)
 function confirmMoveItem(id) { moveTarget.value = id }
 
 function openForm() {
-  form.value = { code: generateNextCode('TSK', tasks.value), name: '', description: '' }
+  form.value = { name: '', description: '' }
   showForm.value = true
 }
 

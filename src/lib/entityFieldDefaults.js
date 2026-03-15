@@ -156,17 +156,12 @@ export const ENTITY_FIELD_DEFAULTS = {
 
   task: [
     { key: 'description', labelKey: 'task.description', type: 'textarea', sortOrder: 10, searchable: true },
-    { key: 'metrics', labelKey: 'task.metrics', type: 'textarea', sortOrder: 20, searchable: true },
-    { key: 'achievability', labelKey: 'task.achievability', type: 'textarea', sortOrder: 30, searchable: true },
-    { key: 'relevance', labelKey: 'task.relevance', type: 'textarea', sortOrder: 40, searchable: true },
-    { key: 'dueDate', labelKey: 'task.dueDate', type: 'text', sortOrder: 50 },
-    { key: 'assignee', labelKey: 'task.assignee', type: 'text', sortOrder: 60, searchable: true },
-    { key: 'url', labelKey: 'task.url', type: 'url', sortOrder: 70, searchable: true },
+    { key: 'dueDate', labelKey: 'task.dueDate', type: 'date', sortOrder: 20 },
+    { key: 'assignee', labelKey: 'task.assignee', type: 'select', sortOrder: 30, searchable: true, options: [] },
     {
-      key: 'status', labelKey: 'task.status', type: 'select', sortOrder: 80,
+      key: 'status', labelKey: 'task.status', type: 'select', sortOrder: 40,
       options: [
-        { value: 'open', labelKey: 'task.statusOptions.open' },
-        { value: 'in_progress', labelKey: 'task.statusOptions.in_progress' },
+        { value: 'incomplete', labelKey: 'task.statusOptions.incomplete' },
         { value: 'done', labelKey: 'task.statusOptions.done' },
         { value: 'cancelled', labelKey: 'task.statusOptions.cancelled' },
       ],
@@ -220,5 +215,5 @@ export const ENTITY_FIELD_DEFAULTS = {
  * @type {Set<string>}
  */
 export const ENTITIES_WITH_CODE = new Set([
-  'goal', 'hypothesis', 'persona', 'scenario', 'requirement', 'task', 'bug',
+  'goal', 'hypothesis', 'persona', 'scenario', 'requirement', 'bug',
 ])

@@ -304,16 +304,11 @@ export function createTask(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
     name: '',
     description: '',
-    metrics: '',
-    achievability: '',
-    relevance: '',
     dueDate: '',
     assignee: '',
-    url: '',
-    status: 'open',
+    status: 'incomplete',
     sortOrder: 9999,
     customFields: {},
     ...overrides,
@@ -324,9 +319,12 @@ export function createTask(projectId, overrides = {}) {
 const SEVERITY_SCORE = { critical: 4, high: 3, medium: 2, low: 1 }
 /** Skóre dopadu chyby */
 const IMPACT_SCORE = { high: 3, medium: 2, low: 1 }
+/** Pořadí úrovní priority (od nejnižší) */
+const PRIORITY_LEVELS = ['low', 'medium', 'high', 'critical']
 
 /**
  * Vypočítá prioritu chyby na základě závažnosti a dopadu.
+ * Priorita nikdy nepřekročí úroveň závažnosti.
  * @param {'critical'|'high'|'medium'|'low'} severity
  * @param {'high'|'medium'|'low'} impact
  * @returns {'critical'|'high'|'medium'|'low'|null}
@@ -334,10 +332,14 @@ const IMPACT_SCORE = { high: 3, medium: 2, low: 1 }
 export function getBugPriority(severity, impact) {
   if (!severity || !impact) return null
   const score = (SEVERITY_SCORE[severity] ?? 0) * (IMPACT_SCORE[impact] ?? 0)
-  if (score >= 9) return 'critical'
-  if (score >= 5) return 'high'
-  if (score >= 3) return 'medium'
-  return 'low'
+  let priority
+  if (score >= 9) priority = 'critical'
+  else if (score >= 5) priority = 'high'
+  else if (score >= 3) priority = 'medium'
+  else priority = 'low'
+  const cap = PRIORITY_LEVELS.indexOf(severity)
+  const idx = PRIORITY_LEVELS.indexOf(priority)
+  return PRIORITY_LEVELS[Math.min(idx, cap)]
 }
 
 /**

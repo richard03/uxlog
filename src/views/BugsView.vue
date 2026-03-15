@@ -29,9 +29,10 @@
       >
         <div class="card-badges">
           <AppBadge v-if="bug.code" variant="badge-accent">{{ bug.code }}</AppBadge>
-          <AppBadge v-if="bug.severity" :variant="`severity-${bug.severity}`">{{ t.bug.severityOptions[bug.severity] }}</AppBadge>
-          <AppBadge v-if="bugPriority(bug)" :variant="`priority-${bugPriority(bug)}`">{{ t.bug.priorityOptions[bugPriority(bug)] }}</AppBadge>
-          <AppBadge :variant="`status-${bug.status}`">{{ t.bug.statusOptions[bug.status] }}</AppBadge>
+          <AppBadge v-if="bug.severity" :variant="`severity-${bug.severity}`">{{ t.bug.severity }}: {{ t.bug.severityOptions[bug.severity] }}</AppBadge>
+          <AppBadge v-if="bug.impact" :variant="`impact-${bug.impact}`">{{ t.bug.impact }}: {{ t.bug.impactShort[bug.impact] }}</AppBadge>
+          <AppBadge v-if="bugPriority(bug)" :variant="`priority-${bugPriority(bug)}`">{{ t.bug.priority }}: {{ t.bug.priorityOptions[bugPriority(bug)] }}</AppBadge>
+          <AppBadge>{{ t.bug.statusOptions[bug.status] }}</AppBadge>
         </div>
         <h3 class="card-title">{{ bug.name || t.bug.name }}</h3>
       </EntityCard>
