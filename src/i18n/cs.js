@@ -229,7 +229,7 @@ export default {
     scenarioType: {
       main: 'Hlavní',
       secondary: 'Vedlejší',
-      error: 'Chybový',
+      error: 'Chybové',
     },
     relatedPersonas: 'Související persony',
     relatedHypotheses: 'Související hypotézy',
@@ -531,6 +531,15 @@ export default {
     removeUnit: 'Odebrat',
     unitValue: 'Hodnota',
     unitLabel: 'Popisek',
+  },
+  filter: {
+    showDone: 'Zobrazit i hotové',
+    showFixed: 'Zobrazit i vyřešené',
+    status: 'Stav:',
+    type: 'Typ:',
+    priority: 'Priorita:',
+    emptyFiltered: 'Žádné položky neodpovídají nastavenému filtru.',
+    emptyFilteredHint: 'Zkuste upravit filtr.',
   },
   common: {
     skipToContent: 'Přeskočit na obsah',

@@ -12,14 +12,29 @@
       </div>
     </header>
 
-    <div v-if="items.length === 0" class="empty-state">
-      <p>{{ t.common.empty }}</p>
-      <p>{{ t.common.emptyHint }}</p>
+    <div class="filter-bar">
+      <span class="filter-bar-label">{{ t.filter.status }}</span>
+      <div class="filter-bar-group">
+        <FormCheckbox v-model="filterUntested" control-id="hyp-filter-untested" :label="`${t.hypothesisStatus.untested} (${countUntested})`" />
+        <FormCheckbox v-model="filterTested" control-id="hyp-filter-tested" :label="`${t.hypothesisStatus.tested} (${countTested})`" />
+        <FormCheckbox v-model="filterRefuted" control-id="hyp-filter-refuted" :label="`${t.hypothesisStatus.refuted} (${countRefuted})`" />
+      </div>
+    </div>
+
+    <div v-if="visibleItems.length === 0" class="empty-state">
+      <template v-if="items.length === 0">
+        <p>{{ t.common.empty }}</p>
+        <p>{{ t.common.emptyHint }}</p>
+      </template>
+      <template v-else>
+        <p>{{ t.filter.emptyFiltered }}</p>
+        <p>{{ t.filter.emptyFilteredHint }}</p>
+      </template>
     </div>
 
     <ul v-else class="entity-list" role="list">
       <EntityCard
-        v-for="h in items"
+        v-for="h in visibleItems"
         :key="h.id"
         :to="{ name: 'hypothesisDetail', params: { id: projectId, hypothesisId: h.id } }"
         :entity-id="h.id"
@@ -84,7 +99,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions } from '../components/form'
+import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -94,6 +109,19 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getHypotheses(projectId.value))
+const filterUntested = ref(true)
+const filterTested = ref(true)
+const filterRefuted = ref(true)
+const countUntested = computed(() => items.value.filter(h => (h.status || 'untested') === 'untested').length)
+const countTested = computed(() => items.value.filter(h => h.status === 'tested').length)
+const countRefuted = computed(() => items.value.filter(h => h.status === 'refuted').length)
+const visibleItems = computed(() => {
+  const allowed = []
+  if (filterUntested.value) allowed.push('untested')
+  if (filterTested.value) allowed.push('tested')
+  if (filterRefuted.value) allowed.push('refuted')
+  return items.value.filter(h => allowed.includes(h.status || 'untested'))
+})
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('hypotheses', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

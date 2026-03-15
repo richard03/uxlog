@@ -12,14 +12,30 @@
       </div>
     </header>
 
-    <div v-if="items.length === 0" class="empty-state">
-      <p>{{ t.common.empty }}</p>
-      <p>{{ t.common.emptyHint }}</p>
+    <div class="filter-bar">
+      <span class="filter-bar-label">{{ t.filter.priority }}</span>
+      <div class="filter-bar-group">
+        <FormCheckbox v-model="filterMust" control-id="req-filter-must" :label="`${t.moscow.must} (${countMust})`" />
+        <FormCheckbox v-model="filterShould" control-id="req-filter-should" :label="`${t.moscow.should} (${countShould})`" />
+        <FormCheckbox v-model="filterCould" control-id="req-filter-could" :label="`${t.moscow.could} (${countCould})`" />
+        <FormCheckbox v-model="filterWont" control-id="req-filter-wont" :label="`${t.moscow.wont} (${countWont})`" />
+      </div>
+    </div>
+
+    <div v-if="visibleItems.length === 0" class="empty-state">
+      <template v-if="items.length === 0">
+        <p>{{ t.common.empty }}</p>
+        <p>{{ t.common.emptyHint }}</p>
+      </template>
+      <template v-else>
+        <p>{{ t.filter.emptyFiltered }}</p>
+        <p>{{ t.filter.emptyFilteredHint }}</p>
+      </template>
     </div>
 
     <ul v-else class="entity-list" role="list">
       <EntityCard
-        v-for="r in items"
+        v-for="r in visibleItems"
         :key="r.id"
         :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }"
         :entity-id="r.id"
@@ -95,7 +111,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
+import { FormInput, FormTextarea, FormSelect, FormActions, FormCheckbox } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -105,6 +121,22 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getRequirements(projectId.value))
+const filterMust = ref(true)
+const filterShould = ref(true)
+const filterCould = ref(true)
+const filterWont = ref(true)
+const countMust = computed(() => items.value.filter(r => r.priority === 'must').length)
+const countShould = computed(() => items.value.filter(r => r.priority === 'should').length)
+const countCould = computed(() => items.value.filter(r => (r.priority || 'could') === 'could').length)
+const countWont = computed(() => items.value.filter(r => r.priority === 'wont').length)
+const visibleItems = computed(() => {
+  const allowed = []
+  if (filterMust.value) allowed.push('must')
+  if (filterShould.value) allowed.push('should')
+  if (filterCould.value) allowed.push('could')
+  if (filterWont.value) allowed.push('wont')
+  return items.value.filter(r => allowed.includes(r.priority || 'could'))
+})
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('requirements', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

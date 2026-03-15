@@ -12,14 +12,24 @@
       </div>
     </header>
 
-    <div v-if="bugs.length === 0" class="empty-state">
-      <p>{{ t.common.empty }}</p>
-      <p>{{ t.common.emptyHint }}</p>
+    <div class="filter-bar">
+      <FormCheckbox v-model="showFixed" control-id="bug-filter-fixed" :label="`${t.filter.showFixed} (${countFixed})`" />
+    </div>
+
+    <div v-if="visibleBugs.length === 0" class="empty-state">
+      <template v-if="bugs.length === 0">
+        <p>{{ t.common.empty }}</p>
+        <p>{{ t.common.emptyHint }}</p>
+      </template>
+      <template v-else>
+        <p>{{ t.filter.emptyFiltered }}</p>
+        <p>{{ t.filter.emptyFilteredHint }}</p>
+      </template>
     </div>
 
     <ul v-else class="entity-list" role="list">
       <EntityCard
-        v-for="bug in bugs"
+        v-for="bug in visibleBugs"
         :key="bug.id"
         :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }"
         :entity-id="bug.id"
@@ -83,7 +93,7 @@ import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions } from '../components/form'
+import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -93,6 +103,9 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const bugs = computed(() => store.getBugs(projectId.value))
+const showFixed = ref(false)
+const countFixed = computed(() => bugs.value.filter(b => b.status === 'opraveno' || b.status === 'neopravime').length)
+const visibleBugs = computed(() => showFixed.value ? bugs.value : bugs.value.filter(b => b.status !== 'opraveno' && b.status !== 'neopravime'))
 const dnd = useDraggableList(() => bugs.value, (orderedIds) => store.reorderEntities('bugs', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

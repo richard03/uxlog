@@ -249,6 +249,37 @@ select.form-control {
   flex-shrink: 0;
 }
 
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.filter-bar-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.filter-bar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.filter-bar .checkbox-label {
+  font-size: 0.85rem;
+}
+
 /* Entity list */
 .entity-list {
   list-style: none;
@@ -399,6 +430,8 @@ select.form-control {
 .form-group-row { display: flex; gap: var(--space-md); flex-wrap: wrap; }
 .form-group-half { flex: 1; min-width: 140px; }
 .form-group-checkbox { display: flex; align-items: flex-end; padding-bottom: 0.2rem; }
+.filter-bar .form-group-checkbox {padding-bottom: 0; margin-bottom: 0;}
+.filter-bar .form-group-checkbox label {padding-bottom: 0; margin-bottom: 0;}
 .checkbox-label {
   display: flex;
   align-items: center;

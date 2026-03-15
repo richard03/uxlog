@@ -12,14 +12,24 @@
       </div>
     </header>
 
-    <div v-if="tasks.length === 0" class="empty-state">
-      <p>{{ t.common.empty }}</p>
-      <p>{{ t.common.emptyHint }}</p>
+    <div class="filter-bar">
+      <FormCheckbox v-model="showDone" control-id="task-filter-done" :label="`${t.filter.showDone} (${countDone})`" />
+    </div>
+
+    <div v-if="visibleTasks.length === 0" class="empty-state">
+      <template v-if="tasks.length === 0">
+        <p>{{ t.common.empty }}</p>
+        <p>{{ t.common.emptyHint }}</p>
+      </template>
+      <template v-else>
+        <p>{{ t.filter.emptyFiltered }}</p>
+        <p>{{ t.filter.emptyFilteredHint }}</p>
+      </template>
     </div>
 
     <ul v-else class="entity-list" role="list">
       <EntityCard
-        v-for="task in tasks"
+        v-for="task in visibleTasks"
         :key="task.id"
         :to="{ name: 'taskDetail', params: { id: projectId, taskId: task.id } }"
         :entity-id="task.id"
@@ -81,7 +91,7 @@ import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions } from '../components/form'
+import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -91,6 +101,9 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const tasks = computed(() => store.getTasks(projectId.value))
+const showDone = ref(false)
+const countDone = computed(() => tasks.value.filter(t => t.status !== 'incomplete').length)
+const visibleTasks = computed(() => showDone.value ? tasks.value : tasks.value.filter(t => t.status === 'incomplete'))
 const dnd = useDraggableList(() => tasks.value, (orderedIds) => store.reorderEntities('tasks', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

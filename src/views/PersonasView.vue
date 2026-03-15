@@ -12,14 +12,28 @@
       </div>
     </header>
 
-    <div v-if="items.length === 0" class="empty-state">
-      <p>{{ t.common.empty }}</p>
-      <p>{{ t.common.emptyHint }}</p>
+    <div class="filter-bar">
+      <span class="filter-bar-label">{{ t.filter.status }}</span>
+      <div class="filter-bar-group">
+        <FormCheckbox v-model="filterProtopersona" control-id="per-filter-proto" :label="`${t.personaStatus.protopersona} (${countProtopersona})`" />
+        <FormCheckbox v-model="filterPersona" control-id="per-filter-persona" :label="`${t.personaStatus.persona} (${countPersona})`" />
+      </div>
+    </div>
+
+    <div v-if="visibleItems.length === 0" class="empty-state">
+      <template v-if="items.length === 0">
+        <p>{{ t.common.empty }}</p>
+        <p>{{ t.common.emptyHint }}</p>
+      </template>
+      <template v-else>
+        <p>{{ t.filter.emptyFiltered }}</p>
+        <p>{{ t.filter.emptyFilteredHint }}</p>
+      </template>
     </div>
 
     <ul v-else class="entity-list" role="list">
       <EntityCard
-        v-for="p in items"
+        v-for="p in visibleItems"
         :key="p.id"
         :to="{ name: 'personaDetail', params: { id: projectId, personaId: p.id } }"
         :entity-id="p.id"
@@ -93,7 +107,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
+import { FormInput, FormTextarea, FormSelect, FormActions, FormCheckbox } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -103,6 +117,16 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getPersonas(projectId.value))
+const filterProtopersona = ref(true)
+const filterPersona = ref(true)
+const countProtopersona = computed(() => items.value.filter(p => (p.status || 'protopersona') === 'protopersona').length)
+const countPersona = computed(() => items.value.filter(p => p.status === 'persona').length)
+const visibleItems = computed(() => {
+  const allowed = []
+  if (filterProtopersona.value) allowed.push('protopersona')
+  if (filterPersona.value) allowed.push('persona')
+  return items.value.filter(p => allowed.includes(p.status || 'protopersona'))
+})
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('personas', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [
