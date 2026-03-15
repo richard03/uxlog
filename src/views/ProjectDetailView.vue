@@ -237,7 +237,7 @@ watch(project, (p) => {
 const notebookPreview = computed(() => {
   const text = notebookText.value?.trim()
   if (!text) return t.notebook.placeholder
-  return text.length > 120 ? text.slice(0, 120) + '…' : text
+  return text
 })
 
 const notebookProjectData = computed(() => ({
@@ -312,8 +312,23 @@ function handleImported({ projectId: importedProjectId }) {
 </script>
 
 <style scoped>
+.header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
 .header-title-row h1 {
   margin: 0;
+  min-width: 0;
+}
+
+.header-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-xs);
 }
 
 .header-meta {

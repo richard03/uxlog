@@ -115,9 +115,9 @@
             <div v-if="getDiffFields(entry).length" class="im-diff">
               <div v-for="f in getDiffFields(entry)" :key="f.key" class="im-diff-row">
                 <span class="im-diff-key">{{ f.key }}</span>
-                <span v-if="f.oldVal !== undefined" class="im-diff-old">{{ truncate(f.oldVal) }}</span>
+                <span v-if="f.oldVal !== undefined" class="im-diff-old">{{ f.oldVal }}</span>
                 <span v-if="f.oldVal !== undefined" class="im-diff-arrow">→</span>
-                <span class="im-diff-new">{{ truncate(f.newVal) }}</span>
+                <span class="im-diff-new">{{ f.newVal }}</span>
               </div>
             </div>
 
@@ -270,11 +270,6 @@ function getDiffFields(entry) {
     }
   }
   return result
-}
-
-function truncate(val, n = 90) {
-  const s = String(val ?? '')
-  return s.length > n ? s.slice(0, n) + '…' : s
 }
 
 function entityLabel(item) {

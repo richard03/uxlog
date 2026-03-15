@@ -69,9 +69,6 @@ const projectColor = computed(() => {
   font-size: 1.25rem;
   color: var(--text);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .logo:hover {

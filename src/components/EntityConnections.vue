@@ -2,7 +2,10 @@
   <section class="entity-connections" aria-labelledby="connections-heading">
     <div class="connections-header">
       <h2 id="connections-heading" class="connections-title">{{ t.connection.title }}</h2>
-      <AppButton variant="secondary" size="sm" @click="openAdd">{{ t.connection.add }}</AppButton>
+      <div class="connections-header-actions">
+        <AppButton v-if="aiAvailable" variant="secondary" size="sm" @click="openAiSuggest">{{ t.connection.findWithAi }}</AppButton>
+        <AppButton variant="secondary" size="sm" @click="openAdd">{{ t.connection.add }}</AppButton>
+      </div>
     </div>
 
     <ul v-if="connections.length > 0" class="connections-list" role="list">
@@ -105,6 +108,56 @@
       </form>
     </Modal>
 
+    <!-- Modal: AI – najít souvislost -->
+    <Modal v-if="showAiSuggest" :title="aiSuggestTitle" size="large" @close="closeAiSuggest">
+      <div v-if="aiLoading" class="ai-loading" role="status">
+        <span class="ai-spinner" aria-hidden="true"></span>
+        <span>{{ t.connection.aiLoading }}</span>
+      </div>
+      <div v-else-if="aiError" class="ai-error" role="alert">
+        <p class="ai-error-msg">{{ aiError }}</p>
+        <AppButton variant="secondary" size="sm" @click="runAiSuggest">{{ t.connection.aiRetry }}</AppButton>
+      </div>
+      <p v-else-if="aiSuggestions.length === 0" class="connections-empty">{{ t.connection.aiNoSuggestions }}</p>
+      <ul v-else class="ai-suggestions-list" role="list">
+        <li
+          v-for="sugg in aiSuggestions"
+          :key="sugg.entityId"
+          class="ai-suggestion-card"
+          :class="{
+            'ai-suggestion-card--exists': sugg.alreadyExists,
+            'ai-suggestion-card--confirmed': sugg._status === 'confirmed',
+            'ai-suggestion-card--rejected': sugg._status === 'rejected',
+          }"
+          role="listitem"
+        >
+          <div class="ai-suggestion-body">
+            <div class="ai-suggestion-entity">
+              <span class="conn-type-badge">{{ entityTypeLabel(sugg.entityType) }}</span>
+              <span v-if="sugg.entityCode" class="conn-code">{{ sugg.entityCode }}</span>
+              <span class="conn-name">{{ sugg.entityName }}</span>
+              <span v-if="sugg.alreadyExists" class="ai-already-badge">{{ t.connection.aiAlreadyExists }}</span>
+            </div>
+            <textarea
+              v-if="!sugg.alreadyExists && sugg._status === 'pending'"
+              v-model="sugg.note"
+              class="form-control ai-suggestion-note"
+              rows="2"
+              :placeholder="t.connection.notePlaceholder"
+            />
+            <p v-else-if="sugg.note" class="ai-suggestion-note-existing">{{ sugg.note }}</p>
+          </div>
+          <div v-if="sugg.alreadyExists || sugg._status !== 'pending'" class="ai-action-status">
+            {{ sugg.alreadyExists ? t.connection.aiAlreadyExists : sugg._status === 'confirmed' ? t.connection.aiConfirmed : t.connection.aiRejected }}
+          </div>
+          <div v-else class="ai-action-btns">
+            <AppButton variant="primary" size="sm" @click="confirmSuggestion(sugg)">{{ t.connection.aiConfirm }}</AppButton>
+            <AppButton variant="tertiary" size="sm" @click="sugg._status = 'rejected'">{{ t.connection.aiReject }}</AppButton>
+          </div>
+        </li>
+      </ul>
+    </Modal>
+
     <!-- Confirm smazání -->
     <ConfirmDialog
       v-if="removingConn"
@@ -120,6 +173,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import { hasAiKey, suggestConnections } from '../lib/aiProcessor.js'
 import AppButton from './AppButton.vue'
 import Modal from './Modal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -242,6 +296,89 @@ function otherRoute(conn) {
 }
 
 const connections = computed(() => store.getConnectionsFor(props.entityType, props.entityId))
+
+const currentEntity = computed(() => resolveEntity(props.entityType, props.entityId))
+
+const aiSuggestTitle = computed(() => {
+  const ent = currentEntity.value
+  const parts = [t.connection.findWithAi]
+  if (ent?.code) parts.push(ent.code)
+  if (ent?.name) parts.push(ent.name)
+  return parts.join(' – ')
+})
+
+// --- AI: najít souvislost ---
+const aiAvailable = computed(() => hasAiKey())
+const showAiSuggest = ref(false)
+const aiLoading = ref(false)
+const aiError = ref('')
+const aiSuggestions = ref([])
+
+
+function openAiSuggest() {
+  showAiSuggest.value = true
+  runAiSuggest()
+}
+
+function closeAiSuggest() {
+  showAiSuggest.value = false
+  aiSuggestions.value = []
+  aiError.value = ''
+}
+
+async function runAiSuggest() {
+  aiLoading.value = true
+  aiError.value = ''
+  aiSuggestions.value = []
+
+  try {
+    const data = store.getData()
+    const entity = (data[props.entityType] ?? []).find((e) => e.id === props.entityId)
+    if (!entity) throw new Error('Entita nenalezena.')
+
+    const projectData = {}
+    for (const key of ALL_ENTITY_TYPES) {
+      projectData[key] = (data[key] ?? []).filter((e) => e.projectId === props.projectId)
+    }
+
+    const raw = await suggestConnections(entity, props.entityType, projectData)
+
+    aiSuggestions.value = raw
+      .map((s) => {
+        const ent = resolveEntity(s.entityType, s.entityId)
+        if (!ent) return null
+        const alreadyExists = connections.value.some(
+          (c) =>
+            (c.entityType1 === s.entityType && c.entityId1 === s.entityId) ||
+            (c.entityType2 === s.entityType && c.entityId2 === s.entityId)
+        )
+        return {
+          entityType: s.entityType,
+          entityId: s.entityId,
+          entityCode: ent.code || '',
+          entityName: ent.name || s.entityId,
+          note: s.note || '',
+          _status: alreadyExists ? 'exists' : 'pending',
+          alreadyExists,
+        }
+      })
+      .filter(Boolean)
+  } catch (err) {
+    aiError.value = err.message || t.connection.aiError
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+function confirmSuggestion(sugg) {
+  store.addConnection(
+    props.projectId,
+    props.entityType, props.entityId,
+    sugg.entityType, sugg.entityId,
+    sugg.note.trim()
+  )
+  sugg._status = 'confirmed'
+}
 
 // --- Kebab ---
 function handleAction(action, conn) {
@@ -413,9 +550,6 @@ a.connection-entity-link:hover {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
 }
 
@@ -452,9 +586,6 @@ a.connection-entity-link:hover {
 .conn-note-text {
   font-size: 0.85rem;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
 }
@@ -507,5 +638,138 @@ a.connection-entity-link:hover {
   color: var(--error);
   font-size: 0.875rem;
   margin: 0.25rem 0;
+}
+
+/* Záhlaví s více tlačítky */
+.connections-header-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* AI: načítání */
+.ai-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.ai-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* AI: chyba */
+.ai-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.ai-error-msg {
+  color: var(--error);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* AI: seznam návrhů */
+.ai-suggestions-list {
+  list-style: none;
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ai-suggestion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: opacity var(--transition);
+}
+
+.ai-suggestion-card--exists {
+  opacity: 0.6;
+}
+
+.ai-suggestion-card--confirmed {
+  opacity: 0.55;
+  border-color: var(--accent);
+}
+
+.ai-suggestion-card--rejected {
+  opacity: 0.35;
+}
+
+.ai-suggestion-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ai-suggestion-entity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.ai-already-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem;
+}
+
+.ai-suggestion-note {
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 3rem;
+}
+
+.ai-suggestion-note-existing {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-style: italic;
+}
+
+.ai-action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.ai-action-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  align-self: center;
 }
 </style>

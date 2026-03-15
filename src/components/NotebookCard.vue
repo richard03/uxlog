@@ -50,9 +50,5 @@ defineEmits(['click'])
   font-size: 0.9rem;
   color: var(--text-muted);
   white-space: pre-wrap;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 </style>
