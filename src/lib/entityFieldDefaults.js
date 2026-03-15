@@ -215,5 +215,5 @@ export const ENTITY_FIELD_DEFAULTS = {
  * @type {Set<string>}
  */
 export const ENTITIES_WITH_CODE = new Set([
-  'goal', 'hypothesis', 'persona', 'scenario', 'requirement', 'bug',
+  'goal', 'hypothesis', 'persona', 'scenario', 'requirement', 'task', 'bug',
 ])

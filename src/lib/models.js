@@ -304,6 +304,7 @@ export function createTask(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
+    code: '',
     name: '',
     description: '',
     dueDate: '',

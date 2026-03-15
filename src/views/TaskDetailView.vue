@@ -10,7 +10,12 @@
               <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
-          <p class="entity-type">{{ t.task.label }}</p>
+          <p class="entity-type">{{ t.task.label }}
+            <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.task.code}`">
+              <span>{{ item.code || '–' }}</span>
+              <svg class="pencil" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </p>
         </div>
         <div class="header-actions">
           <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
@@ -110,6 +115,7 @@ const showImport = ref(false)
 const showMove = ref(false)
 
 const headerFields = [
+  { key: 'code', label: t.task.code, type: 'text' },
   { key: 'name', label: t.task.name, type: 'text' },
 ]
 

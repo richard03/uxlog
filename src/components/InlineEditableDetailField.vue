@@ -1,11 +1,23 @@
 <template>
   <div
     class="detail-item"
-    :class="{ 'detail-item-editing': isEditing }"
-    @click="!isEditing && handleClick()"
+    :class="{ 'detail-item-editing': isEditing, 'detail-item-select': isSelectField }"
+    @click="!isEditing && !isSelectField && handleClick()"
   >
     <dt>{{ label }}</dt>
-    <dd v-if="!isEditing" :class="[{ 'value-empty': empty }, valueClass]">
+
+    <!-- Select pole: chip/popover picker přímo v řádku, bez editačního módu -->
+    <dd v-if="isSelectField" class="select-picker-dd" @click.stop>
+      <InlineSelectPicker
+        :options="options"
+        :model-value="String(rawValue ?? '')"
+        :aria-label="label"
+        @update:model-value="saveImmediate"
+      />
+    </dd>
+
+    <!-- Standardní zobrazení pro ostatní typy -->
+    <dd v-else-if="!isEditing" :class="[{ 'value-empty': empty }, valueClass]">
       <a
         v-if="showAsLink"
         :href="displayValue"
@@ -15,6 +27,8 @@
       >{{ displayValue }}</a>
       <template v-else>{{ displayValue ?? '—' }}</template>
     </dd>
+
+    <!-- Editační řádek pro textové typy -->
     <div v-else class="inline-edit-row">
       <FormInput
         v-if="fieldType === 'text' || fieldType === 'url' || fieldType === 'email' || fieldType === 'tel' || fieldType === 'date'"
@@ -33,21 +47,15 @@
         :rows="4"
         @keydown.escape="cancel"
       />
-      <FormSelect
-        v-else-if="fieldType === 'select'"
-        ref="inputRef"
-        v-model="editValue"
-        class="inline-edit-input"
-        :options="options"
-        @keydown.escape="cancel"
-      />
       <div class="inline-edit-actions" @click.stop>
         <AppButton variant="secondary" size="sm" @click="cancel">{{ cancelText }}</AppButton>
         <AppButton variant="primary" size="sm" @click="save">{{ saveText }}</AppButton>
       </div>
     </div>
+
+    <!-- Tužka jen pro ne-select pole -->
     <svg
-      v-if="!isEditing"
+      v-if="!isEditing && !isSelectField"
       class="pencil edit-btn"
       aria-hidden="true"
       width="13"
@@ -69,8 +77,8 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import FormInput from './form/FormInput.vue'
 import FormTextarea from './form/FormTextarea.vue'
-import FormSelect from './form/FormSelect.vue'
 import AppButton from './AppButton.vue'
+import InlineSelectPicker from './InlineSelectPicker.vue'
 
 /**
  * InlineEditableDetailField – detailové pole s inline editací pro jedno datové políčko.
@@ -114,6 +122,11 @@ const options = computed(() => props.field?.options ?? [])
  */
 const canEditInline = computed(() => !props.useModal && props.field && props.field.type !== 'number-unit')
 
+/**
+ * Zda jde o select pole s inline pickerem (bez editačního módu).
+ */
+const isSelectField = computed(() => fieldType.value === 'select' && !props.useModal)
+
 function handleClick() {
   if (canEditInline.value) {
     isEditing.value = true
@@ -132,6 +145,10 @@ function save() {
 function cancel() {
   isEditing.value = false
   editValue.value = ''
+}
+
+function saveImmediate(val) {
+  emit('save', val)
 }
 
 watch(isEditing, (val) => {
@@ -159,6 +176,15 @@ watch(isEditing, (val) => {
 
 .detail-item-editing {
   align-items: flex-start;
+}
+
+.detail-item-select {
+  grid-template-columns: 10rem 1fr;
+  cursor: default;
+}
+
+.select-picker-dd {
+  margin: 0;
 }
 
 dt { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin: 0; }

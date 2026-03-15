@@ -293,6 +293,7 @@ export default {
   },
   task: {
     label: 'Úkol',
+    code: 'Kód',
     name: 'Název',
     description: 'Popis (co je třeba udělat)',
     dueDate: 'Termín (do kdy)',
