@@ -71,6 +71,15 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
     if (field.type === 'select') {
       return field.options?.find((o) => o.value === val)?.label ?? val
     }
+    if (field.type === 'date') {
+      // val je ve formátu YYYY-MM-DD; parsujeme ručně, aby nedošlo k UTC posunu
+      const parts = String(val).split('-').map(Number)
+      if (parts.length === 3 && parts.every(Boolean)) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2])
+        return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })
+      }
+      return val
+    }
     if (field.type === 'number-unit') {
       if (!val) return '—'
       const unitVal = entityRef.value?.[field.unitKey] ?? ''

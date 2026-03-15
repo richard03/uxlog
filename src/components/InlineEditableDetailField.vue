@@ -156,6 +156,9 @@ watch(isEditing, (val) => {
     editValue.value = props.rawValue ?? ''
     nextTick(() => {
       inputRef.value?.focus?.()
+      if (fieldType.value === 'date') {
+        try { inputRef.value?.showPicker?.() } catch {}
+      }
     })
   }
 })

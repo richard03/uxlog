@@ -81,6 +81,8 @@ const inputRef = ref(null)
 defineExpose({
   /** Předá focus na vnitřní input element */
   focus: () => inputRef.value?.focus(),
+  /** Otevře nativní picker (datum, čas) pokud ho prohlížeč podporuje */
+  showPicker: () => inputRef.value?.showPicker?.(),
 })
 </script>
 

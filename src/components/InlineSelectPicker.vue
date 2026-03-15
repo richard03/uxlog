@@ -172,8 +172,8 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 
 .chip-active {
   background: var(--accent-muted);
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--text);
+  border-color: var(--text);
   font-weight: 600;
 }
 
