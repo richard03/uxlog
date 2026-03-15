@@ -8,20 +8,20 @@
   >
     <div class="modal" ref="modalRef">
       <header class="modal-header">
-        <h2 :id="titleId">{{ t.common.moveToProject }}</h2>
+        <h2 :id="titleId">{{ mode === 'copy' ? t.common.copyToProject : t.common.moveToProject }}</h2>
       </header>
       <div class="modal-body">
         <p v-if="otherProjects.length === 0" class="no-projects">{{ t.common.moveNoOtherProjects }}</p>
         <template v-else>
           <FormSelect
             v-model="selectedProjectId"
-            :label="t.common.moveSelectProject"
+            :label="mode === 'copy' ? t.common.copySelectProject : t.common.moveSelectProject"
             control-id="move-project-select"
             :options="otherProjects.map((p) => ({ value: p.id, label: p.name }))"
           />
           <div class="modal-actions">
             <AppButton variant="secondary" @click="$emit('close')">{{ t.common.cancel }}</AppButton>
-            <AppButton variant="primary" :disabled="!selectedProjectId" @click="doMove">{{ t.common.moveConfirm }}</AppButton>
+            <AppButton variant="primary" :disabled="!selectedProjectId" @click="doAction">{{ mode === 'copy' ? t.common.copyConfirm : t.common.moveConfirm }}</AppButton>
           </div>
         </template>
         <div v-if="otherProjects.length === 0" class="modal-actions">
@@ -43,9 +43,10 @@ const props = defineProps({
   stateKey: { type: String, required: true },
   entityId: { type: String, required: true },
   currentProjectId: { type: String, required: true },
+  mode: { type: String, default: 'move' },
 })
 
-const emit = defineEmits(['close', 'moved'])
+const emit = defineEmits(['close', 'moved', 'copied'])
 
 const store = useStore()
 const { t } = useI18n()
@@ -58,10 +59,15 @@ const otherProjects = computed(() =>
 
 const selectedProjectId = ref(otherProjects.value[0]?.id ?? null)
 
-function doMove() {
+function doAction() {
   if (!selectedProjectId.value) return
-  store.moveEntityToProject(props.stateKey, props.entityId, selectedProjectId.value)
-  emit('moved', selectedProjectId.value)
+  if (props.mode === 'copy') {
+    store.copyEntityToProject(props.stateKey, props.entityId, selectedProjectId.value)
+    emit('copied', selectedProjectId.value)
+  } else {
+    store.moveEntityToProject(props.stateKey, props.entityId, selectedProjectId.value)
+    emit('moved', selectedProjectId.value)
+  }
 }
 
 function handleClick(e) {

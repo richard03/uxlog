@@ -24,8 +24,8 @@
         :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }"
         :entity-id="r.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id) }"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id); else if (a === 'copy') copyTarget.value = r.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
@@ -73,6 +73,7 @@
       @cancel="deleteTarget = null"
     />
     <MoveToProjectModal v-if="moveTarget" state-key="requirements" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
+    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="requirements" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -126,6 +127,7 @@ function doDeleteItem() {
 }
 
 const moveTarget = ref(null)
+const copyTarget = ref(null)
 function confirmMoveItem(id) { moveTarget.value = id }
 
 

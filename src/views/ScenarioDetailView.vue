@@ -21,8 +21,8 @@
           <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('scenarios', scenario?.id)" :filename="scenario?.name || t.scenario.label" />
           <KebabMenu
-            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.scenario.delete, action: 'delete', variant: 'danger' }]"
-            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'delete') confirmDelete() }"
+            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.scenario.delete, action: 'delete', variant: 'danger' }]"
+            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
           />
         </div>
       </div>
@@ -75,6 +75,7 @@
 
     <ConfirmDialog v-if="showConfirm" :title="t.scenario.delete" :message="t.scenario.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <MoveToProjectModal v-if="showMove" state-key="scenarios" :entity-id="scenario?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'scenarios', params: { id: projectId } })" />
+    <MoveToProjectModal v-if="showCopy" mode="copy" state-key="scenarios" :entity-id="scenario?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
   </div>
   <div v-else-if="project && !scenario" class="container">
     <p>{{ t.common.loading }}</p>
@@ -119,6 +120,7 @@ const breadcrumbs = computed(() => [
 const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
+const showCopy = ref(false)
 
 const headerFields = [
   { key: 'code', label: t.scenario.code, type: 'text' },

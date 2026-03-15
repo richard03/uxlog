@@ -11,10 +11,7 @@
         <router-link to="/config" custom v-slot="{ navigate, isActive }">
           <AppButton variant="secondary" :class="{ 'nav-active': isActive }" @click="navigate">{{ t.nav.config }}</AppButton>
         </router-link>
-        <AppButton variant="tertiary" icon-only :aria-label="isDark ? t.nav.lightMode : t.nav.darkMode" @click="theme.toggle">
-          {{ isDark ? '☀' : '☽' }}
-        </AppButton>
-        <AppButton variant="secondary" @click="showSearch = true">
+<AppButton variant="secondary" @click="showSearch = true">
           {{ t.common.search }}
         </AppButton>
       </nav>
@@ -32,13 +29,11 @@ import { useStore } from '../composables/useStore.js'
 import SearchModal from './SearchModal.vue'
 import AppButton from './AppButton.vue'
 
-const theme = useTheme()
+useTheme()
 const { t } = useI18n()
 const route = useRoute()
 const store = useStore()
 const showSearch = ref(false)
-
-const isDark = computed(() => theme.isDark.value)
 
 const projectColor = computed(() => {
   const id = route.params.id

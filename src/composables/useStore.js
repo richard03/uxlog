@@ -108,6 +108,7 @@ export function useStore() {
     reorderEntities: store.reorderEntities,
     reorderProjects: store.reorderProjects,
     moveEntityToProject: store.moveEntityToProject,
+    copyEntityToProject: store.copyEntityToProject,
     // Connections (souvislosti)
     getConnectionsFor: store.getConnectionsFor,
     getConnections: store.getConnections,

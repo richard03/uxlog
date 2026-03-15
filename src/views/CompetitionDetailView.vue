@@ -16,8 +16,8 @@
           <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('competitions', item?.id)" :filename="item?.name || t.competition.label" />
           <KebabMenu
-            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.competition.delete, action: 'delete', variant: 'danger' }]"
-            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'delete') confirmDelete() }"
+            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.competition.delete, action: 'delete', variant: 'danger' }]"
+            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
           />
         </div>
       </div>
@@ -64,6 +64,7 @@
     <ConfirmDialog v-if="showConfirm" :title="t.competition.delete" :message="t.competition.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="competitions" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'competition', params: { id: projectId } })" />
+    <MoveToProjectModal v-if="showCopy" mode="copy" state-key="competitions" :entity-id="item?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
   </div>
   <div v-else-if="project && !item" class="container">
     <p>{{ t.common.loading }}</p>
@@ -107,6 +108,7 @@ const breadcrumbs = computed(() => [
 const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
+const showCopy = ref(false)
 
 const headerFields = [
   { key: 'name', label: t.competition.name, type: 'text' },

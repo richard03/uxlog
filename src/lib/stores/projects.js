@@ -1,5 +1,6 @@
 import { state, persist } from './state.js'
 import { createProject, createActivity } from '../models.js'
+import { generateId } from '../id.js'
 import { getEffectiveTemplates } from '../configStore.js'
 import { todayISO, addDays } from '../deadline.js'
 import { pickProjectColor } from '../projectColors.js'
@@ -80,4 +81,17 @@ export function moveEntityToProject(stateKey, entityId, targetProjectId) {
   updateProject(targetProjectId, {})
   persist()
   return true
+}
+
+export function copyEntityToProject(stateKey, entityId, targetProjectId) {
+  const items = state[stateKey] || []
+  const item = items.find((e) => e.id === entityId)
+  if (!item) return null
+  const copy = JSON.parse(JSON.stringify(item))
+  copy.id = generateId()
+  copy.projectId = targetProjectId
+  state[stateKey].push(copy)
+  updateProject(targetProjectId, {})
+  persist()
+  return copy
 }

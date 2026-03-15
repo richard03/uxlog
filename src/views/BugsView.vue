@@ -24,8 +24,8 @@
         :to="{ name: 'bugDetail', params: { id: projectId, bugId: bug.id } }"
         :entity-id="bug.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id) }"
+        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id); else if (a === 'copy') copyTarget.value = bug.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="bug.code" variant="badge-accent">{{ bug.code }}</AppBadge>
@@ -61,6 +61,7 @@
       @cancel="deleteTarget = null"
     />
     <MoveToProjectModal v-if="moveTarget" state-key="bugs" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
+    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="bugs" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -114,6 +115,7 @@ function doDeleteItem() {
 }
 
 const moveTarget = ref(null)
+const copyTarget = ref(null)
 function confirmMoveItem(id) { moveTarget.value = id }
 
 function bugPriority(bug) {

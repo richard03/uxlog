@@ -6,7 +6,7 @@
 export { state, initStore, getData, subscribe } from './state.js'
 export {
   getProjects, getProject, addProject, updateProject, deleteProject,
-  reorderProjects, reorderEntities, moveEntityToProject,
+  reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject,
 } from './projects.js'
 export { getGoals, getGoal, addGoal, updateGoal, deleteGoal } from './goals.js'
 export { getStakeholders, getStakeholder, addStakeholder, updateStakeholder, deleteStakeholder } from './stakeholders.js'
