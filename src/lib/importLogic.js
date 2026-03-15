@@ -45,6 +45,8 @@ const ENTITY_CONFIGS = [
   { key: 'requirements', matchKeys: ['code', 'name'] },
   { key: 'activities', matchKeys: ['name'] },
   { key: 'teamMembers', matchKeys: ['name'] },
+  { key: 'tasks', matchKeys: ['code', 'name'] },
+  { key: 'bugs', matchKeys: ['code', 'name'] },
 ]
 
 /** Pole s ID vztahů pro každý typ entity */
@@ -146,6 +148,9 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
       scope: pi.scope || 'medium',
       priority: pi.priority || 'medium',
       phase: pi.phase || 'research',
+      ...(pi.notebook != null ? { notebook: pi.notebook } : {}),
+      ...(pi.deadline != null ? { deadline: pi.deadline } : {}),
+      ...(pi.color != null ? { color: pi.color } : {}),
     })
   }
 
@@ -217,6 +222,9 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
     if (item.scope != null) projectUpdates.scope = item.scope
     if (item.priority != null) projectUpdates.priority = item.priority
     if (item.phase != null) projectUpdates.phase = item.phase
+    if (item.notebook != null) projectUpdates.notebook = item.notebook
+    if (item.deadline != null) projectUpdates.deadline = item.deadline
+    if (item.color != null) projectUpdates.color = item.color
   }
 
   return { projectUpdates, newProjectData, upserts, effectiveProjectId }
