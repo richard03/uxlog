@@ -125,7 +125,7 @@ const visibleTasks = computed(() => {
   let base = allowed.length === 0 ? tasks.value : tasks.value.filter(t => allowed.includes(t.status || 'incomplete'))
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
-  return base.filter(t => [t.code, t.name, t.description, t.assignee, t.dueDate].filter(Boolean).join(' ').toLowerCase().includes(q))
+  return base.filter(task => [task.code, task.name, task.description, task.assignee, task.dueDate, t.task.statusOptions[task.status || 'incomplete']].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => tasks.value, (orderedIds) => store.reorderEntities('tasks', projectId.value, orderedIds))
 

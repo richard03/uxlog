@@ -127,7 +127,7 @@ const visibleBugs = computed(() => {
   let base = allowed.length === 0 ? bugs.value : bugs.value.filter(b => allowed.includes(b.status || 'zadano'))
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
-  return base.filter(b => [b.code, b.name, b.description, b.expectedBehavior, b.actualBehavior].filter(Boolean).join(' ').toLowerCase().includes(q))
+  return base.filter(b => [b.code, b.name, b.description, b.expectedBehavior, b.actualBehavior, t.bug.statusOptions[b.status || 'zadano']].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => bugs.value, (orderedIds) => store.reorderEntities('bugs', projectId.value, orderedIds))
 

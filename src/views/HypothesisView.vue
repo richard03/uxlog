@@ -128,7 +128,7 @@ const visibleItems = computed(() => {
   let base = allowed.length === 0 ? items.value : items.value.filter(h => allowed.includes(h.status || 'untested'))
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
-  return base.filter(h => [h.code, h.name, h.description].filter(Boolean).join(' ').toLowerCase().includes(q))
+  return base.filter(h => [h.code, h.name, h.description, t.hypothesisStatus[h.status || 'untested']].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('hypotheses', projectId.value, orderedIds))
 

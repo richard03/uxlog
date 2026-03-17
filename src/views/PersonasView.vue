@@ -133,7 +133,7 @@ const visibleItems = computed(() => {
   let base = allowed.length === 0 ? items.value : items.value.filter(p => allowed.includes(p.status || 'protopersona'))
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
-  return base.filter(p => [p.code, p.name, p.description].filter(Boolean).join(' ').toLowerCase().includes(q))
+  return base.filter(p => [p.code, p.name, p.description, t.personaStatus[p.status || 'protopersona']].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('personas', projectId.value, orderedIds))
 
