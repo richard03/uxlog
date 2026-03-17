@@ -397,9 +397,13 @@ function extractGenericFromCard(card, entityType, base) {
   const HINTS = new Set((config.blocks || []).map(b => b.hint));
   const extracted = {};
   for (const { name, field } of (config.blocks || [])) {
-    const block = findDescendant(card, n => n.name === name && n.type === 'FRAME');
-    if (!block) continue;
-    const textNode = findDescendant(block, n => (n.name === field || n.name === NODE_TEXT) && n.type === 'TEXT');
+    // Nejprve hledat vrstvu podle jména datového pole kdekoliv v kartě (nové karty)
+    let textNode = findDescendant(card, n => n.name === field && n.type === 'TEXT');
+    // Fallback: strukturní navigace pro staré karty (vrstva se jmenuje NODE_TEXT)
+    if (!textNode) {
+      const block = findDescendant(card, n => n.name === name && n.type === 'FRAME');
+      if (block) textNode = findDescendant(block, n => n.name === NODE_TEXT && n.type === 'TEXT');
+    }
     if (!textNode) continue;
     const chars = textNode.characters || '';
     extracted[field] = HINTS.has(chars) ? '' : chars;
@@ -426,26 +430,39 @@ function extractPersonaFromCard(card) {
     return HINTS.has(chars) ? '' : chars;
   }
 
-  const topSection  = findChild(card, n => n.name === NODE_HORNI_SEKCE);
-  const infoCol     = findChild(topSection, n => n.name === NODE_INFO);
-  const metaFrame   = findChild(infoCol, n => n.name === NODE_META);
-  const valuesFrame = findChild(infoCol, n => n.name === NODE_HODNOTY);
+  /**
+   * Najde textovou vrstvu podle jména datového pole kdekoliv v kartě.
+   * Pokud neexistuje, vrátí null (extraktor pak použije fallback z plugin dat).
+   */
+  function findField(fieldName) {
+    return readText(findDescendant(card, n => n.name === fieldName && n.type === 'TEXT'));
+  }
 
-  const nameNode = findChild(infoCol, n => n.type === 'TEXT');
-  const rawName  = nameNode ? nameNode.characters : null;
-  const name     = (rawName !== null && rawName !== FALLBACK_NO_NAME) ? rawName : (base.name || '');
+  // Jméno: vrstva 'name' kdekoliv v kartě; fallback: stará vrstva NODE_NAZEV ('Název')
+  const nameByField = findField('name');
+  const nameByOld   = readText(findDescendant(card, n => n.name === NODE_NAZEV && n.type === 'TEXT'));
+  const rawName     = nameByField !== null ? nameByField : nameByOld;
+  const name        = (rawName !== null && rawName !== FALLBACK_NO_NAME) ? rawName : (base.name || '');
 
-  const codeNode = findChild(metaFrame, n => n.type === 'TEXT');
-  const code     = codeNode !== null ? codeNode.characters : (base.code || '');
+  // Kód: vrstva 'code' kdekoliv v kartě; fallback: strukturní navigace
+  const codeByField = findField('code');
+  const codeByOld   = (() => {
+    const metaFrame = findDescendant(card, n => n.name === NODE_META);
+    const node = findChild(metaFrame, n => n.type === 'TEXT');
+    return node ? node.characters : null;
+  })();
+  const code = codeByField !== null ? codeByField : (codeByOld !== null ? codeByOld : (base.code || ''));
 
-  const badge     = findChild(metaFrame, n => n.name === NODE_BADGE);
-  const badgeText = findChild(badge, n => n.type === 'TEXT');
+  // Status (badge): hledá podle textu badge kdekoliv v kartě
+  const badgeNode = findDescendant(card, n => n.name === NODE_BADGE);
+  const badgeText = findChild(badgeNode, n => n.type === 'TEXT');
   const status    = badgeText
     ? (badgeText.characters === BADGE_PROTOPERSONA ? 'protopersona' : 'persona')
     : (base.status || 'protopersona');
 
+  // Statistiky cílové skupiny: hledá stat rámce kdekoliv v kartě
   function getStatValue(statName) {
-    const statFrame = findChild(valuesFrame, n => n.name === statName);
+    const statFrame = findDescendant(card, n => n.name === statName);
     if (!statFrame) return null;
     const valNode = (statFrame.children || []).find(n => n.type === 'TEXT' && n.fontSize === 30);
     if (!valNode) return null;
@@ -455,21 +472,22 @@ function extractPersonaFromCard(card) {
   const _tgs = getStatValue(STAT_VELIKOST); const targetGroupSize  = _tgs !== null ? _tgs : (base.targetGroupSize  || '');
   const _tgv = getStatValue(STAT_HODNOTA);  const targetGroupValue = _tgv !== null ? _tgv : (base.targetGroupValue || '');
 
-  const bloky = findChild(card, n => n.name === NODE_BLOKY);
-
-  function getBlockText(rowName, blockName, fieldName) {
-    const row   = findChild(bloky, n => n.name === rowName);
-    const block = findChild(row,   n => n.name === blockName);
+  // Textové bloky: hledá vrstvu podle jména datového pole kdekoliv v kartě;
+  // fallback: strukturní navigace pro staré karty (vrstva se jmenuje NODE_TEXT)
+  function getBlockText(fieldName, blockName) {
+    const byField = findField(fieldName);
+    if (byField !== null) return byField;
+    const block = findDescendant(card, n => n.name === blockName && n.type === 'FRAME');
     if (!block) return null;
-    return readText(findChild(block, n => (n.name === fieldName || n.name === NODE_TEXT) && n.type === 'TEXT'));
+    return readText(findChild(block, n => n.name === NODE_TEXT && n.type === 'TEXT'));
   }
 
   return Object.assign({}, base, {
     name, code, status,
-    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText(NODE_RADA_1, BLOCK_POPIS,    'description')),
-    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText(NODE_RADA_1, BLOCK_MOTIVACE, 'motivation')),
-    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText(NODE_RADA_2, BLOCK_POTREBY,  'needs')),
-    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText(NODE_RADA_2, BLOCK_PROBLEMY, 'problems')),
+    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText('description', BLOCK_POPIS)),
+    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText('motivation',  BLOCK_MOTIVACE)),
+    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText('needs',       BLOCK_POTREBY)),
+    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText('problems',    BLOCK_PROBLEMY)),
     targetGroupSize,
     targetGroupValue,
   });
