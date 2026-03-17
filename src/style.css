@@ -276,8 +276,38 @@ select.form-control {
   flex-wrap: wrap;
 }
 
-.filter-bar .checkbox-label {
-  font-size: 0.85rem;
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  user-select: none;
+}
+
+.filter-badge:hover:not(.filter-badge--active) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.filter-badge--active {
+  background: var(--accent-muted);
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.filter-badge--active:hover {
+  background: color-mix(in srgb, var(--accent) 25%, var(--bg-elevated));
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
 }
 
 /* Entity list */

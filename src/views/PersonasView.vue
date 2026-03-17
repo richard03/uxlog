@@ -15,8 +15,8 @@
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.status }}</span>
       <div class="filter-bar-group">
-        <FormCheckbox v-model="filterProtopersona" control-id="per-filter-proto" :label="`${t.personaStatus.protopersona} (${countProtopersona})`" />
-        <FormCheckbox v-model="filterPersona" control-id="per-filter-persona" :label="`${t.personaStatus.persona} (${countPersona})`" />
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterProtopersona }" type="button" @click="filterProtopersona = !filterProtopersona">{{ t.personaStatus.protopersona }} ({{ countProtopersona }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterPersona }" type="button" @click="filterPersona = !filterPersona">{{ t.personaStatus.persona }} ({{ countPersona }})</button>
       </div>
     </div>
 
@@ -107,7 +107,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormSelect, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -117,14 +117,15 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getPersonas(projectId.value))
-const filterProtopersona = ref(true)
-const filterPersona = ref(true)
+const filterProtopersona = ref(false)
+const filterPersona = ref(false)
 const countProtopersona = computed(() => items.value.filter(p => (p.status || 'protopersona') === 'protopersona').length)
 const countPersona = computed(() => items.value.filter(p => p.status === 'persona').length)
 const visibleItems = computed(() => {
   const allowed = []
   if (filterProtopersona.value) allowed.push('protopersona')
   if (filterPersona.value) allowed.push('persona')
+  if (allowed.length === 0) return items.value
   return items.value.filter(p => allowed.includes(p.status || 'protopersona'))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('personas', projectId.value, orderedIds))

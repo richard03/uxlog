@@ -15,9 +15,9 @@
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.status }}</span>
       <div class="filter-bar-group">
-        <FormCheckbox v-model="filterUntested" control-id="hyp-filter-untested" :label="`${t.hypothesisStatus.untested} (${countUntested})`" />
-        <FormCheckbox v-model="filterTested" control-id="hyp-filter-tested" :label="`${t.hypothesisStatus.tested} (${countTested})`" />
-        <FormCheckbox v-model="filterRefuted" control-id="hyp-filter-refuted" :label="`${t.hypothesisStatus.refuted} (${countRefuted})`" />
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterUntested }" type="button" @click="filterUntested = !filterUntested">{{ t.hypothesisStatus.untested }} ({{ countUntested }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterTested }" type="button" @click="filterTested = !filterTested">{{ t.hypothesisStatus.tested }} ({{ countTested }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterRefuted }" type="button" @click="filterRefuted = !filterRefuted">{{ t.hypothesisStatus.refuted }} ({{ countRefuted }})</button>
       </div>
     </div>
 
@@ -99,7 +99,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -109,9 +109,9 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getHypotheses(projectId.value))
-const filterUntested = ref(true)
-const filterTested = ref(true)
-const filterRefuted = ref(true)
+const filterUntested = ref(false)
+const filterTested = ref(false)
+const filterRefuted = ref(false)
 const countUntested = computed(() => items.value.filter(h => (h.status || 'untested') === 'untested').length)
 const countTested = computed(() => items.value.filter(h => h.status === 'tested').length)
 const countRefuted = computed(() => items.value.filter(h => h.status === 'refuted').length)
@@ -120,6 +120,7 @@ const visibleItems = computed(() => {
   if (filterUntested.value) allowed.push('untested')
   if (filterTested.value) allowed.push('tested')
   if (filterRefuted.value) allowed.push('refuted')
+  if (allowed.length === 0) return items.value
   return items.value.filter(h => allowed.includes(h.status || 'untested'))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('hypotheses', projectId.value, orderedIds))

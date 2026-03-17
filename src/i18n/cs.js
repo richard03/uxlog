@@ -533,8 +533,6 @@ export default {
     unitLabel: 'Popisek',
   },
   filter: {
-    showDone: 'Zobrazit i hotové',
-    showFixed: 'Zobrazit i vyřešené',
     status: 'Stav:',
     type: 'Typ:',
     priority: 'Priorita:',

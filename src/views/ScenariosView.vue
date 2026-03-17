@@ -15,9 +15,9 @@
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.type }}</span>
       <div class="filter-bar-group">
-        <FormCheckbox v-model="filterMain" control-id="scn-filter-main" :label="`${t.scenario.scenarioType.main} (${countMain})`" />
-        <FormCheckbox v-model="filterSecondary" control-id="scn-filter-secondary" :label="`${t.scenario.scenarioType.secondary} (${countSecondary})`" />
-        <FormCheckbox v-model="filterError" control-id="scn-filter-error" :label="`${t.scenario.scenarioType.error} (${countError})`" />
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterMain }" type="button" @click="filterMain = !filterMain">{{ t.scenario.scenarioType.main }} ({{ countMain }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterSecondary }" type="button" @click="filterSecondary = !filterSecondary">{{ t.scenario.scenarioType.secondary }} ({{ countSecondary }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterError }" type="button" @click="filterError = !filterError">{{ t.scenario.scenarioType.error }} ({{ countError }})</button>
       </div>
     </div>
 
@@ -109,7 +109,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormSelect, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -119,9 +119,9 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getScenarios(projectId.value))
-const filterMain = ref(true)
-const filterSecondary = ref(true)
-const filterError = ref(true)
+const filterMain = ref(false)
+const filterSecondary = ref(false)
+const filterError = ref(false)
 const countMain = computed(() => items.value.filter(s => (s.type || 'main') === 'main').length)
 const countSecondary = computed(() => items.value.filter(s => s.type === 'secondary').length)
 const countError = computed(() => items.value.filter(s => s.type === 'error').length)
@@ -130,6 +130,7 @@ const visibleItems = computed(() => {
   if (filterMain.value) allowed.push('main')
   if (filterSecondary.value) allowed.push('secondary')
   if (filterError.value) allowed.push('error')
+  if (allowed.length === 0) return items.value
   return items.value.filter(s => allowed.includes(s.type || 'main'))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('scenarios', projectId.value, orderedIds))

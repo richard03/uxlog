@@ -8,9 +8,20 @@
       </div>
     </div>
 
-    <ul v-if="connections.length > 0" class="connections-list" role="list">
+    <div v-if="presentTypes.length >= 2" class="conn-filter-bar" role="group" :aria-label="t.filter.status">
+      <button
+        v-for="type in presentTypes"
+        :key="type"
+        class="conn-filter-badge"
+        :class="{ 'conn-filter-badge--active': activeTypes.includes(type) }"
+        type="button"
+        @click="toggleType(type)"
+      >{{ entityTypeLabel(type) }} ({{ countByType(type) }})</button>
+    </div>
+
+    <ul v-if="visibleConnections.length > 0" class="connections-list" role="list">
       <li
-        v-for="conn in connections"
+        v-for="conn in visibleConnections"
         :key="conn.id"
         class="entity-card connection-card"
       >
@@ -73,7 +84,8 @@
         />
       </li>
     </ul>
-    <p v-else class="connections-empty">{{ t.connection.noConnections }}</p>
+    <p v-else-if="connections.length === 0" class="connections-empty">{{ t.connection.noConnections }}</p>
+    <p v-else class="connections-empty">{{ t.filter.emptyFiltered }}</p>
 
     <!-- Modal: přidat souvislost -->
     <Modal v-if="showAdd" :title="t.connection.add" @close="closeAdd">
@@ -296,6 +308,33 @@ function otherRoute(conn) {
 }
 
 const connections = computed(() => store.getConnectionsFor(props.entityType, props.entityId))
+
+// --- Filtr podle typu entity ---
+const presentTypes = computed(() => {
+  const seen = new Set()
+  for (const c of connections.value) seen.add(otherType(c))
+  return [...seen]
+})
+
+const activeTypes = ref([])
+
+function toggleType(type) {
+  if (activeTypes.value.includes(type)) {
+    activeTypes.value = activeTypes.value.filter(t => t !== type)
+  } else {
+    activeTypes.value = [...activeTypes.value, type]
+  }
+}
+
+function countByType(type) {
+  return connections.value.filter(c => otherType(c) === type).length
+}
+
+const visibleConnections = computed(() =>
+  activeTypes.value.length === 0
+    ? connections.value
+    : connections.value.filter(c => activeTypes.value.includes(otherType(c)))
+)
 
 const currentEntity = computed(() => resolveEntity(props.entityType, props.entityId))
 
@@ -632,6 +671,49 @@ a.connection-entity-link:hover {
   font-size: 0.875rem;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* Filtr podle typu entity */
+.conn-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.conn-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  user-select: none;
+}
+
+.conn-filter-badge:hover:not(.conn-filter-badge--active) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.conn-filter-badge--active {
+  background: var(--accent-muted);
+  color: var(--text);
+  border-color: var(--text);
+  font-weight: 600;
+}
+
+.conn-filter-badge--active:hover {
+  background: color-mix(in srgb, var(--accent) 25%, var(--bg-elevated));
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
 }
 
 .form-error {

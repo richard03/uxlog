@@ -13,7 +13,12 @@
     </header>
 
     <div class="filter-bar">
-      <FormCheckbox v-model="showDone" control-id="task-filter-done" :label="`${t.filter.showDone} (${countDone})`" />
+      <span class="filter-bar-label">{{ t.filter.status }}</span>
+      <div class="filter-bar-group">
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterIncomplete }" type="button" @click="filterIncomplete = !filterIncomplete">{{ t.task.statusOptions.incomplete }} ({{ countIncomplete }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterDone }" type="button" @click="filterDone = !filterDone">{{ t.task.statusOptions.done }} ({{ countDone }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterCancelled }" type="button" @click="filterCancelled = !filterCancelled">{{ t.task.statusOptions.cancelled }} ({{ countCancelled }})</button>
+      </div>
     </div>
 
     <div v-if="visibleTasks.length === 0" class="empty-state">
@@ -91,7 +96,7 @@ import AppBadge from '../components/AppBadge.vue'
 import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -101,9 +106,20 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const tasks = computed(() => store.getTasks(projectId.value))
-const showDone = ref(false)
-const countDone = computed(() => tasks.value.filter(t => t.status !== 'incomplete').length)
-const visibleTasks = computed(() => showDone.value ? tasks.value : tasks.value.filter(t => t.status === 'incomplete'))
+const filterIncomplete = ref(false)
+const filterDone = ref(false)
+const filterCancelled = ref(false)
+const countIncomplete = computed(() => tasks.value.filter(t => (t.status || 'incomplete') === 'incomplete').length)
+const countDone = computed(() => tasks.value.filter(t => t.status === 'done').length)
+const countCancelled = computed(() => tasks.value.filter(t => t.status === 'cancelled').length)
+const visibleTasks = computed(() => {
+  const allowed = []
+  if (filterIncomplete.value) allowed.push('incomplete')
+  if (filterDone.value) allowed.push('done')
+  if (filterCancelled.value) allowed.push('cancelled')
+  if (allowed.length === 0) return tasks.value
+  return tasks.value.filter(t => allowed.includes(t.status || 'incomplete'))
+})
 const dnd = useDraggableList(() => tasks.value, (orderedIds) => store.reorderEntities('tasks', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

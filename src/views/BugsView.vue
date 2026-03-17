@@ -13,7 +13,12 @@
     </header>
 
     <div class="filter-bar">
-      <FormCheckbox v-model="showFixed" control-id="bug-filter-fixed" :label="`${t.filter.showFixed} (${countFixed})`" />
+      <span class="filter-bar-label">{{ t.filter.status }}</span>
+      <div class="filter-bar-group">
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterZadano }" type="button" @click="filterZadano = !filterZadano">{{ t.bug.statusOptions.zadano }} ({{ countZadano }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterOpraveno }" type="button" @click="filterOpraveno = !filterOpraveno">{{ t.bug.statusOptions.opraveno }} ({{ countOpraveno }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterNeopravime }" type="button" @click="filterNeopravime = !filterNeopravime">{{ t.bug.statusOptions.neopravime }} ({{ countNeopravime }})</button>
+      </div>
     </div>
 
     <div v-if="visibleBugs.length === 0" class="empty-state">
@@ -93,7 +98,7 @@ import { generateNextCode } from '../lib/code.js'
 import { getBugPriority } from '../lib/models.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -103,9 +108,20 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const bugs = computed(() => store.getBugs(projectId.value))
-const showFixed = ref(false)
-const countFixed = computed(() => bugs.value.filter(b => b.status === 'opraveno' || b.status === 'neopravime').length)
-const visibleBugs = computed(() => showFixed.value ? bugs.value : bugs.value.filter(b => b.status !== 'opraveno' && b.status !== 'neopravime'))
+const filterZadano = ref(false)
+const filterOpraveno = ref(false)
+const filterNeopravime = ref(false)
+const countZadano = computed(() => bugs.value.filter(b => (b.status || 'zadano') === 'zadano').length)
+const countOpraveno = computed(() => bugs.value.filter(b => b.status === 'opraveno').length)
+const countNeopravime = computed(() => bugs.value.filter(b => b.status === 'neopravime').length)
+const visibleBugs = computed(() => {
+  const allowed = []
+  if (filterZadano.value) allowed.push('zadano')
+  if (filterOpraveno.value) allowed.push('opraveno')
+  if (filterNeopravime.value) allowed.push('neopravime')
+  if (allowed.length === 0) return bugs.value
+  return bugs.value.filter(b => allowed.includes(b.status || 'zadano'))
+})
 const dnd = useDraggableList(() => bugs.value, (orderedIds) => store.reorderEntities('bugs', projectId.value, orderedIds))
 
 const breadcrumbs = computed(() => [

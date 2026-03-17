@@ -174,7 +174,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
   background: var(--accent-muted);
   color: var(--text);
   border-color: var(--text);
-  font-weight: 600;
 }
 
 .chip-active:hover {

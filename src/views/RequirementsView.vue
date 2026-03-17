@@ -15,10 +15,10 @@
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.priority }}</span>
       <div class="filter-bar-group">
-        <FormCheckbox v-model="filterMust" control-id="req-filter-must" :label="`${t.moscow.must} (${countMust})`" />
-        <FormCheckbox v-model="filterShould" control-id="req-filter-should" :label="`${t.moscow.should} (${countShould})`" />
-        <FormCheckbox v-model="filterCould" control-id="req-filter-could" :label="`${t.moscow.could} (${countCould})`" />
-        <FormCheckbox v-model="filterWont" control-id="req-filter-wont" :label="`${t.moscow.wont} (${countWont})`" />
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterMust }" type="button" @click="filterMust = !filterMust">{{ t.moscow.must }} ({{ countMust }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterShould }" type="button" @click="filterShould = !filterShould">{{ t.moscow.should }} ({{ countShould }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterCould }" type="button" @click="filterCould = !filterCould">{{ t.moscow.could }} ({{ countCould }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterWont }" type="button" @click="filterWont = !filterWont">{{ t.moscow.wont }} ({{ countWont }})</button>
       </div>
     </div>
 
@@ -111,7 +111,7 @@ import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
-import { FormInput, FormTextarea, FormSelect, FormActions, FormCheckbox } from '../components/form'
+import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
@@ -121,10 +121,10 @@ const { t, tPath } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getRequirements(projectId.value))
-const filterMust = ref(true)
-const filterShould = ref(true)
-const filterCould = ref(true)
-const filterWont = ref(true)
+const filterMust = ref(false)
+const filterShould = ref(false)
+const filterCould = ref(false)
+const filterWont = ref(false)
 const countMust = computed(() => items.value.filter(r => r.priority === 'must').length)
 const countShould = computed(() => items.value.filter(r => r.priority === 'should').length)
 const countCould = computed(() => items.value.filter(r => (r.priority || 'could') === 'could').length)
@@ -135,6 +135,7 @@ const visibleItems = computed(() => {
   if (filterShould.value) allowed.push('should')
   if (filterCould.value) allowed.push('could')
   if (filterWont.value) allowed.push('wont')
+  if (allowed.length === 0) return items.value
   return items.value.filter(r => allowed.includes(r.priority || 'could'))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('requirements', projectId.value, orderedIds))
