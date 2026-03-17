@@ -399,7 +399,7 @@ function extractGenericFromCard(card, entityType, base) {
   for (const { name, field } of (config.blocks || [])) {
     const block = findDescendant(card, n => n.name === name && n.type === 'FRAME');
     if (!block) continue;
-    const textNode = findDescendant(block, n => n.name === NODE_TEXT && n.type === 'TEXT');
+    const textNode = findDescendant(block, n => (n.name === field || n.name === NODE_TEXT) && n.type === 'TEXT');
     if (!textNode) continue;
     const chars = textNode.characters || '';
     extracted[field] = HINTS.has(chars) ? '' : chars;
@@ -457,19 +457,19 @@ function extractPersonaFromCard(card) {
 
   const bloky = findChild(card, n => n.name === NODE_BLOKY);
 
-  function getBlockText(rowName, blockName) {
+  function getBlockText(rowName, blockName, fieldName) {
     const row   = findChild(bloky, n => n.name === rowName);
     const block = findChild(row,   n => n.name === blockName);
     if (!block) return null;
-    return readText(findChild(block, n => n.name === NODE_TEXT));
+    return readText(findChild(block, n => (n.name === fieldName || n.name === NODE_TEXT) && n.type === 'TEXT'));
   }
 
   return Object.assign({}, base, {
     name, code, status,
-    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText(NODE_RADA_1, BLOCK_POPIS)),
-    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText(NODE_RADA_1, BLOCK_MOTIVACE)),
-    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText(NODE_RADA_2, BLOCK_POTREBY)),
-    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText(NODE_RADA_2, BLOCK_PROBLEMY)),
+    description: (function(v){ return v !== null ? v : (base.description || ''); })(getBlockText(NODE_RADA_1, BLOCK_POPIS,    'description')),
+    motivation:  (function(v){ return v !== null ? v : (base.motivation  || ''); })(getBlockText(NODE_RADA_1, BLOCK_MOTIVACE, 'motivation')),
+    needs:       (function(v){ return v !== null ? v : (base.needs       || ''); })(getBlockText(NODE_RADA_2, BLOCK_POTREBY,  'needs')),
+    problems:    (function(v){ return v !== null ? v : (base.problems    || ''); })(getBlockText(NODE_RADA_2, BLOCK_PROBLEMY, 'problems')),
     targetGroupSize,
     targetGroupValue,
   });
@@ -686,7 +686,7 @@ function buildStat(label, value) {
 }
 
 /** Barevný blok s nadpisem a editovatelným textem */
-function buildColorBlock(label, value, hint, bgColor) {
+function buildColorBlock(label, value, hint, bgColor, fieldName) {
   const block = figma.createFrame();
   block.name                  = label;
   block.layoutMode            = 'VERTICAL';
@@ -710,7 +710,7 @@ function buildColorBlock(label, value, hint, bgColor) {
 
   const isEmpty = !value || !value.trim();
   const textNode = figma.createText();
-  textNode.name       = NODE_TEXT;
+  textNode.name       = fieldName || NODE_TEXT;
   textNode.fontName   = { family: FONTS.family, style: FONTS.regular };
   textNode.characters = isEmpty ? hint : value.trim();
   textNode.fontSize   = 28;
@@ -784,7 +784,7 @@ function buildGenericHeader(entity, config) {
 
   // Jméno
   const nameText = figma.createText();
-  nameText.name       = NODE_NAZEV;
+  nameText.name       = 'name';
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
   nameText.characters = entity.name || FALLBACK_NO_TITLE;
   nameText.fontSize   = 44;
@@ -807,6 +807,7 @@ function buildGenericHeader(entity, config) {
 
     if (hasCode) {
       const codeText = figma.createText();
+      codeText.name       = 'code';
       codeText.fontName   = { family: FONTS.family, style: FONTS.medium };
       codeText.characters = entity.code;
       codeText.fontSize   = 22;
@@ -873,7 +874,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
   if (layout === '1col') {
     const b = blocks[0];
-    fl(container, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
+    fl(container, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b), b.field), 'FILL', 'FILL');
 
   } else if (layout === '2col') {
     const row = figma.createFrame();
@@ -886,7 +887,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
     fl(container, row, 'FILL', 'FILL', 1);
     for (let i = 0; i < Math.min(blocks.length, 2); i++) {
       const b = blocks[i];
-      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b), b.field), 'FILL', 'FILL');
     }
 
   } else if (layout === '3col') {
@@ -903,13 +904,13 @@ function buildBlocksArea(entity, config, CWIDTH) {
     );
     for (let i = 0; i < Math.min(visibleBlocks.length, 3); i++) {
       const b = visibleBlocks[i];
-      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b), b.field), 'FILL', 'FILL');
     }
 
   } else if (layout === '1+3') {
     // První blok: celá šířka, pevná výška
     const b0   = blocks[0];
-    const topB = buildColorBlock(b0.name, entity[b0.field] || '', b0.hint, getBlockBgColor(b0));
+    const topB = buildColorBlock(b0.name, entity[b0.field] || '', b0.hint, getBlockBgColor(b0), b0.field);
     fl(container, topB, 'FILL', 'FIXED');
     topB.resize(CWIDTH, 280);
 
@@ -924,7 +925,7 @@ function buildBlocksArea(entity, config, CWIDTH) {
     fl(container, row, 'FILL', 'FILL', 1);
     for (let i = 1; i < Math.min(blocks.length, 4); i++) {
       const b = blocks[i];
-      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b)), 'FILL', 'FILL');
+      fl(row, buildColorBlock(b.name, entity[b.field] || '', b.hint, getBlockBgColor(b), b.field), 'FILL', 'FILL');
     }
   }
 
@@ -1165,6 +1166,7 @@ function buildInfoColumn(persona, inverted) {
   fl(col, typeLabel, 'FILL');
 
   const nameText = figma.createText();
+  nameText.name       = 'name';
   nameText.fontName   = { family: FONTS.family, style: FONTS.bold };
   nameText.characters = persona.name || FALLBACK_NO_NAME;
   nameText.fontSize   = 52;
@@ -1183,6 +1185,7 @@ function buildInfoColumn(persona, inverted) {
 
   if (persona.code) {
     const codeText = figma.createText();
+    codeText.name       = 'code';
     codeText.fontName   = { family: FONTS.family, style: FONTS.medium };
     codeText.characters = persona.code;
     codeText.fontSize   = 28;
@@ -1240,10 +1243,10 @@ function buildInfoColumn(persona, inverted) {
 /** Mřížka barevných bloků persony — barvy z konstant COLOR_BLOCK_PERSONA_* */
 function buildBlockGrid(persona) {
   const sections = [
-    { label: BLOCK_POPIS,    value: persona.description, hint: HINT_PERSONA_DESC,       color: hex(COLOR_BLOCK_PERSONA_DESCRIPTION) },
-    { label: BLOCK_MOTIVACE, value: persona.motivation,  hint: HINT_PERSONA_MOTIVATION, color: hex(COLOR_BLOCK_PERSONA_MOTIVATION) },
-    { label: BLOCK_POTREBY,  value: persona.needs,       hint: HINT_PERSONA_NEEDS,       color: hex(COLOR_BLOCK_PERSONA_NEEDS) },
-    { label: BLOCK_PROBLEMY,  value: persona.problems,     hint: HINT_PERSONA_PROBLEMS,    color: hex(COLOR_BLOCK_PERSONA_PROBLEMS) },
+    { label: BLOCK_POPIS,    field: 'description', value: persona.description, hint: HINT_PERSONA_DESC,       color: hex(COLOR_BLOCK_PERSONA_DESCRIPTION) },
+    { label: BLOCK_MOTIVACE, field: 'motivation',  value: persona.motivation,  hint: HINT_PERSONA_MOTIVATION, color: hex(COLOR_BLOCK_PERSONA_MOTIVATION) },
+    { label: BLOCK_POTREBY,  field: 'needs',       value: persona.needs,       hint: HINT_PERSONA_NEEDS,       color: hex(COLOR_BLOCK_PERSONA_NEEDS) },
+    { label: BLOCK_PROBLEMY, field: 'problems',    value: persona.problems,    hint: HINT_PERSONA_PROBLEMS,    color: hex(COLOR_BLOCK_PERSONA_PROBLEMS) },
   ];
 
   const grid = figma.createFrame();
@@ -1266,7 +1269,7 @@ function buildBlockGrid(persona) {
 
     for (let col = 0; col < 2; col++) {
       const s = sections[row * 2 + col];
-      fl(rowFrame, buildColorBlock(s.label, s.value, s.hint, s.color), 'FILL', 'FILL');
+      fl(rowFrame, buildColorBlock(s.label, s.value, s.hint, s.color, s.field), 'FILL', 'FILL');
     }
   }
 
