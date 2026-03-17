@@ -19,6 +19,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterSecondary }" type="button" @click="filterSecondary = !filterSecondary">{{ t.scenario.scenarioType.secondary }} ({{ countSecondary }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterError }" type="button" @click="filterError = !filterError">{{ t.scenario.scenarioType.error }} ({{ countError }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleItems.length === 0" class="empty-state">
@@ -122,6 +126,7 @@ const items = computed(() => store.getScenarios(projectId.value))
 const filterMain = ref(false)
 const filterSecondary = ref(false)
 const filterError = ref(false)
+const filterText = ref('')
 const countMain = computed(() => items.value.filter(s => (s.type || 'main') === 'main').length)
 const countSecondary = computed(() => items.value.filter(s => s.type === 'secondary').length)
 const countError = computed(() => items.value.filter(s => s.type === 'error').length)
@@ -130,8 +135,10 @@ const visibleItems = computed(() => {
   if (filterMain.value) allowed.push('main')
   if (filterSecondary.value) allowed.push('secondary')
   if (filterError.value) allowed.push('error')
-  if (allowed.length === 0) return items.value
-  return items.value.filter(s => allowed.includes(s.type || 'main'))
+  let base = allowed.length === 0 ? items.value : items.value.filter(s => allowed.includes(s.type || 'main'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(s => [s.code, s.name, s.description].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('scenarios', projectId.value, orderedIds))
 

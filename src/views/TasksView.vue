@@ -19,6 +19,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterDone }" type="button" @click="filterDone = !filterDone">{{ t.task.statusOptions.done }} ({{ countDone }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterCancelled }" type="button" @click="filterCancelled = !filterCancelled">{{ t.task.statusOptions.cancelled }} ({{ countCancelled }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleTasks.length === 0" class="empty-state">
@@ -109,6 +113,7 @@ const tasks = computed(() => store.getTasks(projectId.value))
 const filterIncomplete = ref(false)
 const filterDone = ref(false)
 const filterCancelled = ref(false)
+const filterText = ref('')
 const countIncomplete = computed(() => tasks.value.filter(t => (t.status || 'incomplete') === 'incomplete').length)
 const countDone = computed(() => tasks.value.filter(t => t.status === 'done').length)
 const countCancelled = computed(() => tasks.value.filter(t => t.status === 'cancelled').length)
@@ -117,8 +122,10 @@ const visibleTasks = computed(() => {
   if (filterIncomplete.value) allowed.push('incomplete')
   if (filterDone.value) allowed.push('done')
   if (filterCancelled.value) allowed.push('cancelled')
-  if (allowed.length === 0) return tasks.value
-  return tasks.value.filter(t => allowed.includes(t.status || 'incomplete'))
+  let base = allowed.length === 0 ? tasks.value : tasks.value.filter(t => allowed.includes(t.status || 'incomplete'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(t => [t.code, t.name, t.description, t.assignee, t.dueDate].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => tasks.value, (orderedIds) => store.reorderEntities('tasks', projectId.value, orderedIds))
 

@@ -19,6 +19,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterTested }" type="button" @click="filterTested = !filterTested">{{ t.hypothesisStatus.tested }} ({{ countTested }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterRefuted }" type="button" @click="filterRefuted = !filterRefuted">{{ t.hypothesisStatus.refuted }} ({{ countRefuted }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleItems.length === 0" class="empty-state">
@@ -112,6 +116,7 @@ const items = computed(() => store.getHypotheses(projectId.value))
 const filterUntested = ref(false)
 const filterTested = ref(false)
 const filterRefuted = ref(false)
+const filterText = ref('')
 const countUntested = computed(() => items.value.filter(h => (h.status || 'untested') === 'untested').length)
 const countTested = computed(() => items.value.filter(h => h.status === 'tested').length)
 const countRefuted = computed(() => items.value.filter(h => h.status === 'refuted').length)
@@ -120,8 +125,10 @@ const visibleItems = computed(() => {
   if (filterUntested.value) allowed.push('untested')
   if (filterTested.value) allowed.push('tested')
   if (filterRefuted.value) allowed.push('refuted')
-  if (allowed.length === 0) return items.value
-  return items.value.filter(h => allowed.includes(h.status || 'untested'))
+  let base = allowed.length === 0 ? items.value : items.value.filter(h => allowed.includes(h.status || 'untested'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(h => [h.code, h.name, h.description].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('hypotheses', projectId.value, orderedIds))
 

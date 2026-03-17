@@ -18,6 +18,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterProtopersona }" type="button" @click="filterProtopersona = !filterProtopersona">{{ t.personaStatus.protopersona }} ({{ countProtopersona }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterPersona }" type="button" @click="filterPersona = !filterPersona">{{ t.personaStatus.persona }} ({{ countPersona }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleItems.length === 0" class="empty-state">
@@ -119,14 +123,17 @@ const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getPersonas(projectId.value))
 const filterProtopersona = ref(false)
 const filterPersona = ref(false)
+const filterText = ref('')
 const countProtopersona = computed(() => items.value.filter(p => (p.status || 'protopersona') === 'protopersona').length)
 const countPersona = computed(() => items.value.filter(p => p.status === 'persona').length)
 const visibleItems = computed(() => {
   const allowed = []
   if (filterProtopersona.value) allowed.push('protopersona')
   if (filterPersona.value) allowed.push('persona')
-  if (allowed.length === 0) return items.value
-  return items.value.filter(p => allowed.includes(p.status || 'protopersona'))
+  let base = allowed.length === 0 ? items.value : items.value.filter(p => allowed.includes(p.status || 'protopersona'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(p => [p.code, p.name, p.description].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('personas', projectId.value, orderedIds))
 

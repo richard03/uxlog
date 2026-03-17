@@ -20,6 +20,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterCould }" type="button" @click="filterCould = !filterCould">{{ t.moscow.could }} ({{ countCould }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterWont }" type="button" @click="filterWont = !filterWont">{{ t.moscow.wont }} ({{ countWont }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleItems.length === 0" class="empty-state">
@@ -125,6 +129,7 @@ const filterMust = ref(false)
 const filterShould = ref(false)
 const filterCould = ref(false)
 const filterWont = ref(false)
+const filterText = ref('')
 const countMust = computed(() => items.value.filter(r => r.priority === 'must').length)
 const countShould = computed(() => items.value.filter(r => r.priority === 'should').length)
 const countCould = computed(() => items.value.filter(r => (r.priority || 'could') === 'could').length)
@@ -135,8 +140,10 @@ const visibleItems = computed(() => {
   if (filterShould.value) allowed.push('should')
   if (filterCould.value) allowed.push('could')
   if (filterWont.value) allowed.push('wont')
-  if (allowed.length === 0) return items.value
-  return items.value.filter(r => allowed.includes(r.priority || 'could'))
+  let base = allowed.length === 0 ? items.value : items.value.filter(r => allowed.includes(r.priority || 'could'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(r => [r.code, r.name, r.description].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('requirements', projectId.value, orderedIds))
 

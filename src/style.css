@@ -310,6 +310,61 @@ select.form-control {
   color: var(--accent-hover);
 }
 
+/* Filter search input */
+.filter-search {
+  margin-left: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-search-input {
+  font-family: inherit;
+  font-size: 0.83rem;
+  padding: 3px 26px 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  width: 180px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.filter-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+/* hide browser's native clear button */
+.filter-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.filter-search-clear {
+  position: absolute;
+  right: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+
+.filter-search-clear:hover {
+  color: var(--text);
+}
+
 /* Entity list */
 .entity-list {
   list-style: none;

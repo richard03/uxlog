@@ -19,6 +19,10 @@
         <button class="filter-badge" :class="{ 'filter-badge--active': filterOpraveno }" type="button" @click="filterOpraveno = !filterOpraveno">{{ t.bug.statusOptions.opraveno }} ({{ countOpraveno }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterNeopravime }" type="button" @click="filterNeopravime = !filterNeopravime">{{ t.bug.statusOptions.neopravime }} ({{ countNeopravime }})</button>
       </div>
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
     </div>
 
     <div v-if="visibleBugs.length === 0" class="empty-state">
@@ -111,6 +115,7 @@ const bugs = computed(() => store.getBugs(projectId.value))
 const filterZadano = ref(false)
 const filterOpraveno = ref(false)
 const filterNeopravime = ref(false)
+const filterText = ref('')
 const countZadano = computed(() => bugs.value.filter(b => (b.status || 'zadano') === 'zadano').length)
 const countOpraveno = computed(() => bugs.value.filter(b => b.status === 'opraveno').length)
 const countNeopravime = computed(() => bugs.value.filter(b => b.status === 'neopravime').length)
@@ -119,8 +124,10 @@ const visibleBugs = computed(() => {
   if (filterZadano.value) allowed.push('zadano')
   if (filterOpraveno.value) allowed.push('opraveno')
   if (filterNeopravime.value) allowed.push('neopravime')
-  if (allowed.length === 0) return bugs.value
-  return bugs.value.filter(b => allowed.includes(b.status || 'zadano'))
+  let base = allowed.length === 0 ? bugs.value : bugs.value.filter(b => allowed.includes(b.status || 'zadano'))
+  const q = filterText.value.toLowerCase().trim()
+  if (!q) return base
+  return base.filter(b => [b.code, b.name, b.description, b.expectedBehavior, b.actualBehavior].filter(Boolean).join(' ').toLowerCase().includes(q))
 })
 const dnd = useDraggableList(() => bugs.value, (orderedIds) => store.reorderEntities('bugs', projectId.value, orderedIds))
 

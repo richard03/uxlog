@@ -536,6 +536,8 @@ export default {
     status: 'Stav:',
     type: 'Typ:',
     priority: 'Priorita:',
+    search: 'Hledat…',
+    clearSearch: 'Zrušit hledání',
     emptyFiltered: 'Žádné položky neodpovídají nastavenému filtru.',
     emptyFilteredHint: 'Zkuste upravit filtr.',
   },
