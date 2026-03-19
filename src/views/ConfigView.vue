@@ -43,7 +43,8 @@ import { computed } from 'vue'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
-import { loadAiKeys } from '../lib/aiKeys.js'
+import { AI_SERVICES, loadAiKeys } from '../lib/aiKeys.js'
+import { loadFlexiConfig } from '../lib/flexiApi.js'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
 
@@ -56,8 +57,14 @@ const entityCount = computed(() => Object.keys(ENTITY_FIELD_DEFAULTS).length)
 /** Počet definovaných šablon aktivit. */
 const activityCount = computed(() => config.getEffectiveTemplates().length)
 
-/** Počet nastavených API klíčů (neprázdných). */
-const apiKeyCount = computed(() => Object.values(loadAiKeys()).filter(v => v).length)
+/** Počet nastavených konektorů (Flexi + AI služby s neprázdným klíčem). */
+const apiKeyCount = computed(() => {
+  const flexi = loadFlexiConfig()
+  const aiKeys = loadAiKeys()
+  const flexiCount = flexi.url ? 1 : 0
+  const aiCount = AI_SERVICES.filter((s) => aiKeys[s.id]).length
+  return flexiCount + aiCount
+})
 </script>
 
 <style scoped>
