@@ -10,7 +10,7 @@ import { getAiKey, loadAiKeys } from './aiKeys.js'
  * @returns {boolean}
  */
 export function hasAiKey() {
-  return ['gemini', 'openai', 'github'].some((k) => !!getAiKey(k))
+  return ['gemini', 'openai'].some((k) => !!getAiKey(k))
 }
 
 /**
@@ -300,9 +300,8 @@ function parseSuggestions(text) {
 export async function suggestConnections(entity, entityType, projectData) {
   const geminiKey = getAiKey('gemini')
   const openaiKey = getAiKey('openai')
-  const githubKey = getAiKey('github')
 
-  if (!geminiKey && !openaiKey && !githubKey) {
+  if (!geminiKey && !openaiKey) {
     throw new Error('Není nastaven žádný API klíč. Přejděte do nastavení.')
   }
 
@@ -314,12 +313,9 @@ export async function suggestConnections(entity, entityType, projectData) {
   if (geminiKey) {
     const model = keys['gemini_model'] || 'gemini-1.5-flash-latest'
     responseText = await callGemini(geminiKey, prompt, model)
-  } else if (openaiKey) {
+  } else {
     const model = keys['openai_model'] || 'gpt-4o-mini'
     responseText = await callOpenAICompat(openaiKey, prompt, 'https://api.openai.com', model)
-  } else {
-    const model = keys['github_model'] || 'gpt-4o-mini'
-    responseText = await callOpenAICompat(githubKey, prompt, 'https://models.inference.ai.azure.com', model)
   }
 
   return parseSuggestions(responseText)
@@ -335,9 +331,8 @@ export async function suggestConnections(entity, entityType, projectData) {
 export async function processNotebook(notebookText, projectData) {
   const geminiKey = getAiKey('gemini')
   const openaiKey = getAiKey('openai')
-  const githubKey = getAiKey('github')
 
-  if (!geminiKey && !openaiKey && !githubKey) {
+  if (!geminiKey && !openaiKey) {
     throw new Error('Není nastaven žádný API klíč. Přejděte do nastavení.')
   }
 
@@ -349,12 +344,9 @@ export async function processNotebook(notebookText, projectData) {
   if (geminiKey) {
     const model = keys['gemini_model'] || 'gemini-1.5-flash-latest'
     responseText = await callGemini(geminiKey, prompt, model)
-  } else if (openaiKey) {
+  } else {
     const model = keys['openai_model'] || 'gpt-4o-mini'
     responseText = await callOpenAICompat(openaiKey, prompt, 'https://api.openai.com', model)
-  } else {
-    const model = keys['github_model'] || 'gpt-4o-mini'
-    responseText = await callOpenAICompat(githubKey, prompt, 'https://models.inference.ai.azure.com', model)
   }
 
   return parseActions(responseText)

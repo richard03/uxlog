@@ -53,6 +53,10 @@ The user interface must support dark mode, be accessible to voice readers, and m
 The business logic must be fully separated from other code into unit testable functions. All the data must be stored in local storage. All texts must be in a separate file for easy translation.
 
 
+## Versioning
+
+The application version is stored in `src/lib/version.js` as `APP_VERSION`. **Increment the patch number** (e.g. `1.0.0` → `1.0.1`) with every change made to the codebase, before finishing the task.
+
 ## Architecture
 
 **CORS**: Only `https://uxlog.prokoho.cz` is allowed.

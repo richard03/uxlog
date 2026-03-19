@@ -52,8 +52,16 @@ export function updateProject(id, updates) {
   return state.projects[idx]
 }
 
+const PROJECT_ENTITY_KEYS = [
+  'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
+  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'connections',
+]
+
 export function deleteProject(id) {
   state.projects = (state.projects || []).filter((p) => p.id !== id)
+  for (const key of PROJECT_ENTITY_KEYS) {
+    if (state[key]) state[key] = state[key].filter((e) => e.projectId !== id)
+  }
   persist()
 }
 

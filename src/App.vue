@@ -14,14 +14,50 @@
         </Suspense>
       </router-view>
     </main>
+    <StatusBar />
   </div>
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
+import { toRaw } from 'vue'
 import AppHeader from './components/AppHeader.vue'
+import StatusBar from './components/StatusBar.vue'
 import { useI18n } from './composables/useI18n.js'
+import { state, getData, persist } from './lib/stores/index.js'
+import { initFlexiSync } from './lib/flexiSync.js'
+import { isFlexiEnabled } from './lib/flexiApi.js'
 
 const { t } = useI18n()
+
+/** Interval automatického syncu (každých 60 s). */
+const SYNC_INTERVAL_MS = 60_000
+let syncTimer = null
+let syncing = false
+
+async function runSync() {
+  if (syncing || !isFlexiEnabled()) return
+  syncing = true
+  try {
+    await initFlexiSync(toRaw(getData()), (updates) => {
+      Object.assign(state, updates)
+      persist()
+    })
+  } finally {
+    syncing = false
+  }
+}
+
+onMounted(() => {
+  // Počáteční sync hned po startu
+  runSync()
+  // Opakovaný sync pro zachycení změn z jiných prohlížečů
+  syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
+})
+
+onUnmounted(() => {
+  clearInterval(syncTimer)
+})
 </script>
 
 <style scoped>
@@ -34,5 +70,6 @@ const { t } = useI18n()
 .main {
   flex: 1;
   padding-top: var(--space-md);
+  padding-bottom: 24px; /* rezerva pro StatusBar */
 }
 </style>

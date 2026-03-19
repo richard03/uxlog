@@ -182,6 +182,7 @@ const selectedTarget = ref(props.projectId || 'new')
 const ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses',
   'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
+  'tasks', 'bugs',
 ]
 
 const existingProjects = computed(() => store.state.projects || [])
@@ -196,6 +197,8 @@ const sectionDefs = computed(() => [
   { key: 'requirements', label: t.sections.requirements },
   { key: 'scenarios', label: t.sections.scenarios },
   { key: 'activities', label: t.activity.panelTitle },
+  { key: 'tasks', label: t.sections.tasks },
+  { key: 'bugs', label: t.sections.bugs },
 ])
 
 // Plan se přepočítá při každé změně selectedTarget

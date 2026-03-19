@@ -22,13 +22,6 @@ export const AI_SERVICES = [
     hint: 'aistudio.google.com → Get API key',
     modelPlaceholder: 'gemini-1.5-flash-latest',
   },
-  {
-    id: 'github',
-    name: 'GitHub Models (Copilot)',
-    placeholder: 'ghp_... nebo github_pat_...',
-    hint: 'github.com → Settings → Developer settings → Personal access tokens',
-    modelPlaceholder: 'gpt-4o-mini',
-  },
 ]
 
 /**

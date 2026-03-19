@@ -3,7 +3,7 @@
  * Zachovává zpětnou kompatibilitu s původním store.js.
  */
 
-export { state, initStore, getData, subscribe } from './state.js'
+export { state, initStore, getData, persist, subscribe } from './state.js'
 export {
   getProjects, getProject, addProject, updateProject, deleteProject,
   reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject,
