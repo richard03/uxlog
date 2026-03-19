@@ -8,7 +8,7 @@
 
 import { reactive, toRaw } from 'vue'
 import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
-import { diffAndSync } from '../flexiSync.js'
+import { diffAndSync, addTombstones } from '../flexiSync.js'
 import { recordLocalSave } from '../dataStatus.js'
 
 const _initialData = Object.assign(getEmptyData(), loadData())
@@ -74,6 +74,19 @@ export function persist() {
   }
 
   const raw = toRaw(state)
+
+  // Zaznamenej smazané entity do tombstones (pro ochranu před jejich návratem z API)
+  const deleted = {}
+  for (const key of Object.keys(getEmptyData())) {
+    if (!Array.isArray(raw[key])) continue
+    const newIds = new Set(raw[key].map((r) => r?.id).filter(Boolean))
+    const deletedIds = (persistedSnapshot[key] || [])
+      .filter((r) => r?.id && !newIds.has(r.id))
+      .map((r) => r.id)
+    if (deletedIds.length) deleted[key] = deletedIds
+  }
+  if (Object.keys(deleted).length) addTombstones(deleted)
+
   persistedSnapshot = JSON.parse(JSON.stringify(raw))
   saveData(raw)
   recordLocalSave()

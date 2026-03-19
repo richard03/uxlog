@@ -31,15 +31,6 @@
         >
           {{ flexi.syncEnabled ? t.settings.flexi.disableSync : t.settings.flexi.enableSync }}
         </AppButton>
-        <AppButton
-          v-if="flexi.url && flexi.syncEnabled"
-          variant="secondary"
-          size="sm"
-          :aria-label="t.settings.flexi.syncNowAria"
-          @click="runSync"
-        >
-          {{ t.settings.flexi.syncNow }}
-        </AppButton>
       </div>
       <p class="service-hint">{{ t.settings.flexi.hint }}</p>
     </SectionCard>
@@ -173,14 +164,14 @@ async function saveFlexiModal() {
   saveFlexiConfig({ url: flexi.url, apiKey: flexi.apiKey, syncEnabled: flexi.syncEnabled })
   showFlexiModal.value = false
 
-  if (flexi.url && flexi.syncEnabled) {
-    await runSync()
-  }
 }
 
-function toggleSync() {
+async function toggleSync() {
   flexi.syncEnabled = !flexi.syncEnabled
   saveFlexiConfig({ url: flexi.url, apiKey: flexi.apiKey, syncEnabled: flexi.syncEnabled })
+  if (flexi.syncEnabled) {
+    await runSync()
+  }
 }
 
 async function runSync() {

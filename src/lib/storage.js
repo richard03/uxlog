@@ -22,6 +22,32 @@ export function pickNewer(a, b) {
   return dateA >= dateB ? a : b
 }
 
+/** Klíče entit, které patří projektu přes projectId. */
+const PROJECT_ENTITY_KEYS = [
+  'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
+  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'connections',
+]
+
+/**
+ * Odstraní entity, jejichž projectId neodpovídá žádnému existujícímu projektu.
+ * Chrání před "sirotky" vzniklými starší chybnou implementací mazání projektů.
+ * @param {Object} data
+ * @returns {Object} data (mutováno in-place)
+ */
+export function pruneOrphanEntities(data) {
+  const projectIds = new Set((data.projects || []).map((p) => p?.id).filter(Boolean))
+  for (const key of PROJECT_ENTITY_KEYS) {
+    if (!Array.isArray(data[key])) continue
+    const before = data[key].length
+    data[key] = data[key].filter((e) => !e?.projectId || projectIds.has(e.projectId))
+    const removed = before - data[key].length
+    if (removed > 0) {
+      console.warn(`[UXLog] pruneOrphanEntities: odstraněno ${removed} sirotků v ${key}`)
+    }
+  }
+  return data
+}
+
 /**
  * Odstraní záznamy se stejným id – ponechá novější z každé dvojice.
  * Chrání před zdvojením způsobeným souběžnou synchronizací z více prohlížečů.
@@ -54,6 +80,7 @@ export function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY)
     const data = raw ? JSON.parse(raw) : getEmptyData()
     const before = raw ?? ''
+    pruneOrphanEntities(data)
     deduplicateData(data)
     const after = JSON.stringify(data)
     if (after !== before) {

@@ -23,6 +23,68 @@ import { isFlexiEnabled, flexiRequest, enqueue } from './flexiApi.js'
 import { recordApiSync } from './dataStatus.js'
 import { pickNewer } from './storage.js'
 
+// ---------------------------------------------------------------------------
+// Tombstone mechanismus – zabraňuje návratu lokálně smazaných entit z API
+// ---------------------------------------------------------------------------
+
+const TOMBSTONE_KEY = 'uxlog_tombstones'
+/** Platnost tombstone záznamu: 30 dní. */
+const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+function loadTombstones() {
+  try {
+    const raw = localStorage.getItem(TOMBSTONE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveTombstones(ts) {
+  try {
+    localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(ts))
+  } catch (e) {
+    console.error('[FlexiSync] saveTombstones failed:', e)
+  }
+}
+
+function cleanExpiredTombstones(tombstones) {
+  const cutoff = Date.now() - TOMBSTONE_TTL_MS
+  let changed = false
+  for (const entityType of Object.keys(tombstones)) {
+    for (const [id, ts] of Object.entries(tombstones[entityType])) {
+      if (ts < cutoff) {
+        delete tombstones[entityType][id]
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+/**
+ * Zaregistruje smazané entity do tombstone listu.
+ * Voláno z persist() při každém lokálním smazání záznamu.
+ * @param {{ [entityType: string]: string[] }} deleted
+ */
+export function addTombstones(deleted) {
+  const tombstones = loadTombstones()
+  const now = Date.now()
+  let changed = false
+  for (const [entityType, ids] of Object.entries(deleted)) {
+    if (!ids.length) continue
+    if (!tombstones[entityType]) tombstones[entityType] = {}
+    for (const id of ids) {
+      tombstones[entityType][id] = now
+      changed = true
+    }
+  }
+  if (changed) {
+    console.debug('[FlexiSync] addTombstones:', deleted)
+    saveTombstones(tombstones)
+  }
+}
+
 /** Entity synchronizované do Flexi API. */
 export const SYNCABLE_ENTITIES = [
   'projects', 'goals', 'stakeholders', 'competitions', 'hypotheses',
@@ -218,6 +280,11 @@ export async function initFlexiSync(currentState, onMerge) {
 
   const syncTs = loadSyncTs()
   const apiIdMap = loadApiIdMap()
+  const tombstones = loadTombstones()
+
+  // Vyčisti prošlé tombstone záznamy
+  if (cleanExpiredTombstones(tombstones)) saveTombstones(tombstones)
+
   const mergedUpdates = {}
   let hasLocalUpdates = false
   let tsChanged = false
@@ -292,6 +359,14 @@ export async function initFlexiSync(currentState, onMerge) {
 
       const localRecord = localMap.get(uxlogId)
       const localTs = tsByType[uxlogId] ?? 0
+
+      // Tombstone: entita byla lokálně záměrně smazána → smaž ji z API, nepřidávej lokálně
+      if (tombstones[entityType]?.[uxlogId]) {
+        const deleteApiId = idMapByType[uxlogId] ?? (apiAssignedId !== undefined ? apiAssignedId : uxlogId)
+        console.info(`[FlexiSync] tombstone ${entityType}/${uxlogId} → DELETE z API`)
+        enqueue({ method: 'DELETE', path: `${apiPath(entityType)}/${deleteApiId}`, onSuccess: () => { recordApiSync() } })
+        continue
+      }
 
       if (!localRecord) {
         // Záznam existuje jen v API (přidal ho jiný prohlížeč) → přidáme lokálně
