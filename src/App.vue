@@ -48,15 +48,29 @@ async function runSync() {
   }
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    // Záložka se stala viditelnou: okamžitý sync + obnov interval
+    runSync()
+    if (!syncTimer) syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
+  } else {
+    // Záložka na pozadí: zastav periodický sync
+    clearInterval(syncTimer)
+    syncTimer = null
+  }
+}
+
 onMounted(() => {
   // Počáteční sync hned po startu
   runSync()
   // Opakovaný sync pro zachycení změn z jiných prohlížečů
   syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
   clearInterval(syncTimer)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 

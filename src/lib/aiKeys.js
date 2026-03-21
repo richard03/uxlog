@@ -69,3 +69,23 @@ export function setAiKey(serviceId, apiKey) {
   keys[serviceId] = apiKey
   saveAiKeys(keys)
 }
+
+/**
+ * Vrátí, zda je AI služba povolena.
+ * @param {string} serviceId
+ * @returns {boolean}
+ */
+export function isAiServiceEnabled(serviceId) {
+  return loadAiKeys()[`${serviceId}_enabled`] !== false
+}
+
+/**
+ * Nastaví stav povolení AI služby.
+ * @param {string} serviceId
+ * @param {boolean} enabled
+ */
+export function setAiServiceEnabled(serviceId, enabled) {
+  const keys = loadAiKeys()
+  keys[`${serviceId}_enabled`] = enabled
+  saveAiKeys(keys)
+}

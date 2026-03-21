@@ -9,6 +9,10 @@
 import { reactive, toRaw } from 'vue'
 import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
 import { diffAndSync, addTombstones } from '../flexiSync.js'
+
+/** Debounce zápisů do API – čeká na klid 2 s po posledním persist(). */
+const DIFF_SYNC_DEBOUNCE_MS = 2000
+let _diffSyncTimer = null
 import { recordLocalSave } from '../dataStatus.js'
 
 const _initialData = Object.assign(getEmptyData(), loadData())
@@ -90,6 +94,10 @@ export function persist() {
   persistedSnapshot = JSON.parse(JSON.stringify(raw))
   saveData(raw)
   recordLocalSave()
-  diffAndSync(raw)
+
+  // Debounce: nespamuj API při rychlé editaci – odešli až po 2 s klidu
+  clearTimeout(_diffSyncTimer)
+  _diffSyncTimer = setTimeout(() => diffAndSync(toRaw(state)), DIFF_SYNC_DEBOUNCE_MS)
+
   console.log('[UXLog] persist, projektů:', state.projects?.length ?? 0)
 }

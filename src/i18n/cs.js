@@ -444,6 +444,10 @@ export default {
     keyLabel: 'API klíč',
     modelLabel: 'Model',
     modelHint: 'Ponechte prázdné pro výchozí model.',
+    enableService: 'Zapnout konektor',
+    disableService: 'Vypnout konektor',
+    serviceEnabledAria: (name) => `Konektor ${name} je zapnutý, kliknout pro vypnutí`,
+    serviceDisabledAria: (name) => `Konektor ${name} je vypnutý, kliknout pro zapnutí`,
     flexi: {
       name: 'Flexi API',
       hint: 'Generické REST API – data se synchronizují automaticky po každé změně.',

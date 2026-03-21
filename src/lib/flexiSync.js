@@ -102,6 +102,8 @@ function apiPath(entityType) {
 
 const SYNC_TS_KEY = 'uxlog_sync_ts'
 const API_ID_MAP_KEY = 'uxlog_api_id_map'
+const LAST_FETCH_TS_KEY = 'uxlog_last_fetch_ts'
+const CHECKSUMS_KEY = 'uxlog_sync_checksums'
 
 // ---------------------------------------------------------------------------
 // Metadata timestampů
@@ -122,6 +124,66 @@ function saveSyncTs(ts) {
     localStorage.setItem(SYNC_TS_KEY, JSON.stringify(ts))
   } catch (e) {
     console.error('[FlexiSync] saveSyncTs failed:', e)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Timestamp posledního úspěšného GET pro každý typ entity (pro parametr since)
+// ---------------------------------------------------------------------------
+
+/** @returns {{ [entityType: string]: number }} */
+function loadLastFetchTs() {
+  try {
+    const raw = localStorage.getItem(LAST_FETCH_TS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveLastFetchTs(ts) {
+  try {
+    localStorage.setItem(LAST_FETCH_TS_KEY, JSON.stringify(ts))
+  } catch (e) {
+    console.error('[FlexiSync] saveLastFetchTs failed:', e)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Checksums – umožňují přeskočit GET pokud se data nezměnila
+// ---------------------------------------------------------------------------
+
+/** @returns {{ [entityType: string]: string }} */
+function loadChecksums() {
+  try {
+    const raw = localStorage.getItem(CHECKSUMS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveChecksums(checksums) {
+  try {
+    localStorage.setItem(CHECKSUMS_KEY, JSON.stringify(checksums))
+  } catch (e) {
+    console.error('[FlexiSync] saveChecksums failed:', e)
+  }
+}
+
+/**
+ * Pokusí se stáhnout kontrolní součty z API.
+ * Endpoint GET /api/uxlog_checksum vrací { entityType: hash, ... }.
+ * Při chybě (endpoint neexistuje) vrátí null – fallback na plný GET.
+ * @returns {Promise<Object|null>}
+ */
+async function fetchApiChecksums() {
+  try {
+    const resp = await flexiRequest('GET', '/api/uxlog_checksum')
+    const data = await resp.json()
+    return (data && typeof data === 'object' && !Array.isArray(data)) ? data : null
+  } catch {
+    return null // endpoint neexistuje nebo chyba – nevadí
   }
 }
 
@@ -285,6 +347,13 @@ export async function initFlexiSync(currentState, onMerge) {
   // Vyčisti prošlé tombstone záznamy
   if (cleanExpiredTombstones(tombstones)) saveTombstones(tombstones)
 
+  // Stáhni kontrolní součty z API (null pokud endpoint neexistuje)
+  const apiChecksums = await fetchApiChecksums()
+  const storedChecksums = loadChecksums()
+  const lastFetchTs = loadLastFetchTs()
+  const updatedChecksums = { ...storedChecksums }
+  const updatedFetchTs = { ...lastFetchTs }
+
   const mergedUpdates = {}
   let hasLocalUpdates = false
   let tsChanged = false
@@ -292,15 +361,54 @@ export async function initFlexiSync(currentState, onMerge) {
   const now = Date.now()
 
   for (const entityType of SYNCABLE_ENTITIES) {
-    // 1. Fetch z API
+    const entityLastFetch = lastFetchTs[entityType] ?? 0
+
+    // Zjisti, zda existují lokální změny od posledního syncu
+    const tsByTypeForCheck = syncTs[entityType] ?? {}
+    const hasPending = (currentState[entityType] || []).some((r) => {
+      if (!r?.id) return false
+      const ts = tsByTypeForCheck[r.id]
+      // Nikdy nebylo synchronizováno, nebo změněno po posledním syncu
+      return ts === undefined || (ts > 0 && ts > entityLastFetch)
+    })
+
+    // Přeskoč, pokud checksum odpovídá a žádné lokální změny nečekají
+    if (apiChecksums !== null) {
+      const same = apiChecksums[entityType] !== undefined
+        && apiChecksums[entityType] === storedChecksums[entityType]
+      if (same && !hasPending) {
+        console.debug(`[FlexiSync] checksum shodný, přeskočen ${entityType}`)
+        continue
+      }
+    }
+
+    // 1. Fetch z API – s parametrem ?since=<ms> pokud máme timestamp
+    const getUrl = entityLastFetch > 0
+      ? `${apiPath(entityType)}?since=${entityLastFetch}`
+      : apiPath(entityType)
+    const usingIncremental = entityLastFetch > 0
+
     let apiRecords
+    let apiDeletedIds = []
     try {
-      const resp = await flexiRequest('GET', apiPath(entityType))
+      const resp = await flexiRequest('GET', getUrl)
       const data = await resp.json()
-      apiRecords = Array.isArray(data) ? data : []
-      console.debug(`[FlexiSync] GET ${apiPath(entityType)}: ${apiRecords.length} záznamů`)
+      // API může vracet pole přímo nebo { records: [...], deleted: [...] }
+      if (Array.isArray(data)) {
+        apiRecords = data
+      } else {
+        apiRecords = data.records ?? []
+        if (usingIncremental && Array.isArray(data.deleted)) {
+          apiDeletedIds = data.deleted
+        }
+      }
+      updatedFetchTs[entityType] = now
+      if (apiChecksums?.[entityType] !== undefined) {
+        updatedChecksums[entityType] = apiChecksums[entityType]
+      }
+      console.debug(`[FlexiSync] GET ${getUrl}: ${apiRecords.length} záznamů`)
     } catch (e) {
-      console.warn(`[FlexiSync] GET ${apiPath(entityType)} selhalo:`, e)
+      console.warn(`[FlexiSync] GET ${getUrl} selhalo:`, e)
       continue
     }
 
@@ -344,6 +452,17 @@ export async function initFlexiSync(currentState, onMerge) {
     const idMapByType = apiIdMap[entityType]
     // Pokud jsme lokálně deduplikovali, musíme výsledek zapsat zpět do state
     let entityChanged = localDedupCount > 0
+
+    // Inkrementální mazání: API hlásí smazané id od posledního syncu
+    for (const delId of apiDeletedIds) {
+      if (tombstones[entityType]?.[delId]) continue // lokálně smazáno – tombstone to řeší
+      const idx = localArr.findIndex((r) => r.id === delId)
+      if (idx !== -1) {
+        localArr.splice(idx, 1)
+        localMap.delete(delId)
+        entityChanged = true
+      }
+    }
 
     // 2. Záznamy z API
     for (const [uxlogId, apiRecord] of apiMap) {
@@ -393,7 +512,28 @@ export async function initFlexiSync(currentState, onMerge) {
       const apiRecord = apiMap.get(localId)
 
       if (!apiRecord) {
-        // Existuje jen lokálně → POST
+        // Záznam není v API odpovědi – při inkrementálním syncu mohl zůstat jen
+        // proto, že se nezměnil. POST posíláme pouze tehdy, je-li opravdu nový nebo změněný.
+        if (usingIncremental) {
+          const syncedTs = tsByType[localId]
+          const neverSynced = syncedTs === undefined
+          const modifiedAfterSync = syncedTs !== undefined && syncedTs > 0 && syncedTs > entityLastFetch
+          if (!neverSynced && !modifiedAfterSync) continue // API ho má, nic nového
+
+          if (!neverSynced && modifiedAfterSync) {
+            // Záznam existuje v API, ale byl lokálně změněn → PUT
+            const apiPathId = idMapByType[localId] ?? localId
+            enqueue({
+              method: 'PUT',
+              path: `${apiPath(entityType)}/${apiPathId}`,
+              body: { ...localRecord, _uxlog_id: localId, _ts: syncedTs },
+              onSuccess: () => { recordApiSync() },
+            })
+            continue
+          }
+        }
+
+        // Existuje jen lokálně (nebo nikdy nebylo odesláno) → POST
         const ts = localTs || now
         tsByType[localId] = ts
         tsChanged = true
@@ -431,6 +571,8 @@ export async function initFlexiSync(currentState, onMerge) {
 
   if (tsChanged) saveSyncTs(syncTs)
   if (apiIdMapChanged) saveApiIdMap(apiIdMap)
+  saveLastFetchTs(updatedFetchTs)
+  saveChecksums(updatedChecksums)
 
   // 4. Nastav snapshot na sloučený stav – diffAndSync poté neuvidí žádný diff
   const mergedState = { ...currentState, ...mergedUpdates }

@@ -64,6 +64,16 @@
           @save="(val) => saveAiField(service.id, 'model', val)"
         />
       </dl>
+      <div v-if="keys[service.id]" class="card-actions">
+        <AppButton
+          :variant="enabled[service.id] ? 'danger' : 'primary'"
+          size="sm"
+          :aria-label="enabled[service.id] ? t.settings.serviceEnabledAria(service.name) : t.settings.serviceDisabledAria(service.name)"
+          @click="toggleAiService(service.id)"
+        >
+          {{ enabled[service.id] ? t.settings.disableService : t.settings.enableService }}
+        </AppButton>
+      </div>
       <p class="service-hint">{{ service.hint }}</p>
     </SectionCard>
   </div>
@@ -117,7 +127,7 @@
 import { reactive, ref, computed } from 'vue'
 import { toRaw } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
-import { AI_SERVICES, loadAiKeys, saveAiKeys } from '../lib/aiKeys.js'
+import { AI_SERVICES, loadAiKeys, saveAiKeys, isAiServiceEnabled, setAiServiceEnabled } from '../lib/aiKeys.js'
 import { loadFlexiConfig, saveFlexiConfig } from '../lib/flexiApi.js'
 import { initFlexiSync, setFlexiSnapshot } from '../lib/flexiSync.js'
 import { state, getData, persist } from '../lib/stores/index.js'
@@ -192,11 +202,19 @@ const keys = reactive(
 const models = reactive(
   Object.fromEntries(AI_SERVICES.map((s) => [s.id, loadedAi[`${s.id}_model`] ?? '']))
 )
+const enabled = reactive(
+  Object.fromEntries(AI_SERVICES.map((s) => [s.id, isAiServiceEnabled(s.id)]))
+)
 
 function maskedKey(serviceId) {
   const v = keys[serviceId]
   if (!v) return ''
   return v.slice(0, 4) + '●'.repeat(Math.min(v.length - 4, 8))
+}
+
+function toggleAiService(serviceId) {
+  enabled[serviceId] = !enabled[serviceId]
+  setAiServiceEnabled(serviceId, enabled[serviceId])
 }
 
 function saveAiField(serviceId, field, value) {

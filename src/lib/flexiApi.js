@@ -74,8 +74,20 @@ export async function flexiRequest(method, path, body = null) {
 }
 
 // ---------------------------------------------------------------------------
-// Fronta s paralelním zpracováním (max 4 souběžné požadavky)
+// Fronta s paralelním zpracováním (max 4 souběžné požadavky) + bulk endpoint
 // ---------------------------------------------------------------------------
+
+/**
+ * Hromadný endpoint: POST /api/uxlog_batch
+ * Tělo požadavku: [{ method, path, body? }, ...]
+ * Odpověď:        [{ index, status, body? }, ...]
+ *
+ * Pokud API vrátí 404/405/501, přepneme automaticky na individuální požadavky.
+ */
+const BULK_PATH = '/api/uxlog_batch'
+
+/** null = neznámé, true = podporováno, false = nepodporováno */
+let bulkAvailable = null
 
 /** @type {Array<{method:string, path:string, body?:Object, onSuccess?:Function}>} */
 const queue = []
@@ -92,9 +104,65 @@ export function enqueue(op) {
 }
 
 function drainQueue() {
+  if (activeFetches > 0) return
+  if (queue.length === 0) return
+
+  // Pokud máme 2+ čekajících operací a bulk je dostupný, použijeme ho
+  if (queue.length >= 2 && bulkAvailable !== false) {
+    processBulk()
+    return
+  }
+
+  // Individuální zpracování
   while (activeFetches < MAX_CONCURRENT && queue.length > 0) {
     processOne(queue.shift())
   }
+}
+
+async function processBulk() {
+  activeFetches++
+  const ops = queue.splice(0) // vezmi všechny čekající operace
+
+  const bulkBody = ops.map((op) => ({
+    method: op.method,
+    path: op.path,
+    ...(op.body !== undefined ? { body: op.body } : {}),
+  }))
+
+  let results
+  try {
+    const resp = await flexiRequest('POST', BULK_PATH, bulkBody)
+    bulkAvailable = true
+    try { results = await resp.json() } catch { results = [] }
+  } catch (e) {
+    // Fallback na individuální požadavky při: 404/405/501 (endpoint neexistuje),
+    // TypeError (CORS blokace nebo síťová chyba – server vrátil chybu bez CORS hlaviček)
+    const isNotSupported = /HTTP (404|405|501)/.test(e.message) || e instanceof TypeError
+    if (isNotSupported) {
+      bulkAvailable = false
+      console.info('[FlexiAPI] bulk endpoint není dostupný, přepínám na individuální požadavky')
+      for (let i = ops.length - 1; i >= 0; i--) queue.unshift(ops[i])
+    } else {
+      console.error('[FlexiAPI] bulk request selhal:', e)
+    }
+    activeFetches--
+    drainQueue()
+    return
+  }
+
+  // Zpracuj výsledky jednotlivých operací z odpovědi
+  if (Array.isArray(results)) {
+    for (const result of results) {
+      const op = ops[result.index]
+      if (!op?.onSuccess) continue
+      if (result.status >= 200 && result.status < 300) {
+        op.onSuccess(result.body ?? null)
+      }
+    }
+  }
+
+  activeFetches--
+  drainQueue()
 }
 
 async function processOne(op) {
