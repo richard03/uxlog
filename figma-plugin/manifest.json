@@ -5,5 +5,12 @@
   "main": "code.js",
   "ui": "ui.html",
   "editorType": ["figma"],
-  "documentAccess": "dynamic-page"
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://uxlog.prokoho.cz",
+      "*"
+    ],
+    "reasoning": "Synchronizace s uživatelským Flexi API podle URL v nastavení; uxlog.prokoho.cz pro schválený proxy origin dle projektu."
+  }
 }

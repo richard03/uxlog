@@ -112,7 +112,7 @@ const ERR_UNKNOWN_ENTITY = 'Neznámý typ entity: ';
 // Definice barev pro Figma objekty
 // ---------------------------------------------------------------------------
 
-figma.showUI(__html__, { width: 440, height: 660, title: TITLE_PLUGIN });
+figma.showUI(__html__, { width: 440, height: 760, title: TITLE_PLUGIN });
 const COLOR_BLACK = '#1E293B';
 const COLOR_WHITE = '#f0f0f0';
 const COLOR_GREY = '#94A3B8';
@@ -351,6 +351,38 @@ const ENTITY_CONFIGS = {
   },
 };
 
+/** Mapování typu entity v pluginu na název kolekce v Flexi API (prefix uxlog_). */
+const PLUGIN_TO_API_ENTITY = {
+  persona: 'personas',
+  hypothesis: 'hypotheses',
+  scenario: 'scenarios',
+  stakeholder: 'stakeholders',
+  goal: 'goals',
+  competition: 'competitions',
+  requirement: 'requirements',
+};
+
+/**
+ * Debounce zápisu Figma → API (ms). Musí být kratší než interval pollingu z UI,
+ * jinak stahování z API přepíše text dřív, než se stihne odeslat PUT.
+ */
+const SYNC_DEBOUNCE_MS = 2000;
+
+/** Klíč pro persistenci nastavení pluginu (Flexi URL, klíč) v clientStorage. */
+const PLUGIN_CONFIG_STORAGE_KEY = 'uxlog_figma_plugin_config';
+
+/** Časovače debounce per entita (klíč = entityType:entityId). */
+const entitySyncTimers = new Map();
+
+/** ID textových uzlů, u kterých právě aplikujeme změnu z API (ochrana před smyčkou). */
+const suppressTextChangeIds = new Set();
+
+/**
+ * Stav víceřádkového importu z API (sessionId → poslední spodní hrana řádku).
+ * Po dokončení série se záznam maže (layout.endSession).
+ */
+const flexiImportLayoutSessions = new Map();
+
 // ---------------------------------------------------------------------------
 // Notifikace o výběru
 // ---------------------------------------------------------------------------
@@ -390,16 +422,81 @@ function findChild(parent, pred) {
   return (parent && parent.children ? parent.children.find(pred) : null) || null;
 }
 
-/** Přečte textový obsah bloku podle jména (pro generické karty) */
+/**
+ * Označí textový uzel pro párování pole entity (pluginData uxlogField).
+ * @param {TextNode} textNode
+ * @param {string} fieldName
+ */
+function setTextUxlogField(textNode, fieldName) {
+  if (textNode && textNode.type === 'TEXT' && fieldName) {
+    textNode.setPluginData('uxlogField', fieldName);
+  }
+}
+
+/**
+ * Uloží na kartu metadata pro synchronizaci s Flexi API.
+ * @param {FrameNode} card
+ * @param {string} entityType
+ * @param {Object} entity
+ * @param {Object|null} project
+ * @param {{ source: string, apiId?: string, lastSyncTs?: number }} meta
+ */
+function applyCardSyncMetadata(card, entityType, entity, project, meta) {
+  const id = entity && entity.id;
+  if (!id) return;
+  card.setPluginData('uxlogEntityType', entityType);
+  card.setPluginData('uxlogEntityId', String(id));
+  card.setPluginData('uxlogSource', meta.source || 'yaml');
+  if (project && project.id) {
+    card.setPluginData('uxlogProjectId', String(project.id));
+  } else if (entity.projectId) {
+    card.setPluginData('uxlogProjectId', String(entity.projectId));
+  }
+  if (meta.apiId !== undefined && meta.apiId !== null && String(meta.apiId) !== String(id)) {
+    card.setPluginData('uxlogApiId', String(meta.apiId));
+  }
+  if (meta.lastSyncTs != null) {
+    card.setPluginData('uxlogLastSyncTs', String(meta.lastSyncTs));
+  }
+}
+
+/**
+ * Najde všechny karty dané entity na aktuální stránce (včetně vnořených skupin).
+ * @param {string} entityType
+ * @param {string} uxlogEntityId
+ * @returns {FrameNode[]}
+ */
+function findCardsForEntityOnPage(entityType, uxlogEntityId) {
+  const out = [];
+  function walk(node) {
+    if (node.type === 'FRAME') {
+      const t = node.getPluginData('uxlogEntityType');
+      const legacy = node.getPluginData('uxlogPersona');
+      const effectiveType = t || (legacy ? 'persona' : null);
+      const id = node.getPluginData('uxlogEntityId');
+      if (effectiveType === entityType && id === String(uxlogEntityId)) out.push(node);
+    }
+    for (const c of node.children || []) walk(c);
+  }
+  for (const c of figma.currentPage.children) walk(c);
+  return out;
+}
+
+/**
+ * Přečte textový obsah generické karty; preferuje pluginData uxlogField na textu.
+ * @param {FrameNode} card
+ * @param {string} entityType
+ * @param {Object} base
+ * @returns {Object}
+ */
 function extractGenericFromCard(card, entityType, base) {
   const config = ENTITY_CONFIGS[entityType];
   if (!config) return base;
   const HINTS = new Set((config.blocks || []).map(b => b.hint));
   const extracted = {};
   for (const { name, field } of (config.blocks || [])) {
-    // Nejprve hledat vrstvu podle jména datového pole kdekoliv v kartě (nové karty)
-    let textNode = findDescendant(card, n => n.name === field && n.type === 'TEXT');
-    // Fallback: strukturní navigace pro staré karty (vrstva se jmenuje NODE_TEXT)
+    let textNode = findDescendant(card, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === field);
+    if (!textNode) textNode = findDescendant(card, n => n.name === field && n.type === 'TEXT');
     if (!textNode) {
       const block = findDescendant(card, n => n.name === name && n.type === 'FRAME');
       if (block) textNode = findDescendant(block, n => n.name === NODE_TEXT && n.type === 'TEXT');
@@ -408,6 +505,42 @@ function extractGenericFromCard(card, entityType, base) {
     const chars = textNode.characters || '';
     extracted[field] = HINTS.has(chars) ? '' : chars;
   }
+
+  if (entityType === 'scenario' && config.stats) {
+    for (const s of config.stats) {
+      const statFrame = findDescendant(card, n => n.name === s.label && n.type === 'FRAME');
+      if (!statFrame) continue;
+      let ta = findDescendant(statFrame, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === s.fieldA);
+      let tb = findDescendant(statFrame, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === s.fieldB);
+      if (!ta || !tb) {
+        const texts = [];
+        for (const ch of statFrame.children || []) {
+          if (ch.type === 'TEXT' && ch.fontSize === 30) texts.push(ch);
+        }
+        if (texts.length >= 2) {
+          if (!ta) ta = texts[0];
+          if (!tb) tb = texts[1];
+        } else if (texts.length === 1 && !ta) {
+          const raw = (texts[0].characters || '').trim();
+          if (raw !== FALLBACK_EMPTY) {
+            const parts = raw.split(/\s+/).filter(Boolean);
+            extracted[s.fieldA] = parts[0] || '';
+            extracted[s.fieldB] = parts.slice(1).join(' ') || '';
+            continue;
+          }
+        }
+      }
+      if (ta) {
+        const v = (ta.characters || '').trim();
+        extracted[s.fieldA] = v === FALLBACK_EMPTY ? '' : v;
+      }
+      if (tb) {
+        const v = (tb.characters || '').trim();
+        extracted[s.fieldB] = v === FALLBACK_EMPTY ? '' : v;
+      }
+    }
+  }
+
   return Object.assign({}, base, extracted);
 }
 
@@ -431,10 +564,12 @@ function extractPersonaFromCard(card) {
   }
 
   /**
-   * Najde textovou vrstvu podle jména datového pole kdekoliv v kartě.
+   * Najde textovou vrstvu podle uxlogField nebo jména datového pole kdekoliv v kartě.
    * Pokud neexistuje, vrátí null (extraktor pak použije fallback z plugin dat).
    */
   function findField(fieldName) {
+    const tagged = findDescendant(card, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === fieldName);
+    if (tagged) return readText(tagged);
     return readText(findDescendant(card, n => n.name === fieldName && n.type === 'TEXT'));
   }
 
@@ -460,17 +595,18 @@ function extractPersonaFromCard(card) {
     ? (badgeText.characters === BADGE_PROTOPERSONA ? 'protopersona' : 'persona')
     : (base.status || 'protopersona');
 
-  // Statistiky cílové skupiny: hledá stat rámce kdekoliv v kartě
-  function getStatValue(statName) {
+  // Statistiky cílové skupiny: hledá stat rámce kdekoliv v kartě (uxlogField nebo velký text)
+  function getStatValue(statName, fieldKey) {
     const statFrame = findDescendant(card, n => n.name === statName);
     if (!statFrame) return null;
-    const valNode = (statFrame.children || []).find(n => n.type === 'TEXT' && n.fontSize === 30);
+    const tagged = findDescendant(statFrame, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === fieldKey);
+    const valNode = tagged || (statFrame.children || []).find(n => n.type === 'TEXT' && n.fontSize === 30);
     if (!valNode) return null;
     return valNode.characters === FALLBACK_EMPTY ? '' : valNode.characters;
   }
 
-  const _tgs = getStatValue(STAT_VELIKOST); const targetGroupSize  = _tgs !== null ? _tgs : (base.targetGroupSize  || '');
-  const _tgv = getStatValue(STAT_HODNOTA);  const targetGroupValue = _tgv !== null ? _tgv : (base.targetGroupValue || '');
+  const _tgs = getStatValue(STAT_VELIKOST, 'targetGroupSize'); const targetGroupSize  = _tgs !== null ? _tgs : (base.targetGroupSize  || '');
+  const _tgv = getStatValue(STAT_HODNOTA, 'targetGroupValue');  const targetGroupValue = _tgv !== null ? _tgv : (base.targetGroupValue || '');
 
   // Textové bloky: hledá vrstvu podle jména datového pole kdekoliv v kartě;
   // fallback: strukturní navigace pro staré karty (vrstva se jmenuje NODE_TEXT)
@@ -509,19 +645,250 @@ function extractEntityFromCard(node) {
   return { type: 'persona', entity: extractPersonaFromCard(node) };
 }
 
+/**
+ * Sloučí uložené JSON entity s textem načteným z karty (základ pro PUT do API).
+ * @param {FrameNode} card
+ * @returns {Object|null}
+ */
+function mergeEntityForPayload(card) {
+  const r = extractEntityFromCard(card);
+  if (!r) return null;
+  let base = {};
+  try {
+    base = JSON.parse(card.getPluginData('uxlogEntity') || '{}');
+  } catch (_) {}
+  const merged = Object.assign({}, base, r.entity);
+  const eid = card.getPluginData('uxlogEntityId');
+  if (eid && !merged.id) merged.id = eid;
+  const apiId = card.getPluginData('uxlogApiId');
+  if (apiId) merged._apiId = apiId;
+  return merged;
+}
+
+/**
+ * Nastaví text uzlu po načtení fontu; při aktualizaci z API potlačí detekci změny (smyčka).
+ * Pokud je obsah už stejný jako cílový řetězec, nic nemění (kurzor v editoru zůstane na místě).
+ * @param {TextNode} node
+ * @param {string} chars
+ */
+async function setTextSafeAsync(node, chars) {
+  if (node.type !== 'TEXT') return;
+  var next = chars != null ? String(chars) : '';
+  if (node.characters === next) return;
+  suppressTextChangeIds.add(node.id);
+  try {
+    await figma.loadFontAsync(node.fontName);
+    if (node.characters === next) return;
+    node.characters = next;
+  } finally {
+    setTimeout(function () { suppressTextChangeIds.delete(node.id); }, 0);
+  }
+}
+
+/**
+ * Aktualizuje textové vrstvy generické karty podle entity (bez změny layoutu).
+ * @param {FrameNode} card
+ * @param {string} entityType
+ * @param {Object} entity
+ */
+async function applyGenericEntityText(card, entityType, entity) {
+  const config = ENTITY_CONFIGS[entityType];
+  if (!config) return;
+
+  async function walk(node) {
+    if (node.type === 'TEXT') {
+      const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
+      if (fk && fk !== NODE_URL && Object.prototype.hasOwnProperty.call(entity, fk)) {
+        let val = entity[fk];
+        const badgeConf = (config.badges || []).find((b) => b.field === fk);
+        if (badgeConf && badgeConf.map && typeof val === 'string') {
+          val = badgeConf.map[val] || String(val);
+        } else if (fk === 'name') {
+          val = entity.name != null && String(entity.name).trim() !== '' ? String(entity.name) : FALLBACK_NO_TITLE;
+        } else {
+          val = val != null ? String(val) : '';
+        }
+        await setTextSafeAsync(node, val);
+      }
+    }
+    for (const c of node.children || []) await walk(c);
+  }
+  await walk(card);
+}
+
+/**
+ * Aktualizuje textové vrstvy karty persony podle entity.
+ * @param {FrameNode} card
+ * @param {Object} entity
+ */
+async function applyPersonaEntityText(card, entity) {
+  async function walk(node) {
+    if (node.type === 'TEXT') {
+      const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
+      if (fk && fk !== NODE_URL && Object.prototype.hasOwnProperty.call(entity, fk)) {
+        let val = entity[fk];
+        if (fk === 'status') {
+          val = entity.status === 'protopersona' ? BADGE_PROTOPERSONA : BADGE_PERSONA;
+        } else if (fk === 'name') {
+          val = entity.name != null && String(entity.name).trim() !== '' ? String(entity.name) : FALLBACK_NO_NAME;
+        } else {
+          val = val != null ? String(val) : '';
+        }
+        await setTextSafeAsync(node, val);
+      }
+    }
+    for (const c of node.children || []) await walk(c);
+  }
+  await walk(card);
+}
+
+/**
+ * Vrací true, pokud uživatel právě v této kartě inline upravuje text (kurzor v textové vrstvě).
+ * V tom případě neaplikujeme obsah z API na vrstvy, aby Figma nezavřela editor a neztratil kurzor.
+ * @param {FrameNode} card
+ * @returns {boolean}
+ */
+function isUserEditingTextInsideUxlogCard(card) {
+  try {
+    var rng = figma.currentPage.selectedTextRange;
+    if (!rng || !rng.node || rng.node.type !== 'TEXT') return false;
+    var n = rng.node;
+    while (n) {
+      if (n.type === 'PAGE') return false;
+      if (n.id === card.id) return true;
+      n = n.parent;
+    }
+  } catch (_) {}
+  return false;
+}
+
+/**
+ * Propíše data entity do všech karet stejné entity na aktuální stránce.
+ * @param {string} entityType
+ * @param {Object} entity
+ */
+async function applyEntityToAllMatchingCards(entityType, entity) {
+  const id = entity && entity.id;
+  if (!id) return;
+  const cards = findCardsForEntityOnPage(entityType, id);
+  for (const card of cards) {
+    try {
+      card.setPluginData('uxlogEntity', JSON.stringify(entity));
+      if (entity._ts != null) card.setPluginData('uxlogLastSyncTs', String(entity._ts));
+      if (entity._apiId != null) card.setPluginData('uxlogApiId', String(entity._apiId));
+    } catch (_) {}
+    if (isUserEditingTextInsideUxlogCard(card)) {
+      continue;
+    }
+    if (entityType === 'persona') {
+      await applyPersonaEntityText(card, entity);
+    } else {
+      await applyGenericEntityText(card, entityType, entity);
+    }
+  }
+}
+
+/**
+ * Zařadí debounced odeslání změněné entity do UI (zápis do API).
+ * Používá globální setTimeout/clearTimeout (na figma objektu nejsou v api 1.0.0).
+ * @param {FrameNode} card
+ */
+function queueEntitySyncFromCard(card) {
+  const entityType = card.getPluginData('uxlogEntityType') ||
+    (card.getPluginData('uxlogPersona') ? 'persona' : null);
+  const entityId = card.getPluginData('uxlogEntityId');
+  if (!entityType || !entityId) return;
+  const key = `${entityType}:${entityId}`;
+  const prev = entitySyncTimers.get(key);
+  if (prev !== undefined) clearTimeout(prev);
+  const t = setTimeout(function () {
+    entitySyncTimers.delete(key);
+    const cards = findCardsForEntityOnPage(entityType, entityId);
+    const c0 = cards[0];
+    if (!c0) return;
+    const merged = mergeEntityForPayload(c0);
+    if (!merged || !merged.id) return;
+    figma.ui.postMessage({
+      type: 'entityDirty',
+      entityType,
+      entityId,
+      entity: merged,
+    });
+  }, SYNC_DEBOUNCE_MS);
+  entitySyncTimers.set(key, t);
+  figma.ui.postMessage({ type: 'entitySyncPending', entityType, entityId });
+}
+
+/**
+ * Při documentAccess: dynamic-page je nutné nejdřív načíst všechny stránky,
+ * jinak figma.on('documentchange') vyhodí chybu.
+ */
+function registerDocumentChangeHandler() {
+  figma.loadAllPagesAsync()
+    .then(function () {
+      figma.on('documentchange', function (event) {
+        const changes = event && event.documentChanges;
+        if (!changes) return;
+        for (let i = 0; i < changes.length; i++) {
+          const ch = changes[i];
+          if (ch.type !== undefined && ch.type !== 'PROPERTY_CHANGE') continue;
+          const node = ch.node;
+          if (!node || node.type !== 'TEXT') continue;
+          if (suppressTextChangeIds.has(node.id)) continue;
+          let p = node.parent;
+          while (p && p.type !== 'PAGE') {
+            if (p.type === 'FRAME') {
+              const et = p.getPluginData('uxlogEntityType') ||
+                (p.getPluginData('uxlogPersona') ? 'persona' : null);
+              const eid = p.getPluginData('uxlogEntityId');
+              if (et && eid) {
+                queueEntitySyncFromCard(p);
+                break;
+              }
+            }
+            p = p.parent;
+          }
+        }
+      });
+    })
+    .catch(function (err) {
+      console.error('[UXLog] loadAllPagesAsync:', err);
+    });
+}
+
+registerDocumentChangeHandler();
+
 // ---------------------------------------------------------------------------
 // Zprávy z UI
 // ---------------------------------------------------------------------------
 
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === 'generate') {
+  if (msg.type === 'loadPluginConfig') {
+    const raw = await figma.clientStorage.getAsync(PLUGIN_CONFIG_STORAGE_KEY);
+    figma.ui.postMessage({ type: 'pluginConfigLoaded', config: raw || null });
+  } else if (msg.type === 'savePluginConfig') {
+    await figma.clientStorage.setAsync(PLUGIN_CONFIG_STORAGE_KEY, msg.config);
+    figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
+  } else if (msg.type === 'applyRemoteEntity') {
+    try {
+      await applyEntityToAllMatchingCards(msg.entityType, msg.entity);
+      figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: true });
+    } catch (err) {
+      figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: false, message: String(err) });
+    }
+  } else if (msg.type === 'generate') {
     try {
       if (msg.entityType === 'persona') {
-        await generatePersonaCards(msg.entities, msg.projects || []);
+        await generatePersonaCards(msg.entities, msg.projects || [], msg);
       } else {
-        await generateGenericCards(msg.entities, msg.entityType, msg.projects || []);
+        await generateGenericCards(msg.entities, msg.entityType, msg.projects || [], msg);
       }
-      figma.ui.postMessage({ type: 'success', count: msg.entities.length });
+      figma.ui.postMessage({
+        type: 'success',
+        count: msg.entities.length,
+        entityType: msg.entityType,
+        silent: !!msg.silent,
+      });
     } catch (err) {
       console.error(err);
       figma.ui.postMessage({ type: 'error', message: String(err) });
@@ -677,7 +1044,14 @@ function buildUrlText(url, inverted) {
  * @param {string} label - Popisek statistiky
  * @param {string} value - Hodnota
  */
-function buildStat(label, value) {
+/**
+ * Statistický blok (jedna hodnota); volitelně označí pole pro sync (uxlogField).
+ * @param {string} label
+ * @param {string} value
+ * @param {string} [fieldKey] - název pole entity pro sync
+ * @returns {FrameNode}
+ */
+function buildStat(label, value, fieldKey) {
   const stat = figma.createFrame();
   stat.name                  = label;
   stat.layoutMode            = 'VERTICAL';
@@ -698,8 +1072,64 @@ function buildStat(label, value) {
   valT.characters = String(value || FALLBACK_EMPTY);
   valT.fontSize   = 30;
   valT.fills      = [solid(hex(COLOR_HEADER_TEXT))];
+  if (fieldKey) setTextUxlogField(valT, fieldKey);
   stat.appendChild(valT);
 
+  return stat;
+}
+
+/**
+ * Statistický blok se dvěma editovatelnými hodnotami (např. scénář: částka + jednotka).
+ * @param {string} label
+ * @param {string} fieldA
+ * @param {string} fieldB
+ * @param {string} valA
+ * @param {string} valB
+ * @returns {FrameNode}
+ */
+function buildStatSplit(label, fieldA, fieldB, valA, valB) {
+  const stat = figma.createFrame();
+  stat.name                  = label;
+  stat.layoutMode            = 'VERTICAL';
+  stat.primaryAxisSizingMode = 'AUTO';
+  stat.counterAxisSizingMode = 'AUTO';
+  stat.itemSpacing           = 2;
+  stat.fills                 = [];
+
+  const labelT = figma.createText();
+  labelT.fontName   = { family: FONTS.family, style: FONTS.regular };
+  labelT.characters = label;
+  labelT.fontSize   = 22;
+  labelT.fills      = [solid(hex(COLOR_HEADER_MUTED))];
+  stat.appendChild(labelT);
+
+  const row = figma.createFrame();
+  row.name                  = 'StatValues';
+  row.layoutMode            = 'HORIZONTAL';
+  row.primaryAxisSizingMode = 'AUTO';
+  row.counterAxisSizingMode = 'AUTO';
+  row.itemSpacing           = 4;
+  row.fills                 = [];
+
+  const a = figma.createText();
+  a.fontName   = { family: FONTS.family, style: FONTS.semibold };
+  const sa = String((valA || '').trim() || FALLBACK_EMPTY);
+  a.characters = sa;
+  a.fontSize   = 30;
+  a.fills      = [solid(hex(COLOR_HEADER_TEXT))];
+  setTextUxlogField(a, fieldA);
+  row.appendChild(a);
+
+  const b = figma.createText();
+  b.fontName   = { family: FONTS.family, style: FONTS.semibold };
+  const sb = String((valB || '').trim() || FALLBACK_EMPTY);
+  b.characters = sb === FALLBACK_EMPTY ? '' : sb;
+  b.fontSize   = 30;
+  b.fills      = [solid(hex(COLOR_HEADER_TEXT))];
+  setTextUxlogField(b, fieldB);
+  row.appendChild(b);
+
+  stat.appendChild(row);
   return stat;
 }
 
@@ -734,6 +1164,7 @@ function buildColorBlock(label, value, hint, bgColor, fieldName) {
   textNode.fontSize   = 28;
   textNode.fills      = [solid(hex(COLOR_TEXT))];
   textNode.lineHeight = { value: 155, unit: 'PERCENT' };
+  if (fieldName) setTextUxlogField(textNode, fieldName);
   fl(block, textNode, 'FILL', 'FILL', 1);
 
   return block;
@@ -742,8 +1173,9 @@ function buildColorBlock(label, value, hint, bgColor, fieldName) {
 /**
  * Badge s textem a barevným pozadím.
  * @param {string} label - Text badge
+ * @param {string} [fieldKey] - název pole entity pro sync (uxlogField na textu)
  */
-function buildBadge(label) {
+function buildBadge(label, fieldKey) {
   const opacity = 0.14;
   const badge = figma.createFrame();
   badge.name                  = NODE_BADGE;
@@ -762,6 +1194,7 @@ function buildBadge(label) {
   text.characters = label;
   text.fontSize   = 20;
   text.fills     = [solid(hex(COLOR_HEADER_TEXT))];
+  if (fieldKey) setTextUxlogField(text, fieldKey);
   badge.appendChild(text);
 
   return badge;
@@ -807,6 +1240,7 @@ function buildGenericHeader(entity, config) {
   nameText.characters = entity.name || FALLBACK_NO_TITLE;
   nameText.fontSize   = 44;
   nameText.fills      = [solid(hex(COLOR_HEADER_TEXT))];
+  setTextUxlogField(nameText, 'name');
   fl(header, nameText, 'FILL');
 
   // Meta řádek: kód + badges
@@ -830,6 +1264,7 @@ function buildGenericHeader(entity, config) {
       codeText.characters = entity.code;
       codeText.fontSize   = 22;
       codeText.fills      = [solid(hex(COLOR_HEADER_MUTED))];
+      setTextUxlogField(codeText, 'code');
       metaRow.appendChild(codeText);
     }
 
@@ -837,7 +1272,7 @@ function buildGenericHeader(entity, config) {
       const val = entity[badgeConf.field];
       if (!val) continue;
       const label      = (badgeConf.map && badgeConf.map[val]) || val;
-      metaRow.appendChild(buildBadge(label));
+      metaRow.appendChild(buildBadge(label, badgeConf.field));
     }
 
     fl(header, metaRow, 'HUG', 'HUG');
@@ -854,9 +1289,13 @@ function buildGenericHeader(entity, config) {
     statsRow.fills                 = [];
 
     for (const s of config.stats) {
-      const valA = entity[s.fieldA] || FALLBACK_EMPTY;
-      const valB = entity[s.fieldB] ? (' ' + entity[s.fieldB]) : '';
-      statsRow.appendChild(buildStat(s.label, valA + valB, true));
+      statsRow.appendChild(buildStatSplit(
+        s.label,
+        s.fieldA,
+        s.fieldB,
+        entity[s.fieldA] || '',
+        entity[s.fieldB] || '',
+      ));
     }
 
     fl(header, statsRow, 'HUG', 'HUG');
@@ -993,7 +1432,107 @@ function buildGenericCard(entity, entityType, config) {
 // Generátor generických karet
 // ---------------------------------------------------------------------------
 
-async function generateGenericCards(entities, entityType, projects) {
+/**
+ * Výchozí rozložení: jeden vodorovný řádek karet vycentrovaný kolem středu viewportu (YAML / jeden typ z API).
+ * @param {FrameNode[]} cards
+ * @param {string} entityType
+ */
+function layoutCardsDefaultViewportRow(cards, entityType) {
+  if (!cards.length) return;
+  const GAP = 48;
+  var CWIDTH;
+  if (entityType === 'persona') {
+    CWIDTH = CARD_W;
+  } else {
+    var cfg = ENTITY_CONFIGS[entityType];
+    CWIDTH = cfg ? (cfg.cardW || 1000) : 1000;
+  }
+  var totalW = cards.length * CWIDTH + (cards.length - 1) * GAP;
+  var startX = figma.viewport.center.x - totalW / 2;
+  var startY = figma.viewport.center.y - (cards[0] ? cards[0].height / 2 : 0);
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].x = startX + i * (CWIDTH + GAP);
+    cards[i].y = startY;
+  }
+}
+
+/**
+ * Při importu „všechny typy“ z API: každý typ na vlastní řádek, horizontální a vertikální mezery z layout.gapX / gapY.
+ * @param {FrameNode[]} cards
+ * @param {{ sessionId?: string, gapX?: number, gapY?: number, endSession?: boolean }} layout
+ */
+function placeCardsFlexiImportRow(cards, layout) {
+  if (!cards.length || !layout) return;
+  var gapX = typeof layout.gapX === 'number' ? layout.gapX : 300;
+  var gapY = typeof layout.gapY === 'number' ? layout.gapY : 300;
+  var sid = layout.sessionId != null ? String(layout.sessionId) : 'default';
+  var session = flexiImportLayoutSessions.get(sid);
+  if (!session) {
+    session = { lastRowBottom: null, gapX: gapX, gapY: gapY };
+    flexiImportLayoutSessions.set(sid, session);
+  }
+  session.gapX = gapX;
+  session.gapY = gapY;
+
+  var n = cards.length;
+  var widths = [];
+  var heights = [];
+  for (var j = 0; j < n; j++) {
+    widths.push(cards[j].width);
+    heights.push(cards[j].height);
+  }
+  var rowH = heights[0];
+  for (var h = 1; h < n; h++) {
+    if (heights[h] > rowH) rowH = heights[h];
+  }
+  var rowW = 0;
+  for (var w = 0; w < n; w++) {
+    rowW += widths[w];
+    if (w < n - 1) rowW += gapX;
+  }
+  var startX = figma.viewport.center.x - rowW / 2;
+  var rowTop = session.lastRowBottom == null
+    ? figma.viewport.center.y - rowH / 2
+    : session.lastRowBottom + gapY;
+  var x = startX;
+  for (var k = 0; k < n; k++) {
+    cards[k].x = x;
+    cards[k].y = rowTop;
+    x += widths[k] + gapX;
+  }
+  var rowBottom = rowTop;
+  for (var b = 0; b < n; b++) {
+    var bottom = cards[b].y + cards[b].height;
+    if (bottom > rowBottom) rowBottom = bottom;
+  }
+  session.lastRowBottom = rowBottom;
+  if (layout.endSession) {
+    flexiImportLayoutSessions.delete(sid);
+  }
+}
+
+/**
+ * Umístí nově vytvořené karty na plátno.
+ * @param {FrameNode[]} cards
+ * @param {string} entityType
+ * @param {{ cardSource?: string, layout?: { mode?: string, sessionId?: string, gapX?: number, gapY?: number, endSession?: boolean } }} [genMsg]
+ */
+function layoutCardsAfterGenerate(cards, entityType, genMsg) {
+  var layout = genMsg && genMsg.layout;
+  if (layout && layout.mode === 'flexi-import') {
+    placeCardsFlexiImportRow(cards, layout);
+  } else {
+    layoutCardsDefaultViewportRow(cards, entityType);
+  }
+}
+
+/**
+ * @param {Object[]} entities
+ * @param {string} entityType
+ * @param {Object[]} projects
+ * @param {{ cardSource?: string, layout?: object }} [genMsg]
+ */
+async function generateGenericCards(entities, entityType, projects, genMsg) {
   await loadFonts();
   const config = ENTITY_CONFIGS[entityType];
   if (!config) throw new Error(ERR_UNKNOWN_ENTITY + entityType);
@@ -1003,8 +1542,8 @@ async function generateGenericCards(entities, entityType, projects) {
     if (p && p.id) projectMap[p.id] = p;
   }
 
-  const GAP   = 48;
-  const CWIDTH = config.cardW || 1000;
+  const cardSource = genMsg && genMsg.cardSource === 'flexi' ? 'flexi' : 'yaml';
+
   const cards  = [];
 
   for (let i = 0; i < entities.length; i++) {
@@ -1014,18 +1553,16 @@ async function generateGenericCards(entities, entityType, projects) {
     card.setPluginData('uxlogEntity',     JSON.stringify(entity));
     const proj = entity.projectId ? projectMap[entity.projectId] : null;
     if (proj) card.setPluginData('uxlogProject', JSON.stringify(proj));
+    applyCardSyncMetadata(card, entityType, entity, proj, {
+      source: cardSource,
+      apiId: entity._apiId != null ? String(entity._apiId) : undefined,
+      lastSyncTs: typeof entity._ts === 'number' ? entity._ts : undefined,
+    });
     figma.currentPage.appendChild(card);
     cards.push(card);
   }
 
-  const totalW = cards.length * CWIDTH + (cards.length - 1) * GAP;
-  const startX = figma.viewport.center.x - totalW / 2;
-  const startY = figma.viewport.center.y - (cards[0] ? cards[0].height / 2 : 0);
-
-  for (let i = 0; i < cards.length; i++) {
-    cards[i].x = startX + i * (CWIDTH + GAP);
-    cards[i].y = startY;
-  }
+  layoutCardsAfterGenerate(cards, entityType, genMsg);
 
   // Výběr neprovádíme — Figma by jinak posunula výhled na nové karty
 }
@@ -1034,7 +1571,12 @@ async function generateGenericCards(entities, entityType, projects) {
 // Persony — původní implementace
 // ---------------------------------------------------------------------------
 
-async function generatePersonaCards(personas, projects) {
+/**
+ * @param {Object[]} personas
+ * @param {Object[]} projects
+ * @param {{ cardSource?: string, layout?: object }} [genMsg]
+ */
+async function generatePersonaCards(personas, projects, genMsg) {
   await loadFonts();
 
   const projectMap = {};
@@ -1042,7 +1584,8 @@ async function generatePersonaCards(personas, projects) {
     if (p && p.id) projectMap[p.id] = p;
   }
 
-  const GAP   = 48;
+  const cardSource = genMsg && genMsg.cardSource === 'flexi' ? 'flexi' : 'yaml';
+
   const cards = [];
 
   for (let i = 0; i < personas.length; i++) {
@@ -1055,18 +1598,16 @@ async function generatePersonaCards(personas, projects) {
     card.setPluginData('uxlogPersona',    JSON.stringify(persona));
     const proj = persona.projectId ? projectMap[persona.projectId] : null;
     if (proj) card.setPluginData('uxlogProject', JSON.stringify(proj));
+    applyCardSyncMetadata(card, 'persona', persona, proj, {
+      source: cardSource,
+      apiId: persona._apiId != null ? String(persona._apiId) : undefined,
+      lastSyncTs: typeof persona._ts === 'number' ? persona._ts : undefined,
+    });
     figma.currentPage.appendChild(card);
     cards.push(card);
   }
 
-  const totalW = cards.length * CARD_W + (cards.length - 1) * GAP;
-  const startX = figma.viewport.center.x - totalW / 2;
-  const startY = figma.viewport.center.y - (cards[0] ? cards[0].height / 2 : 0);
-
-  for (let i = 0; i < cards.length; i++) {
-    cards[i].x = startX + i * (CARD_W + GAP);
-    cards[i].y = startY;
-  }
+  layoutCardsAfterGenerate(cards, 'persona', genMsg);
 
   // Výběr neprovádíme — Figma by jinak posunula výhled na nové karty
 }
@@ -1189,6 +1730,7 @@ function buildInfoColumn(persona, inverted) {
   nameText.characters = persona.name || FALLBACK_NO_NAME;
   nameText.fontSize   = 52;
   nameText.fills      = [solid(textColor)];
+  setTextUxlogField(nameText, 'name');
   fl(col, nameText, 'FILL');
 
   const meta = figma.createFrame();
@@ -1208,11 +1750,12 @@ function buildInfoColumn(persona, inverted) {
     codeText.characters = persona.code;
     codeText.fontSize   = 28;
     codeText.fills      = [solid(mutedColor)];
+    setTextUxlogField(codeText, 'code');
     fl(meta, codeText, 'HUG', 'HUG');
   }
 
   const badgeLabel = persona.status === 'protopersona' ? BADGE_PROTOPERSONA : BADGE_PERSONA;
-  meta.appendChild(buildBadge(badgeLabel));
+  meta.appendChild(buildBadge(badgeLabel, 'status'));
 
   // URL odkaz (pokud persona má vyplněné URL)
   if (persona.url && persona.url.trim()) {
@@ -1252,8 +1795,8 @@ function buildInfoColumn(persona, inverted) {
   statsRow.fills                 = [];
   fl(col, statsRow, 'HUG', 'HUG');
 
-  statsRow.appendChild(buildStat(STAT_VELIKOST, persona.targetGroupSize  || FALLBACK_EMPTY));
-  statsRow.appendChild(buildStat(STAT_HODNOTA,  persona.targetGroupValue || FALLBACK_EMPTY));
+  statsRow.appendChild(buildStat(STAT_VELIKOST, persona.targetGroupSize  || FALLBACK_EMPTY, 'targetGroupSize'));
+  statsRow.appendChild(buildStat(STAT_HODNOTA,  persona.targetGroupValue || FALLBACK_EMPTY, 'targetGroupValue'));
 
   return col;
 }

@@ -141,6 +141,63 @@
     .sel-breakdown { font-size: 10.5px; color: #475569; margin-top: 4px; }
 
     .field-hidden { display: none; }
+
+    /* Select a „načítám“ sdílejí stejný prostor (žádné vertikální skládání). */
+    .api-entity-type-slot {
+      position: relative;
+      min-height: 38px;
+      box-sizing: border-box;
+    }
+    .api-entity-type-slot .api-entity-loading,
+    .api-entity-type-slot .api-entity-type-select {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .api-entity-loading {
+      display: flex; align-items: center;
+      min-height: 38px; padding: 8px 12px;
+      margin: 0;
+      background: #1E293B; border: 1px solid #334155;
+      border-radius: 8px; color: #94A3B8; font-size: 12px;
+      box-sizing: border-box;
+    }
+    .api-entity-type-slot .api-entity-type-select.field-hidden,
+    .api-entity-type-slot .api-entity-loading.field-hidden { display: none !important; }
+
+    .sync-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; margin-bottom: 14px;
+      background: #1E293B; border-radius: 8px; border: 1px solid #334155;
+      font-size: 11px; color: #94A3B8; line-height: 1.35;
+    }
+    .sync-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: #64748B;
+    }
+    .sync-dot.connecting { background: #FBBF24; animation: pulse 1s ease-in-out infinite; }
+    .sync-dot.idle { background: #34D399; }
+    .sync-dot.reading, .sync-dot.writing { background: #60A5FA; }
+    .sync-dot.pending { background: #FBBF24; }
+    .sync-dot.error { background: #F87171; }
+    .sync-dot.offline { background: #64748B; }
+    @keyframes pulse { 50% { opacity: 0.45; } }
+
+    .hint { font-size: 10px; color: #475569; line-height: 1.4; margin-top: 6px; }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: #1E293B; border: 1px solid #334155;
+      border-radius: 8px; color: #E2E8F0;
+      font-size: 12px; padding: 8px 12px; outline: none;
+    }
+    input:focus { border-color: #6366F1; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-row button { flex: 1; margin-top: 0; }
   </style>
 </head>
 <body>
@@ -153,9 +210,16 @@
     </div>
   </div>
 
+  <div class="sync-bar" id="syncBar" role="status" aria-live="polite">
+    <span class="sync-dot offline" id="syncDot" aria-hidden="true"></span>
+    <span id="syncText">Nepřipojeno</span>
+  </div>
+
   <div class="tabs">
-    <button class="tab-btn active" id="tabImportBtn">Import (YAML → Figma)</button>
-    <button class="tab-btn"        id="tabExportBtn">Export (Figma → YAML)</button>
+    <button class="tab-btn active" id="tabImportBtn">YAML → Figma</button>
+    <button class="tab-btn"        id="tabExportBtn">Figma → YAML</button>
+    <button class="tab-btn"        id="tabApiBtn">API → Figma</button>
+    <button class="tab-btn"        id="tabSettingsBtn">Nastavení</button>
   </div>
 
   <!-- ====== ZÁLOŽKA: IMPORT ====== -->
@@ -217,6 +281,53 @@ personas:
     <div class="status status-info" id="exportStatus">
       Ve Figmě vyberte karty vygenerované tímto pluginem.
     </div>
+
+  </div>
+
+  <!-- ====== ZÁLOŽKA: IMPORT Z API ====== -->
+  <div id="tab-api" style="display:none">
+
+    <div class="field">
+      <label for="apiProject">Projekt</label>
+      <select id="apiProject"></select>
+    </div>
+
+    <div class="field">
+      <label for="apiEntityType">Typ entit</label>
+      <div class="api-entity-type-slot">
+        <div id="apiEntityTypeLoading" class="api-entity-loading field-hidden" role="status" aria-live="polite">Načítám počty entit…</div>
+        <select id="apiEntityType" class="api-entity-type-select"></select>
+      </div>
+    </div>
+
+    <button id="apiImportBtn" disabled>Importovat do Figmy</button>
+    <p class="hint">Vyžaduje úspěšné připojení v záložce Nastavení. Data se filtrují podle vybraného projektu.</p>
+
+    <div class="status status-info" id="apiStatus">Nejprve se připojte k API v záložce Nastavení.</div>
+
+  </div>
+
+  <!-- ====== ZÁLOŽKA: NASTAVENÍ ====== -->
+  <div id="tab-settings" style="display:none">
+
+    <div class="field">
+      <label for="flexiUrl">Základ URL (proxy doporučeno pro Figma plugin)</label>
+      <input type="text" id="flexiUrl" placeholder="https://uxlog.prokoho.cz/flexi-proxy.php" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="field">
+      <label for="flexiKey">Flexi API klíč</label>
+      <input type="password" id="flexiKey" placeholder="Bearer token" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="btn-row">
+      <button type="button" id="btnConnect">Připojit</button>
+      <button type="button" class="btn-secondary field-hidden" id="btnDisconnect">Odpojit</button>
+    </div>
+
+    <p class="hint">Z Figmy nelze volat přímo flexiapi.* (CORS jen pro uxlog.prokoho.cz). Nasavte základ na <strong>https://uxlog.prokoho.cz/flexi-proxy.php</strong> (soubor ve veřejné složce webu) a stejný API klíč jako v UXLog. Přímý základ Flexi URL funguje jen mimo Figmu.</p>
+
+    <div class="status status-info" id="settingsStatus"></div>
 
   </div>
 
@@ -444,17 +555,32 @@ personas:
 
     const tabImportBtn = document.getElementById('tabImportBtn');
     const tabExportBtn = document.getElementById('tabExportBtn');
+    const tabApiBtn = document.getElementById('tabApiBtn');
+    const tabSettingsBtn = document.getElementById('tabSettingsBtn');
     const tabImport    = document.getElementById('tab-import');
     const tabExport    = document.getElementById('tab-export');
+    const tabApi       = document.getElementById('tab-api');
+    const tabSettings  = document.getElementById('tab-settings');
 
-    tabImportBtn.addEventListener('click', () => {
-      tabImportBtn.classList.add('active'); tabExportBtn.classList.remove('active');
-      tabImport.style.display = 'block'; tabExport.style.display = 'none';
-    });
-    tabExportBtn.addEventListener('click', () => {
-      tabExportBtn.classList.add('active'); tabImportBtn.classList.remove('active');
-      tabExport.style.display = 'block'; tabImport.style.display = 'none';
-    });
+    /**
+     * Přepne viditelnou záložku (YAML import, export, API import, nastavení).
+     * @param {'import'|'export'|'api'|'settings'} tab
+     */
+    function showTab(tab) {
+      tabImportBtn.classList.toggle('active', tab === 'import');
+      tabExportBtn.classList.toggle('active', tab === 'export');
+      tabApiBtn.classList.toggle('active', tab === 'api');
+      tabSettingsBtn.classList.toggle('active', tab === 'settings');
+      tabImport.style.display = tab === 'import' ? 'block' : 'none';
+      tabExport.style.display = tab === 'export' ? 'block' : 'none';
+      tabApi.style.display = tab === 'api' ? 'block' : 'none';
+      tabSettings.style.display = tab === 'settings' ? 'block' : 'none';
+    }
+
+    tabImportBtn.addEventListener('click', () => showTab('import'));
+    tabExportBtn.addEventListener('click', () => showTab('export'));
+    tabApiBtn.addEventListener('click', () => showTab('api'));
+    tabSettingsBtn.addEventListener('click', () => showTab('settings'));
 
     // -----------------------------------------------------------------------
     // Pomocné
@@ -480,6 +606,694 @@ personas:
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    // -----------------------------------------------------------------------
+    // Flexi API – mapování typů, stav, HTTP, polling (stejný kontrakt jako flexiApi.js)
+    // -----------------------------------------------------------------------
+
+    const PLUGIN_TO_API_ENTITY = {
+      persona: 'personas',
+      hypothesis: 'hypotheses',
+      scenario: 'scenarios',
+      stakeholder: 'stakeholders',
+      goal: 'goals',
+      competition: 'competitions',
+      requirement: 'requirements',
+    };
+
+    const PLUGIN_CARD_TYPES = ['persona', 'hypothesis', 'scenario', 'stakeholder', 'goal', 'competition', 'requirement'];
+
+    /** Popisky typů v selectu importu z API (množné číslo). */
+    const API_IMPORT_ENTITY_LABELS = {
+      persona: 'Persony',
+      hypothesis: 'Hypotézy',
+      scenario: 'Scénáře',
+      stakeholder: 'Stakeholdeři',
+      goal: 'Cíle',
+      competition: 'Konkurence',
+      requirement: 'Požadavky',
+    };
+
+    const POLL_INTERVAL_MS = 15000;
+    const LS_CHECKSUMS = 'uxlog_figma_checksums_v1';
+    const LS_FETCH_TS = 'uxlog_figma_fetch_ts_v1';
+
+    const syncDot = document.getElementById('syncDot');
+    const syncText = document.getElementById('syncText');
+    const flexiUrlInput = document.getElementById('flexiUrl');
+    const flexiKeyInput = document.getElementById('flexiKey');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const settingsStatusEl = document.getElementById('settingsStatus');
+    const apiProjectSel = document.getElementById('apiProject');
+    const apiEntityTypeSel = document.getElementById('apiEntityType');
+    const apiEntityTypeLoadingEl = document.getElementById('apiEntityTypeLoading');
+    const apiImportBtn = document.getElementById('apiImportBtn');
+    const apiStatusEl = document.getElementById('apiStatus');
+
+    /** @type {{ url: string, apiKey: string, connected?: boolean } | null} */
+    let pluginConfig = null;
+    let pollTimer = null;
+    /** @type {Set<string>} */
+    const pendingSaveIds = new Set();
+
+    /**
+     * Normalizované kolekce z API pro počítání počtů bez dalších GET.
+     * flexiEntityCacheLoaded označuje typy, u kterých už proběhl alespoň jeden fetch (i prázdná kolekce).
+     * @type {{ [apiEntity: string]: Object[] }}
+     */
+    const flexiEntityCache = {};
+    /** @type {Set<string>} */
+    const flexiEntityCacheLoaded = new Set();
+
+    /**
+     * Nastaví globální stavový řádek v záhlaví.
+     * @param {'offline'|'notConfigured'|'connecting'|'idle'|'reading'|'writing'|'pending'|'error'} state
+     * @param {string} text
+     */
+    function setSyncIndicator(state, text) {
+      syncText.textContent = text;
+      syncDot.className = 'sync-dot ' + (state === 'notConfigured' ? 'offline' : state);
+    }
+
+    function loadLocalChecksums() {
+      try { return JSON.parse(localStorage.getItem(LS_CHECKSUMS) || '{}'); } catch (_) { return {}; }
+    }
+    function saveLocalChecksums(o) {
+      try { localStorage.setItem(LS_CHECKSUMS, JSON.stringify(o)); } catch (_) {}
+    }
+    function loadLocalFetchTs() {
+      try { return JSON.parse(localStorage.getItem(LS_FETCH_TS) || '{}'); } catch (_) { return {}; }
+    }
+    function saveLocalFetchTs(o) {
+      try { localStorage.setItem(LS_FETCH_TS, JSON.stringify(o)); } catch (_) {}
+    }
+
+    /**
+     * Vrátí normalizovaný záznam z API (UXLog UUID v id, volitelně _apiId pro PUT).
+     * @param {Object} entity
+     */
+    function normalizeApiRecord(entity) {
+      const uxlogId = entity._uxlog_id != null ? String(entity._uxlog_id) : String(entity.id);
+      const apiIdRaw = entity.id;
+      const _apiId = apiIdRaw !== undefined && String(apiIdRaw) !== String(uxlogId) ? apiIdRaw : undefined;
+      return { ...entity, id: uxlogId, _apiId };
+    }
+
+    /**
+     * Složí URL: přímé volání Flexi, nebo proxy flexi-proxy.php s parametrem path= (obejde CORS z Figmy).
+     * @param {string} baseUrl
+     * @param {string} path
+     * @returns {string}
+     */
+    function buildFlexiRequestUrl(baseUrl, path) {
+      var base = (baseUrl || '').replace(/\/$/, '');
+      if (base.indexOf('flexi-proxy.php') !== -1) {
+        var sep = base.indexOf('?') >= 0 ? '&' : '?';
+        return base + sep + 'path=' + encodeURIComponent(path);
+      }
+      return base + path;
+    }
+
+    /**
+     * Provede HTTP požadavek na nakonfigurované Flexi API (nebo proxy na uxlog.prokoho.cz).
+     * @param {string} method
+     * @param {string} path
+     * @param {Object|null} body
+     */
+    async function flexiFetch(method, path, body = null) {
+      if (!pluginConfig || !pluginConfig.url || !pluginConfig.url.trim()) {
+        throw new Error('Chybí Flexi API URL');
+      }
+      const requestUrl = buildFlexiRequestUrl(pluginConfig.url, path);
+      const headers = { 'Content-Type': 'application/json' };
+      if (pluginConfig.apiKey && pluginConfig.apiKey.trim()) {
+        headers['Authorization'] = 'Bearer ' + pluginConfig.apiKey.trim();
+      }
+      const opts = { method, headers };
+      if (body !== null) opts.body = JSON.stringify(body);
+      const response = await fetch(requestUrl, opts);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('autentizace: HTTP ' + response.status);
+      }
+      if (!response.ok) {
+        let detail = '';
+        try { detail = await response.text(); } catch (_) {}
+        const phase = method === 'PUT' || method === 'POST' ? 'zápis' : 'čtení';
+        throw new Error(phase + ': HTTP ' + response.status + (detail ? ' – ' + detail.slice(0, 200) : ''));
+      }
+      const ct = response.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        try {
+          const json = await response.json();
+          console.log('[flexiFetch]', method, path, json);
+          return json;
+        } catch (_) { return null; }
+      }
+      return null;
+    }
+
+    /**
+     * Ověří připojení načtením seznamu projektů.
+     */
+    async function verifyConnection() {
+      setSyncIndicator('connecting', 'Ověřuji připojení…');
+      await flexiFetch('GET', '/api/uxlog_projects');
+      pluginConfig.connected = true;
+      setSyncIndicator('idle', 'Synchronizováno');
+    }
+
+    /**
+     * Hodnota option v selectu projektu musí odpovídat poli projectId u entit (UXLog UUID v _uxlog_id), ne nutně Flexi id v id.
+     * @param {Object} p
+     * @returns {string}
+     */
+    function projectOptionValue(p) {
+      if (p == null) return '';
+      if (p._uxlog_id != null && String(p._uxlog_id).trim() !== '') {
+        return String(p._uxlog_id).trim();
+      }
+      return p.id != null ? String(p.id).trim() : '';
+    }
+
+    /**
+     * Stáhne a naplní select projektů pro záložku API.
+     * Při prvním volání rovnou stáhne všechny kolekce (paralelně), aby se cache naplnila a počty v selectu byly hned k dispozici.
+     */
+    async function refreshProjectList() {
+      const data = await flexiFetch('GET', '/api/uxlog_projects');
+      var parsed = parseUxlogCollectionBody(data);
+      var list = parsed.records;
+      apiProjectSel.innerHTML = '';
+      for (var pi = 0; pi < list.length; pi++) {
+        var p = list[pi];
+        const opt = document.createElement('option');
+        opt.value = projectOptionValue(p);
+        opt.textContent = p.name || opt.value || p.id || '';
+        apiProjectSel.appendChild(opt);
+      }
+      apiImportBtn.disabled = list.length === 0;
+      if (list.length > 0 && apiProjectSel.value) {
+        await hydrateEntityCacheIfNeeded();
+        refreshEntityTypeCountsForProject(apiProjectSel.value);
+      } else {
+        setEntityTypeLoading(false);
+        rebuildApiEntityTypeSelect(null);
+      }
+    }
+
+    /**
+     * Stáhne všechny dosud nenačtené kolekce (paralelně) do paměti.
+     * Zobrazí loading indikátor, dokud nedoběhne.
+     */
+    async function hydrateEntityCacheIfNeeded() {
+      var missing = PLUGIN_CARD_TYPES.filter(function (pt) {
+        return !flexiEntityCacheLoaded.has(PLUGIN_TO_API_ENTITY[pt]);
+      });
+      if (missing.length === 0) return;
+      setEntityTypeLoading(true);
+      try {
+        await Promise.allSettled(missing.map(function (pluginType) {
+          return fetchCollection(PLUGIN_TO_API_ENTITY[pluginType]);
+        }));
+      } catch (_) {
+        /* výjimečný stav – allSettled obvykle nevyhodí */
+      } finally {
+        setEntityTypeLoading(false);
+      }
+    }
+
+    /**
+     * Vrátí id projektu ze záznamu (API může vracet projectId nebo project_id; typ id/UUID se liší).
+     * @param {Object} r
+     * @returns {string}
+     */
+    function recordProjectId(r) {
+      if (r == null) return '';
+      var raw;
+      if (r.projectId != null && r.projectId !== '') raw = r.projectId;
+      else if (r.project_id != null && r.project_id !== '') raw = r.project_id;
+      else if (r.projectUuid != null && r.projectUuid !== '') raw = r.projectUuid;
+      else if (r.project_uuid != null && r.project_uuid !== '') raw = r.project_uuid;
+      else if (r.project != null && typeof r.project === 'object') {
+        if (r.project.id != null && r.project.id !== '') raw = r.project.id;
+      } else if (r.project != null && r.project !== '') {
+        raw = r.project;
+      }
+      if (raw == null || raw === '') return '';
+      return String(raw).trim();
+    }
+
+    /**
+     * Filtruje záznamy podle projektu; porovnává id jako řetězce (číslo vs UUID z selectu).
+     * Záznam bez projektu se započítá do každého projektu (zpětná kompatibilita).
+     * @param {Object[]} records
+     * @param {string} projectId
+     */
+    function filterByProject(records, projectId) {
+      var pid = String(projectId).trim();
+      return records.filter(function (r) {
+        var rp = recordProjectId(r);
+        if (!rp) return true;
+        return rp === pid;
+      });
+    }
+
+    /**
+     * Z odpovědi GET kolekce vytáhne pole záznamů a případně smazaná id (jako flexiSync.js + běžné REST obaly).
+     * @param {*} data
+     * @returns {{ records: Object[], deleted: string[] }}
+     */
+    function parseUxlogCollectionBody(data) {
+      if (data == null) return { records: [], deleted: [] };
+      if (Array.isArray(data)) return { records: data, deleted: [] };
+      if (typeof data !== 'object') return { records: [], deleted: [] };
+      var del = Array.isArray(data.deleted) ? data.deleted : [];
+      var r = data.records;
+      if (!Array.isArray(r)) r = data.data;
+      if (!Array.isArray(r)) r = data.items;
+      if (!Array.isArray(r)) r = data.result;
+      if (!Array.isArray(r)) r = data.rows;
+      if (!Array.isArray(r)) r = data.entities;
+      if (!Array.isArray(r)) {
+        for (var k in data) {
+          if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
+          if (k === 'deleted' || k === 'meta' || k === 'checksum' || k === 'error') continue;
+          if (Array.isArray(data[k])) {
+            r = data[k];
+            break;
+          }
+        }
+      }
+      if (!Array.isArray(r)) r = [];
+      return { records: r, deleted: del };
+    }
+
+    /**
+     * Vyprázdní paměť kolekcí (např. po odpojení).
+     */
+    function clearFlexiEntityCache() {
+      Object.keys(flexiEntityCache).forEach(function (k) { delete flexiEntityCache[k]; });
+      flexiEntityCacheLoaded.clear();
+    }
+
+    /**
+     * Sloučí výsledek GET kolekce do paměti pro odvození počtů v selectu.
+     * @param {string} apiEntity
+     * @param {number} since použitý v requestu (0 = plná náhrada)
+     * @param {Object[]} records
+     * @param {string[]} [deleted]
+     */
+    function mergeIntoEntityCache(apiEntity, since, records, deleted) {
+      var norm = normalizeApiRecord;
+      var deletedIds = new Set((deleted || []).map(String));
+      if (since <= 0) {
+        flexiEntityCache[apiEntity] = records.map(norm);
+        flexiEntityCacheLoaded.add(apiEntity);
+        return;
+      }
+      var list = flexiEntityCache[apiEntity] ? flexiEntityCache[apiEntity].slice() : [];
+      var byId = new Map();
+      list.forEach(function (r) { byId.set(String(r.id), r); });
+      deletedIds.forEach(function (id) { byId.delete(id); });
+      for (var i = 0; i < records.length; i++) {
+        var r = norm(records[i]);
+        byId.set(String(r.id), r);
+      }
+      flexiEntityCache[apiEntity] = Array.from(byId.values());
+      flexiEntityCacheLoaded.add(apiEntity);
+    }
+
+    /**
+     * Spočítá počty entit pro projekt z již načtené paměti (bez síťových volání).
+     * @param {string} projectId
+     * @returns {Object|null} mapa typ → počet, nebo null pokud ještě není nic v cache
+     */
+    function buildCountsMapFromCache(projectId) {
+      var countsMap = {};
+      var hasAny = false;
+      for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
+        var pluginType = PLUGIN_CARD_TYPES[i];
+        var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+        if (!flexiEntityCacheLoaded.has(apiEntity)) {
+          countsMap[pluginType] = null;
+        } else {
+          hasAny = true;
+          var arr = flexiEntityCache[apiEntity] || [];
+          countsMap[pluginType] = filterByProject(arr, projectId).length;
+        }
+      }
+      return hasAny ? countsMap : null;
+    }
+
+    /**
+     * Při načítání počtů skryje select a zobrazí stejně vysoký řádek s textem (bez posunu layoutu).
+     * @param {boolean} isLoading
+     */
+    function setEntityTypeLoading(isLoading) {
+      if (!apiEntityTypeLoadingEl || !apiEntityTypeSel) return;
+      if (isLoading) {
+        apiEntityTypeLoadingEl.classList.remove('field-hidden');
+        apiEntityTypeSel.classList.add('field-hidden');
+      } else {
+        apiEntityTypeLoadingEl.classList.add('field-hidden');
+        apiEntityTypeSel.classList.remove('field-hidden');
+      }
+    }
+
+    /**
+     * Přestaví select typu entit; countsMap je null (bez počtů) nebo objekt typ → počet.
+     * @param {Object|null} countsMap
+     */
+    function rebuildApiEntityTypeSelect(countsMap) {
+      var prev = apiEntityTypeSel.value;
+      apiEntityTypeSel.innerHTML = '';
+      var allOpt = document.createElement('option');
+      allOpt.value = 'all';
+      var total = 0;
+      if (countsMap) {
+        for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
+          var k = PLUGIN_CARD_TYPES[i];
+          var n = countsMap[k];
+          if (typeof n === 'number') total += n;
+        }
+        allOpt.textContent = 'Všechny typy (postupně) (' + total + ')';
+      } else {
+        allOpt.textContent = 'Všechny typy (postupně)';
+      }
+      apiEntityTypeSel.appendChild(allOpt);
+      for (var j = 0; j < PLUGIN_CARD_TYPES.length; j++) {
+        var typ = PLUGIN_CARD_TYPES[j];
+        var opt = document.createElement('option');
+        opt.value = typ;
+        var label = API_IMPORT_ENTITY_LABELS[typ];
+        var cnt = countsMap && typeof countsMap[typ] === 'number' ? countsMap[typ] : null;
+        opt.textContent = cnt != null ? label + ' (' + cnt + ')' : label;
+        apiEntityTypeSel.appendChild(opt);
+      }
+      if (prev) {
+        apiEntityTypeSel.value = prev;
+        if (apiEntityTypeSel.value !== prev) apiEntityTypeSel.value = 'all';
+      } else {
+        apiEntityTypeSel.value = 'all';
+      }
+    }
+
+    /**
+     * Pro vybraný projekt přepočítá počty entit z paměti a zobrazí je v selectu (např. Persony (5)).
+     * Žádné další HTTP volání – data pocházejí z fetchCollection / pollTick.
+     * @param {string} projectId
+     */
+    function refreshEntityTypeCountsForProject(projectId) {
+      if (!projectId || !pluginConfig || !pluginConfig.connected) {
+        setEntityTypeLoading(false);
+        rebuildApiEntityTypeSelect(null);
+        return;
+      }
+      setEntityTypeLoading(false);
+      rebuildApiEntityTypeSelect(buildCountsMapFromCache(projectId));
+    }
+
+    /**
+     * Stáhne kolekci z API (plně nebo inkrementálně).
+     * @param {string} apiEntity
+     */
+    async function fetchCollection(apiEntity) {
+      const fetchTs = loadLocalFetchTs();
+      let since = fetchTs[apiEntity] || 0;
+      if (since > 0 && !flexiEntityCacheLoaded.has(apiEntity)) {
+        since = 0;
+      }
+      const path = since > 0
+        ? `/api/uxlog_${apiEntity}?since=${since}`
+        : `/api/uxlog_${apiEntity}`;
+      const data = await flexiFetch('GET', path);
+      var parsed = parseUxlogCollectionBody(data);
+      var records = parsed.records;
+      var deleted = parsed.deleted;
+      mergeIntoEntityCache(apiEntity, since, records, deleted);
+      return { records, deleted };
+    }
+
+    /**
+     * Jeden cyklus pollingu: checksum → případně GET kolekcí → cache pro počty → případně aktualizace karet (jen při vybraném projektu).
+     * Entity s čekajícím zápisem z Figmy (pendingSaveIds) se z API na karty neaplikují, aby text uživatele nezmizel.
+     */
+    async function pollTick() {
+      if (!pluginConfig || !pluginConfig.url || !pluginConfig.connected) return;
+      const projectId = apiProjectSel.value;
+
+      try {
+        setSyncIndicator('reading', 'Načítám…');
+        let apiChecksums = null;
+        try {
+          apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum');
+        } catch (_) {
+          apiChecksums = null;
+        }
+
+        const stored = loadLocalChecksums();
+        const fetchTs = loadLocalFetchTs();
+        const now = Date.now();
+        let updatedChecksums = { ...stored };
+        let updatedFetchTs = { ...fetchTs };
+
+        for (const pluginType of PLUGIN_CARD_TYPES) {
+          const apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          const same = apiChecksums && apiChecksums[apiEntity] !== undefined
+            && stored[apiEntity] === apiChecksums[apiEntity];
+          const needHydrate = !flexiEntityCacheLoaded.has(apiEntity);
+          if (same && !needHydrate) continue;
+
+          const { records } = await fetchCollection(apiEntity);
+          updatedFetchTs[apiEntity] = now;
+          if (apiChecksums && apiChecksums[apiEntity] !== undefined) {
+            updatedChecksums[apiEntity] = apiChecksums[apiEntity];
+          }
+
+          if (projectId) {
+            const filtered = filterByProject(records.map(normalizeApiRecord), projectId);
+            for (const entity of filtered) {
+              var pendKey = pluginType + ':' + String(entity.id);
+              if (pendingSaveIds.has(pendKey)) {
+                continue;
+              }
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'applyRemoteEntity',
+                  entityType: pluginType,
+                  entity,
+                },
+              }, '*');
+            }
+          }
+        }
+
+        saveLocalChecksums(updatedChecksums);
+        saveLocalFetchTs(updatedFetchTs);
+        setSyncIndicator(pendingSaveIds.size ? 'pending' : 'idle',
+          pendingSaveIds.size ? 'Čeká na uložení' : 'Synchronizováno');
+        if (apiProjectSel.value) {
+          refreshEntityTypeCountsForProject(apiProjectSel.value);
+        }
+      } catch (e) {
+        const msg = String(e.message || e);
+        if (/autentizace/i.test(msg)) {
+          setSyncIndicator('error', 'Chyba autentizace: ' + msg);
+        } else {
+          setSyncIndicator('error', 'Chyba čtení: ' + msg);
+        }
+      }
+    }
+
+    /**
+     * Spustí nebo zastaví interval pollingu.
+     * @param {boolean} on
+     */
+    function setPolling(on) {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      if (on && pluginConfig && pluginConfig.connected) {
+        pollTimer = setInterval(pollTick, POLL_INTERVAL_MS);
+        pollTick();
+      }
+    }
+
+    /**
+     * Uloží entitu z Figmy do API (PUT).
+     * @param {string} entityType
+     * @param {Object} entity
+     */
+    async function saveEntityToApi(entityType, entity) {
+      if (!pluginConfig || !pluginConfig.url || !pluginConfig.connected) return;
+      const apiEntity = PLUGIN_TO_API_ENTITY[entityType];
+      if (!apiEntity || !entity || !entity.id) return;
+      const putId = entity._apiId != null ? entity._apiId : entity.id;
+      const ts = Date.now();
+      const body = { ...entity, _uxlog_id: entity.id, _ts: ts };
+      setSyncIndicator('writing', 'Ukládám…');
+      try {
+        await flexiFetch('PUT', `/api/uxlog_${apiEntity}/${encodeURIComponent(putId)}`, body);
+        pendingSaveIds.delete(entityType + ':' + String(entity.id));
+        parent.postMessage({
+          pluginMessage: {
+            type: 'applyRemoteEntity',
+            entityType,
+            entity: { ...entity, _ts: ts },
+          },
+        }, '*');
+        setSyncIndicator(
+          pendingSaveIds.size ? 'pending' : 'idle',
+          pendingSaveIds.size ? 'Čeká na uložení' : 'Synchronizováno',
+        );
+      } catch (e) {
+        pendingSaveIds.delete(entityType + ':' + String(entity.id));
+        const msg = String(e.message || e);
+        if (/autentizace/i.test(msg)) {
+          setSyncIndicator('error', 'Chyba autentizace (zápis): ' + msg);
+        } else {
+          setSyncIndicator('error', 'Chyba zápisu: ' + msg);
+        }
+      }
+    }
+
+    function setSettingsStatus(msg, type = 'info') {
+      settingsStatusEl.textContent = msg;
+      settingsStatusEl.className = 'status status-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'info');
+    }
+
+    function setApiStatus(msg, type = 'info') {
+      apiStatusEl.textContent = msg;
+      apiStatusEl.className = 'status status-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'info');
+    }
+
+    function applyConfigToForm() {
+      flexiUrlInput.value = pluginConfig && pluginConfig.url ? pluginConfig.url : '';
+      flexiKeyInput.value = pluginConfig && pluginConfig.apiKey ? pluginConfig.apiKey : '';
+    }
+
+    /**
+     * Zobrazí Připojit při odpojení a Odpojit po úspěšném připojení.
+     */
+    function updateConnectButtonsVisibility() {
+      var connected = !!(pluginConfig && pluginConfig.connected);
+      btnConnect.classList.toggle('field-hidden', connected);
+      btnDisconnect.classList.toggle('field-hidden', !connected);
+    }
+
+    btnConnect.addEventListener('click', async () => {
+      const url = flexiUrlInput.value.trim();
+      const apiKey = flexiKeyInput.value.trim();
+      if (!url || !apiKey) {
+        setSettingsStatus('Vyplňte URL i API klíč.', 'err');
+        setSyncIndicator('notConfigured', 'Není nastaveno');
+        return;
+      }
+      pluginConfig = { url, apiKey, connected: false };
+      try {
+        await verifyConnection();
+        await refreshProjectList();
+        parent.postMessage({ pluginMessage: { type: 'savePluginConfig', config: pluginConfig } }, '*');
+        setSettingsStatus('Připojení uloženo.', 'ok');
+        setApiStatus('Připraveno k importu z API.', 'ok');
+        setPolling(true);
+      } catch (e) {
+        pluginConfig.connected = false;
+        setSettingsStatus(String(e.message || e), 'err');
+        setSyncIndicator('offline', 'Nepřipojeno');
+      } finally {
+        updateConnectButtonsVisibility();
+      }
+    });
+
+    btnDisconnect.addEventListener('click', () => {
+      clearFlexiEntityCache();
+      pluginConfig = { url: flexiUrlInput.value.trim(), apiKey: '', connected: false };
+      flexiKeyInput.value = '';
+      parent.postMessage({ pluginMessage: { type: 'savePluginConfig', config: pluginConfig } }, '*');
+      setPolling(false);
+      setSettingsStatus('Odpojeno (klíč vymazán).', 'info');
+      setSyncIndicator('offline', 'Nepřipojeno');
+      apiImportBtn.disabled = true;
+      updateConnectButtonsVisibility();
+      setEntityTypeLoading(false);
+      rebuildApiEntityTypeSelect(null);
+    });
+
+    apiProjectSel.addEventListener('change', async () => {
+      const pid = apiProjectSel.value;
+      if (pid && pluginConfig && pluginConfig.connected) {
+        await hydrateEntityCacheIfNeeded();
+        refreshEntityTypeCountsForProject(pid);
+      } else {
+        setEntityTypeLoading(false);
+        rebuildApiEntityTypeSelect(null);
+      }
+    });
+
+    apiImportBtn.addEventListener('click', async () => {
+      if (!pluginConfig || !pluginConfig.connected) {
+        setApiStatus('Nejprve se připojte v Nastavení.', 'err');
+        return;
+      }
+      const projectId = apiProjectSel.value;
+      const mode = apiEntityTypeSel.value;
+      if (!projectId) {
+        setApiStatus('Vyberte projekt.', 'err');
+        return;
+      }
+      setApiStatus('Stahuji data…', 'info');
+      apiImportBtn.disabled = true;
+      try {
+        const types = mode === 'all' ? PLUGIN_CARD_TYPES : [mode];
+        const importSessionId = mode === 'all'
+          ? 'flexi-import-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
+          : null;
+        const batches = [];
+        for (const pluginType of types) {
+          const apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          const { records } = await fetchCollection(apiEntity);
+          const filtered = filterByProject(records.map(normalizeApiRecord), projectId);
+          if (filtered.length === 0) continue;
+          batches.push({ pluginType: pluginType, filtered: filtered });
+        }
+        let total = 0;
+        for (var bi = 0; bi < batches.length; bi++) {
+          const b = batches[bi];
+          const projects = [{ id: projectId }];
+          var layout = importSessionId
+            ? {
+                mode: 'flexi-import',
+                sessionId: importSessionId,
+                gapX: 300,
+                gapY: 300,
+                endSession: bi === batches.length - 1,
+              }
+            : undefined;
+          parent.postMessage({
+            pluginMessage: {
+              type: 'generate',
+              entityType: b.pluginType,
+              entities: b.filtered,
+              projects,
+              cardSource: 'flexi',
+              silent: true,
+              layout: layout,
+            },
+          }, '*');
+          total += b.filtered.length;
+          await new Promise((r) => setTimeout(r, 450));
+        }
+        if (total === 0) setApiStatus('Pro tento projekt nejsou žádné záznamy.', 'err');
+        else setApiStatus('Odesláno do Figmy: ' + total + ' entit.', 'ok');
+      } catch (e) {
+        setApiStatus('Chyba: ' + (e.message || e), 'err');
+      } finally {
+        apiImportBtn.disabled = false;
+      }
+    });
 
     // -----------------------------------------------------------------------
     // Náhledová řada pro každý typ entity
@@ -711,8 +1525,10 @@ personas:
 
       if (msg.type === 'success') {
         btn.disabled = false;
-        const n    = msg.count;
-        const cfg  = ENTITY_TYPE_CONFIG[currentEntityType] || {};
+        if (msg.silent) return;
+        const n = msg.count;
+        const et = msg.entityType || currentEntityType;
+        const cfg = ENTITY_TYPE_CONFIG[et] || {};
         const { sg = 'karet', few = 'karty', many = 'karet' } = cfg;
         setStatus(`✓ Vytvořeno ${czPlural(n, sg, few, many)}.`, 'ok');
 
@@ -755,6 +1571,37 @@ personas:
           return cfg ? czPlural(ents.length, cfg.sg, cfg.few, cfg.many) : `${ents.length}× ${type}`;
         });
         setExportStatus(`✓ Exportováno: ${parts.join(', ')}.`, 'ok');
+      } else if (msg.type === 'pluginConfigLoaded') {
+        pluginConfig = msg.config || { url: '', apiKey: '', connected: false };
+        applyConfigToForm();
+        updateConnectButtonsVisibility();
+        if (pluginConfig.url && pluginConfig.apiKey) {
+          verifyConnection()
+            .then(() => refreshProjectList())
+            .then(() => {
+              setPolling(true);
+              setApiStatus('Připraveno k importu z API.', 'ok');
+            })
+            .catch((e) => {
+              setSyncIndicator('offline', 'Nepřipojeno');
+              setSettingsStatus(String(e.message || e), 'err');
+              setEntityTypeLoading(false);
+              rebuildApiEntityTypeSelect(null);
+            })
+            .finally(() => {
+              updateConnectButtonsVisibility();
+            });
+        } else {
+          setSyncIndicator('notConfigured', 'Není nastaveno');
+          updateConnectButtonsVisibility();
+          setEntityTypeLoading(false);
+          rebuildApiEntityTypeSelect(null);
+        }
+      } else if (msg.type === 'entityDirty') {
+        saveEntityToApi(msg.entityType, msg.entity);
+      } else if (msg.type === 'entitySyncPending') {
+        pendingSaveIds.add(msg.entityType + ':' + String(msg.entityId));
+        setSyncIndicator('pending', 'Čeká na uložení');
       }
     };
 
@@ -765,6 +1612,10 @@ personas:
     jsonTA.addEventListener('input',        parseJSON);
     entityTypeSel.addEventListener('change', parseJSON);
     projectSel.addEventListener('change',   updatePreview);
+
+    setEntityTypeLoading(false);
+    rebuildApiEntityTypeSelect(null);
+    parent.postMessage({ pluginMessage: { type: 'loadPluginConfig' } }, '*');
 
   </script>
 

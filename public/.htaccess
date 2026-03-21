@@ -2,6 +2,10 @@
   RewriteEngine On
   RewriteBase /
 
+  # Předat Authorization do PHP (flexi-proxy.php a Bearer token z Figmy)
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%0]
+
   # Pokud požadavek směřuje na existující soubor nebo složku, ponechat beze změny
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
