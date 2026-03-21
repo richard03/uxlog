@@ -171,9 +171,9 @@ function closeFlexiModal() {
 async function saveFlexiModal() {
   flexi.url = draft.url.trim()
   flexi.apiKey = draft.apiKey.trim()
-  saveFlexiConfig({ url: flexi.url, apiKey: flexi.apiKey, syncEnabled: flexi.syncEnabled })
+  flexi.syncEnabled = false
+  saveFlexiConfig({ url: flexi.url, apiKey: flexi.apiKey, syncEnabled: false })
   showFlexiModal.value = false
-
 }
 
 async function toggleSync() {

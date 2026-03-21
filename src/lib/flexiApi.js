@@ -60,8 +60,7 @@ export async function flexiRequest(method, path, body = null) {
   if (apiKey?.trim()) {
     headers['Authorization'] = `Bearer ${apiKey.trim()}`
   }
-  const options = { method, headers }
-  const fullPath = path
+  const options = { method, headers, signal: AbortSignal.timeout(10_000) }
   if (body !== null) options.body = JSON.stringify(body)
 
   const response = await fetch(`${base}${path}`, options)
@@ -87,7 +86,11 @@ export async function flexiRequest(method, path, body = null) {
 const BULK_PATH = '/api/uxlog_batch'
 
 /** null = neznámé, true = podporováno, false = nepodporováno */
-let bulkAvailable = null
+const BULK_AVAILABLE_KEY = 'uxlog_bulk_available'
+let bulkAvailable = localStorage.getItem(BULK_AVAILABLE_KEY) === 'true' ? null : false
+
+/** Maximální počet operací v jednom bulk requestu (~15–20 KB při typické velikosti záznamu). */
+const MAX_BULK_OPS = 30
 
 /** @type {Array<{method:string, path:string, body?:Object, onSuccess?:Function}>} */
 const queue = []
@@ -121,7 +124,7 @@ function drainQueue() {
 
 async function processBulk() {
   activeFetches++
-  const ops = queue.splice(0) // vezmi všechny čekající operace
+  const ops = queue.splice(0, MAX_BULK_OPS) // vezmi max MAX_BULK_OPS operací najednou
 
   const bulkBody = ops.map((op) => ({
     method: op.method,
@@ -133,6 +136,7 @@ async function processBulk() {
   try {
     const resp = await flexiRequest('POST', BULK_PATH, bulkBody)
     bulkAvailable = true
+    localStorage.setItem(BULK_AVAILABLE_KEY, 'true')
     try { results = await resp.json() } catch { results = [] }
   } catch (e) {
     // Fallback na individuální požadavky při: 404/405/501 (endpoint neexistuje),
@@ -140,6 +144,7 @@ async function processBulk() {
     const isNotSupported = /HTTP (404|405|501)/.test(e.message) || e instanceof TypeError
     if (isNotSupported) {
       bulkAvailable = false
+      localStorage.removeItem(BULK_AVAILABLE_KEY)
       console.info('[FlexiAPI] bulk endpoint není dostupný, přepínám na individuální požadavky')
       for (let i = ops.length - 1; i >= 0; i--) queue.unshift(ops[i])
     } else {
