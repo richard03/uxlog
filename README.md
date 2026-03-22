@@ -34,6 +34,25 @@ npm run build
 
 Výstup je v `dist/`. Nasazení na PHP server: nahrajte obsah `dist/` do kořene webu.
 
+## Desktop (Tauri)
+
+Vyžaduje [Rust](https://rustup.rs) a na Windows runtime **WebView2**.
+
+```bash
+npm run tauri:dev    # vývojové okno + Vite
+npm run tauri:build  # instalátor v src-tauri/target/release/bundle/
+```
+
+### Ikony
+
+Build na Windows potřebuje `src-tauri/icons/icon.ico` a další soubory z `bundle.icon` v `tauri.conf.json`. Po výměně zdrojového obrázku (čtvercový PNG, ideálně ≥512×512) spusťte z kořene repa:
+
+```bash
+npx tauri icon src-tauri/icons/app-icon.png
+```
+
+Nebo vygenerujte výchozí `app-icon.png` skriptem `src-tauri/icons/generate-app-icon.ps1` a pak znovu `npx tauri icon …`.
+
 ## Testy
 
 ```bash

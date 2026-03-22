@@ -9,6 +9,7 @@
  */
 
 import { reactive, ref } from 'vue'
+import { mirrorToTauri } from '../tauriBridge.js'
 
 // ---------------------------------------------------------------------------
 // Plugin config persistence (enabled/disabled state)
@@ -30,12 +31,14 @@ export function loadPluginConfig() {
 }
 
 /**
- * Uloží konfiguraci pluginů do localStorage.
+ * Uloží konfiguraci pluginů do localStorage a zrcadlí do Tauri souboru.
  * @param {{ [pluginId: string]: { enabled: boolean } }} config
  */
 export function savePluginConfig(config) {
   try {
-    localStorage.setItem(PLUGIN_CONFIG_KEY, JSON.stringify(config))
+    const json = JSON.stringify(config)
+    localStorage.setItem(PLUGIN_CONFIG_KEY, json)
+    mirrorToTauri(PLUGIN_CONFIG_KEY, json)
   } catch (e) {
     console.error('[PluginRegistry] savePluginConfig failed:', e)
   }

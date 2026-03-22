@@ -6,6 +6,7 @@
  */
 
 import { ref } from 'vue'
+import { mirrorToTauri } from '../../tauriBridge.js'
 
 const LS_KEY = 'uxlog_last_save_ts'
 const API_KEY = 'uxlog_last_api_ts'
@@ -21,18 +22,22 @@ export const lastLocalSave = ref(loadTs(LS_KEY))
 /** Timestamp posledního úspěšného zápisu do Flexi API (ms epoch, nebo null). */
 export const lastApiSync = ref(loadTs(API_KEY))
 
-/** Zaznamená uložení do localStorage a persistuje timestamp. */
+/** Zaznamená uložení do localStorage, persistuje timestamp a zrcadlí do Tauri. */
 export function recordLocalSave() {
   const now = Date.now()
   lastLocalSave.value = now
-  try { localStorage.setItem(LS_KEY, String(now)) } catch {}
+  const val = String(now)
+  try { localStorage.setItem(LS_KEY, val) } catch {}
+  mirrorToTauri(LS_KEY, val)
 }
 
-/** Zaznamená úspěšný zápis do API a persistuje timestamp. */
+/** Zaznamená úspěšný zápis do API, persistuje timestamp a zrcadlí do Tauri. */
 export function recordApiSync() {
   const now = Date.now()
   lastApiSync.value = now
-  try { localStorage.setItem(API_KEY, String(now)) } catch {}
+  const val = String(now)
+  try { localStorage.setItem(API_KEY, val) } catch {}
+  mirrorToTauri(API_KEY, val)
 }
 
 /** Plugin definition */

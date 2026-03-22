@@ -1,7 +1,10 @@
 /**
  * Modul pro práci s localStorage.
  * Centralizuje přístup k datům a zajišťuje konzistentní klíče.
+ * V Tauri prostředí zrcadlí zápisy do souborů přes tauriBridge.
  */
+
+import { mirrorToTauri } from './tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_data'
 
@@ -95,12 +98,14 @@ export function loadData() {
 }
 
 /**
- * Uloží všechna data do localStorage.
+ * Uloží všechna data do localStorage a zrcadlí do Tauri souboru.
  * @param {Object} data - Data k uložení
  */
 export function saveData(data) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    const json = JSON.stringify(data)
+    localStorage.setItem(STORAGE_KEY, json)
+    mirrorToTauri(STORAGE_KEY, json)
   } catch (e) {
     console.error('saveData failed:', e)
     throw e

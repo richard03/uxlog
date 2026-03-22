@@ -1,12 +1,14 @@
 /**
  * Správa konfigurace aplikace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů).
  * Konfigurace je uložena v localStorage pod klíčem 'uxlog_config'.
+ * V Tauri prostředí se zrcadlí do souborů přes tauriBridge.
  */
 
 import { reactive, toRaw } from 'vue'
 import { ACTIVITY_TYPES } from './activityTypes.js'
 import { ENTITY_FIELD_DEFAULTS } from './entityFieldDefaults.js'
 import { generateId } from './id.js'
+import { mirrorToTauri } from './tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_config'
 
@@ -40,10 +42,12 @@ function getEmptyConfig() {
 export const configState = reactive(Object.assign(getEmptyConfig(), loadConfig()))
 
 /**
- * Uloží aktuální stav konfigurace do localStorage.
+ * Uloží aktuální stav konfigurace do localStorage a zrcadlí do Tauri souboru.
  */
 function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(toRaw(configState)))
+  const json = JSON.stringify(toRaw(configState))
+  localStorage.setItem(STORAGE_KEY, json)
+  mirrorToTauri(STORAGE_KEY, json)
 }
 
 // ─────────────────────────────────────────────────────────────

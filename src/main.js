@@ -1,20 +1,29 @@
 /**
  * Vstupní bod Vue aplikace UXLog.
+ *
+ * V Tauri prostředí nejdřív obnoví localStorage ze souborů (pokud je prázdný)
+ * a teprve pak inicializuje store a Vue app.
  */
 
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router/index.js'
 import './style.css'
-import './lib/store.js'
+import { initStore } from './lib/store.js'
 import { installPlugins } from './lib/plugins/install.js'
+import { isTauri, restoreAllFromTauri } from './lib/tauriBridge.js'
 
-console.log('[UXLog] Aplikace startuje')
+async function bootstrap() {
+  console.log('[UXLog] Aplikace startuje')
 
-// Inicializuj plugin systém před vytvořením Vue app
-installPlugins()
+  if (isTauri) {
+    await restoreAllFromTauri()
+    initStore()
+    console.log('[UXLog] Tauri: data obnovena ze souborů')
+  }
 
-try {
+  installPlugins()
+
   const app = createApp(App)
   app.config.errorHandler = (err) => {
     console.error('Vue error:', err)
@@ -28,7 +37,9 @@ try {
   }
   app.use(router)
   app.mount('#app')
-} catch (err) {
+}
+
+bootstrap().catch((err) => {
   console.error('UXLog init error:', err)
   document.getElementById('app').innerHTML = `
     <div style="padding: 2rem; font-family: system-ui; max-width: 600px; margin: 0 auto;">
@@ -37,4 +48,4 @@ try {
       <p style="color: #666; font-size: 0.9rem;">Technické info: ${err.message}</p>
     </div>
   `
-}
+})
