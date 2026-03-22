@@ -6,6 +6,10 @@
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%0]
 
+  # Předat Origin do PHP (Figma plugin posílá Origin: null)
+  RewriteCond %{HTTP:Origin} .
+  RewriteRule .* - [E=HTTP_ORIGIN:%0]
+
   # Pokud požadavek směřuje na existující soubor nebo složku, ponechat beze změny
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

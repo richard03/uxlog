@@ -788,9 +788,7 @@ personas:
       if (!pluginConfig || !pluginConfig.url || !pluginConfig.url.trim()) {
         throw new Error('Chybí Flexi API URL');
       }
-      if (isDirectLocalFlexiWithoutProxy(pluginConfig.url)) {
-        throw new Error(getLocalFlexiCorsHintMessage());
-      }
+
       const requestUrl = buildFlexiRequestUrl(pluginConfig.url, path);
       const headers = { 'Content-Type': 'application/json' };
       if (pluginConfig.apiKey && pluginConfig.apiKey.trim()) {
