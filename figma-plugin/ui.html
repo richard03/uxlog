@@ -62,7 +62,7 @@
       font-size: 11px; padding: 6px 10px; outline: none;
       cursor: pointer; transition: border-color 0.15s;
       appearance: none;
-      background-image: url(“data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E”);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
       padding-right: 28px;
@@ -171,14 +171,26 @@
 
     .hint { font-size: 10px; color: #475569; line-height: 1.4; margin-top: 5px; }
 
-    input[type=”text”], input[type=”password”] {
+    input[type="text"], input[type="password"] {
       width: 100%;
+      -webkit-appearance: none; appearance: none;
       background: #1E293B; border: 1px solid #334155;
       border-radius: 7px; color: #E2E8F0;
       font-family: inherit; font-size: 11px; padding: 6px 10px;
       outline: none; transition: border-color 0.15s;
     }
-    input:focus { border-color: #6366F1; }
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder {
+      color: #334155; font-size: 11px;
+    }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: #6366F1; }
+    /* Autofill nesmí přepisovat barvu pozadí */
+    input:-webkit-autofill,
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #1E293B inset;
+      -webkit-text-fill-color: #E2E8F0;
+      caret-color: #E2E8F0;
+    }
 
     .btn-row { display: flex; gap: 6px; margin-top: 8px; }
     .btn-row button { flex: 1; margin-top: 0; }
@@ -292,7 +304,7 @@ personas:
 
     <div class="field">
       <label for="flexiUrl">Základ URL (proxy doporučeno pro Figma plugin)</label>
-      <input type="text" id="flexiUrl" placeholder="https://uxlog.prokoho.cz/flexi-proxy.php" autocomplete="off" spellcheck="false">
+      <input type="text" id="flexiUrl" placeholder="https://uxlog.prokoho.cz/flexi-proxy-php.php" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="field">
@@ -305,7 +317,7 @@ personas:
       <button type="button" class="btn-secondary field-hidden" id="btnDisconnect">Odpojit</button>
     </div>
 
-    <p class="hint">Z Figmy nelze volat přímo flexiapi.* (CORS jen pro uxlog.prokoho.cz). Nasavte základ na <strong>https://uxlog.prokoho.cz/flexi-proxy.php</strong> (soubor ve veřejné složce webu) a stejný API klíč jako v UXLog. Přímý základ Flexi URL funguje jen mimo Figmu.</p>
+    <p class="hint">Z Figmy nelze volat přímo backend Flexi (origin <code>null</code>; CORS z API bývá jen pro web). Jsou dva hotové proxy skripty: <strong>flexi-proxy-php.php</strong> (hostované Flexi API, např. <code>https://uxlog.prokoho.cz/flexi-proxy-php.php</code>) a <strong>flexi-proxy-windows.php</strong> (lokální Windows API na <code>127.0.0.1:7842</code> — spusťte u sebe <code>php -S localhost:8787 -t public</code> a v pluginu zadejte <code>http://localhost:8787/flexi-proxy-windows.php</code>). Starší <code>flexi-proxy.php</code> chová stejně jako PHP varianta.</p>
 
     <div class="status status-info" id="settingsStatus"></div>
 
@@ -718,14 +730,48 @@ personas:
     }
 
     /**
-     * Složí URL: přímé volání Flexi, nebo proxy flexi-proxy.php s parametrem path= (obejde CORS z Figmy).
+     * Zjistí, zda základ URL vede na skript flexi-proxy*.php (parametr path=).
+     * @param {string} baseUrl
+     * @returns {boolean}
+     */
+    function isFlexiProxyScriptUrl(baseUrl) {
+      return /flexi-proxy[^?&]*\.php/i.test((baseUrl || '').trim());
+    }
+
+    /**
+     * Zjistí, zda jde o přímé volání lokálního hostu bez proxy skriptu (ve Figmy selže CORS preflight).
+     * @param {string} baseUrl
+     * @returns {boolean}
+     */
+    function isDirectLocalFlexiWithoutProxy(baseUrl) {
+      var trimmed = (baseUrl || '').trim();
+      if (trimmed === '') return false;
+      if (isFlexiProxyScriptUrl(trimmed)) return false;
+      return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(trimmed);
+    }
+
+    /**
+     * Vrátí text chyby pro případ přímého lokálního Flexi bez proxy ve Figmy.
+     * @returns {string}
+     */
+    function getLocalFlexiCorsHintMessage() {
+      return (
+        'Z Figmy nelze volat přímo http://127.0.0.1 nebo localhost (CORS). ' +
+        'Spusťte PHP z kořene projektu: php -S localhost:8787 -t public ' +
+        'a v nastavení zadejte http://localhost:8787/flexi-proxy-windows.php (lokální Windows API) ' +
+        'nebo https://uxlog.prokoho.cz/flexi-proxy-php.php (hostované API).'
+      );
+    }
+
+    /**
+     * Složí URL: přímé volání Flexi, nebo proxy flexi-proxy*.php s parametrem path= (obejde CORS z Figmy).
      * @param {string} baseUrl
      * @param {string} path
      * @returns {string}
      */
     function buildFlexiRequestUrl(baseUrl, path) {
       var base = (baseUrl || '').replace(/\/$/, '');
-      if (base.indexOf('flexi-proxy.php') !== -1) {
+      if (isFlexiProxyScriptUrl(base)) {
         var sep = base.indexOf('?') >= 0 ? '&' : '?';
         return base + sep + 'path=' + encodeURIComponent(path);
       }
@@ -741,6 +787,9 @@ personas:
     async function flexiFetch(method, path, body = null) {
       if (!pluginConfig || !pluginConfig.url || !pluginConfig.url.trim()) {
         throw new Error('Chybí Flexi API URL');
+      }
+      if (isDirectLocalFlexiWithoutProxy(pluginConfig.url)) {
+        throw new Error(getLocalFlexiCorsHintMessage());
       }
       const requestUrl = buildFlexiRequestUrl(pluginConfig.url, path);
       const headers = { 'Content-Type': 'application/json' };

@@ -52,6 +52,31 @@ export function isFlexiEnabled() {
  * @param {Object|null} body
  * @returns {Promise<Response>}
  */
+/**
+ * Vrátí true, pokud URL ukazuje na flexi-proxy*.php skript (čeká parametr path=).
+ * @param {string} base
+ * @returns {boolean}
+ */
+function isFlexiProxyScript(base) {
+  return /flexi-proxy[^?&]*\.php/i.test(base)
+}
+
+/**
+ * Složí cílové URL: pro proxy skripty přepne cestu na query parametr path=.
+ * @param {string} base  URL základu bez koncové lomky
+ * @param {string} path  Cesta API (např. /api/uxlog_bugs?since=...)
+ * @returns {string}
+ */
+function buildRequestUrl(base, path) {
+  if (!isFlexiProxyScript(base)) return base + path
+  // Oddělit samotnou cestu od query stringu
+  const qIdx = path.indexOf('?')
+  const apiPath = qIdx >= 0 ? path.slice(0, qIdx) : path
+  const qs = qIdx >= 0 ? path.slice(qIdx + 1) : ''
+  const sep = base.indexOf('?') >= 0 ? '&' : '?'
+  return base + sep + 'path=' + encodeURIComponent(apiPath) + (qs ? '&' + qs : '')
+}
+
 export async function flexiRequest(method, path, body = null) {
   const { url, apiKey } = loadFlexiConfig()
   const base = url.replace(/\/$/, '')
@@ -63,7 +88,7 @@ export async function flexiRequest(method, path, body = null) {
   const options = { method, headers, signal: AbortSignal.timeout(10_000) }
   if (body !== null) options.body = JSON.stringify(body)
 
-  const response = await fetch(`${base}${path}`, options)
+  const response = await fetch(buildRequestUrl(base, path), options)
   if (!response.ok) {
     let detail = ''
     try { detail = await response.text() } catch {}
