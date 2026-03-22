@@ -458,6 +458,9 @@ function applyCardSyncMetadata(card, entityType, entity, project, meta) {
   if (meta.lastSyncTs != null) {
     card.setPluginData('uxlogLastSyncTs', String(meta.lastSyncTs));
   }
+  // Dirty tracking: karta právě přišla z API → žádné lokální změny
+  card.setPluginData('uxlogLastDbSyncTs', String(Date.now()));
+  card.setPluginData('uxlogLocalEditTs', '0');
 }
 
 /**
@@ -494,6 +497,19 @@ function extractGenericFromCard(card, entityType, base) {
   if (!config) return base;
   const HINTS = new Set((config.blocks || []).map(b => b.hint));
   const extracted = {};
+
+  var nameNode = findDescendant(card, function(n) { return n.type === 'TEXT' && n.getPluginData('uxlogField') === 'name'; });
+  if (nameNode) {
+    var nameVal = nameNode.characters || '';
+    if (nameVal !== FALLBACK_NO_TITLE && nameVal !== FALLBACK_NO_NAME && nameVal.trim() !== '') {
+      extracted.name = nameVal;
+    }
+  }
+  var codeNode = findDescendant(card, function(n) { return n.type === 'TEXT' && n.getPluginData('uxlogField') === 'code'; });
+  if (codeNode) {
+    extracted.code = codeNode.characters || '';
+  }
+
   for (const { name, field } of (config.blocks || [])) {
     let textNode = findDescendant(card, n => n.type === 'TEXT' && n.getPluginData('uxlogField') === field);
     if (!textNode) textNode = findDescendant(card, n => n.name === field && n.type === 'TEXT');
@@ -666,6 +682,74 @@ function mergeEntityForPayload(card) {
 }
 
 /**
+ * Nastaví uxlogAppliedValue na všechny textové uzly s uxlogField v kartě.
+ * Volá se po vytvoření karty, aby se uložil výchozí stav pro detekci lokálních změn.
+ * @param {FrameNode} card
+ */
+function initAppliedValuesOnCard(card) {
+  function walk(node) {
+    if (node.type === 'TEXT') {
+      var field = node.getPluginData('uxlogField');
+      if (field) {
+        try { node.setPluginData('uxlogAppliedValue', 'v:' + node.characters); } catch (_) {}
+      }
+    }
+    for (var i = 0; i < (node.children || []).length; i++) walk(node.children[i]);
+  }
+  walk(card);
+}
+
+/**
+ * Přečte aktuální text ze všech uxlogField uzlů karty a uloží ho jako uxlogAppliedValue.
+ * Volá se těsně před odesláním entity do API, aby se zachytil referenční stav.
+ * @param {FrameNode} card
+ */
+function updateAppliedValuesFromCard(card) {
+  function walk(node) {
+    if (node.type === 'TEXT') {
+      var field = node.getPluginData('uxlogField');
+      if (field) {
+        try { node.setPluginData('uxlogAppliedValue', 'v:' + node.characters); } catch (_) {}
+      }
+    }
+    for (var i = 0; i < (node.children || []).length; i++) walk(node.children[i]);
+  }
+  walk(card);
+}
+
+/**
+ * Zjistí, zda některý textový uzel karty s uxlogField má odlišný text než naposledy
+ * aplikovanou hodnotu. Vrací true při lokálních změnách, false při shodě, nebo null
+ * pokud karta nemá žádné uxlogAppliedValue (starší karta — volající musí použít fallback).
+ * @param {FrameNode} card
+ * @returns {boolean|null}
+ */
+function hasAnyLocalTextChange(card) {
+  var foundAppliedValue = false;
+  var hasChange = false;
+  function walk(node) {
+    if (hasChange) return;
+    if (node.type === 'TEXT') {
+      var field = node.getPluginData('uxlogField');
+      if (field) {
+        var raw = node.getPluginData('uxlogAppliedValue');
+        if (raw && raw.indexOf('v:') === 0) {
+          foundAppliedValue = true;
+          var appliedValue = raw.slice(2);
+          if (node.characters !== appliedValue) {
+            hasChange = true;
+          }
+        }
+      }
+    }
+    for (var i = 0; i < (node.children || []).length; i++) walk(node.children[i]);
+  }
+  walk(card);
+  if (!foundAppliedValue) return null;
+  return hasChange;
+}
+
+/**
  * Nastaví text uzlu po načtení fontu; při aktualizaci z API potlačí detekci změny (smyčka).
  * Pokud je obsah už stejný jako cílový řetězec, nic nemění (kurzor v editoru zůstane na místě).
  * @param {TextNode} node
@@ -674,12 +758,26 @@ function mergeEntityForPayload(card) {
 async function setTextSafeAsync(node, chars) {
   if (node.type !== 'TEXT') return;
   var next = chars != null ? String(chars) : '';
-  if (node.characters === next) return;
+  var hasField = !!node.getPluginData('uxlogField');
+  if (node.characters === next) {
+    if (hasField) {
+      try { node.setPluginData('uxlogAppliedValue', 'v:' + next); } catch (_) {}
+    }
+    return;
+  }
   suppressTextChangeIds.add(node.id);
   try {
     await figma.loadFontAsync(node.fontName);
-    if (node.characters === next) return;
+    if (node.characters === next) {
+      if (hasField) {
+        try { node.setPluginData('uxlogAppliedValue', 'v:' + next); } catch (_) {}
+      }
+      return;
+    }
     node.characters = next;
+    if (hasField) {
+      try { node.setPluginData('uxlogAppliedValue', 'v:' + next); } catch (_) {}
+    }
   } finally {
     setTimeout(function () { suppressTextChangeIds.delete(node.id); }, 0);
   }
@@ -763,23 +861,96 @@ function isUserEditingTextInsideUxlogCard(card) {
 }
 
 /**
- * Propíše data entity do všech karet stejné entity na aktuální stránce.
+ * Porovná naposledy synchronizovaná data entity s aktuálním textem karty.
+ * Vrátí true, pokud karta obsahuje lokální změny, které ještě nebyly odeslány do API.
+ * @param {Object} stored - poslední synchronizovaná data (z pluginData uxlogEntity)
+ * @param {Object} current - aktuálně extrahovaná data z karty
  * @param {string} entityType
- * @param {Object} entity
+ * @returns {boolean}
  */
-async function applyEntityToAllMatchingCards(entityType, entity) {
+function isCardDirty(stored, current, entityType) {
+  const config = ENTITY_CONFIGS[entityType];
+  let fields;
+  if (entityType === 'persona') {
+    fields = ['name', 'code', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'];
+  } else if (config) {
+    fields = ['name', 'code', ...config.blocks.map(function(b) { return b.field; })];
+    if (config.stats) {
+      for (var si = 0; si < config.stats.length; si++) {
+        fields.push(config.stats[si].fieldA, config.stats[si].fieldB);
+      }
+    }
+  } else {
+    return false;
+  }
+  for (var fi = 0; fi < fields.length; fi++) {
+    var f = fields[fi];
+    var sv = stored[f] != null ? String(stored[f]) : '';
+    var cv = current[f] != null ? String(current[f]) : '';
+    if (sv !== cv) return true;
+  }
+  return false;
+}
+
+/**
+ * Propíše data entity do všech karet stejné entity na aktuální stránce.
+ *
+ * Vícevrstvá ochrana proti přepsání lokálních změn:
+ *   1) Timestamp uxlogLocalEditTs > uxlogLastDbSyncTs — jen pro poll (ne save response,
+ *      protože timestamp nebyl resetován a vždy by blokoval aktualizaci)
+ *   2) Per-node uxlogAppliedValue ≠ aktuální text (funguje i po restartu pluginu)
+ *   3) Porovnání uxlogEntity vs extrahovaný text (fallback pro starší karty bez uxlogAppliedValue)
+ *
+ * @param {string}  entityType
+ * @param {Object}  entity
+ * @param {boolean} [isSaveResponse] – true = odpověď na PUT z Figmy
+ */
+async function applyEntityToAllMatchingCards(entityType, entity, isSaveResponse) {
   const id = entity && entity.id;
   if (!id) return;
   const cards = findCardsForEntityOnPage(entityType, id);
   for (const card of cards) {
+    var cardHasLocalChanges = false;
+
+    var localEditTs  = parseInt(card.getPluginData('uxlogLocalEditTs')  || '0', 10) || 0;
+    var lastDbSyncTs = parseInt(card.getPluginData('uxlogLastDbSyncTs') || '0', 10) || 0;
+    if (!isSaveResponse && localEditTs > lastDbSyncTs) {
+      cardHasLocalChanges = true;
+    }
+
+    if (!cardHasLocalChanges) {
+      var perNodeResult = hasAnyLocalTextChange(card);
+      if (perNodeResult === true) {
+        cardHasLocalChanges = true;
+      } else if (perNodeResult === null) {
+        var stored = {};
+        try { stored = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
+        var extracted = extractEntityFromCard(card);
+        if (extracted && isCardDirty(stored, extracted.entity, entityType)) {
+          cardHasLocalChanges = true;
+        }
+      }
+    }
+
+    if (cardHasLocalChanges) {
+      queueEntitySyncFromCard(card);
+      continue;
+    }
+
     try {
       card.setPluginData('uxlogEntity', JSON.stringify(entity));
-      if (entity._ts != null) card.setPluginData('uxlogLastSyncTs', String(entity._ts));
+      if (entity._ts != null)    card.setPluginData('uxlogLastSyncTs', String(entity._ts));
       if (entity._apiId != null) card.setPluginData('uxlogApiId', String(entity._apiId));
+      card.setPluginData('uxlogLastDbSyncTs', String(Date.now()));
+      if (isSaveResponse) {
+        card.setPluginData('uxlogLocalEditTs', '0');
+      }
     } catch (_) {}
+
     if (isUserEditingTextInsideUxlogCard(card)) {
       continue;
     }
+
     if (entityType === 'persona') {
       await applyPersonaEntityText(card, entity);
     } else {
@@ -808,6 +979,7 @@ function queueEntitySyncFromCard(card) {
     if (!c0) return;
     const merged = mergeEntityForPayload(c0);
     if (!merged || !merged.id) return;
+    updateAppliedValuesFromCard(c0);
     figma.ui.postMessage({
       type: 'entityDirty',
       entityType,
@@ -842,6 +1014,8 @@ function registerDocumentChangeHandler() {
                 (p.getPluginData('uxlogPersona') ? 'persona' : null);
               const eid = p.getPluginData('uxlogEntityId');
               if (et && eid) {
+                // Označíme kartu jako lokálně upravenou (plugin běží → dokumentchange funguje)
+                try { p.setPluginData('uxlogLocalEditTs', String(Date.now())); } catch (_) {}
                 queueEntitySyncFromCard(p);
                 break;
               }
@@ -871,7 +1045,7 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
   } else if (msg.type === 'applyRemoteEntity') {
     try {
-      await applyEntityToAllMatchingCards(msg.entityType, msg.entity);
+      await applyEntityToAllMatchingCards(msg.entityType, msg.entity, !!msg.isSaveResponse);
       figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: true });
     } catch (err) {
       figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: false, message: String(err) });
@@ -1558,6 +1732,7 @@ async function generateGenericCards(entities, entityType, projects, genMsg) {
       apiId: entity._apiId != null ? String(entity._apiId) : undefined,
       lastSyncTs: typeof entity._ts === 'number' ? entity._ts : undefined,
     });
+    initAppliedValuesOnCard(card);
     figma.currentPage.appendChild(card);
     cards.push(card);
   }
@@ -1603,6 +1778,7 @@ async function generatePersonaCards(personas, projects, genMsg) {
       apiId: persona._apiId != null ? String(persona._apiId) : undefined,
       lastSyncTs: typeof persona._ts === 'number' ? persona._ts : undefined,
     });
+    initAppliedValuesOnCard(card);
     figma.currentPage.appendChild(card);
     cards.push(card);
   }

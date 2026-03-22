@@ -1142,6 +1142,7 @@ personas:
             type: 'applyRemoteEntity',
             entityType,
             entity: { ...entity, _ts: ts },
+            isSaveResponse: true,
           },
         }, '*');
         setSyncIndicator(
