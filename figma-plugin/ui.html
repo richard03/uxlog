@@ -12,38 +12,21 @@
       font-size: 12px;
       color: #CBD5E1;
       background: #0F172A;
-      padding: 20px;
-      min-height: 100vh;
+      padding: 12px;
     }
-
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .logo {
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
-    }
-    .header-text h1 { font-size: 14px; font-weight: 600; color: #F8FAFC; line-height: 1.2; }
-    .header-text p  { font-size: 11px; color: #475569; margin-top: 1px; }
 
     .tabs {
-      display: flex; gap: 4px;
-      margin-bottom: 16px;
+      display: flex; gap: 3px;
+      margin-bottom: 10px;
       background: #1E293B;
-      border-radius: 8px;
-      padding: 4px;
+      border-radius: 7px;
+      padding: 3px;
     }
     .tab-btn {
-      flex: 1; padding: 6px 12px;
+      flex: 1; padding: 5px 6px;
       background: transparent; border: none;
-      border-radius: 6px;
-      color: #64748B; font-size: 12px; font-weight: 500;
+      border-radius: 5px;
+      color: #64748B; font-size: 11px; font-weight: 500;
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
       width: auto; letter-spacing: 0;
@@ -52,55 +35,55 @@
     .tab-btn.active { background: #6366F1; color: #fff; }
     .tab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .field { margin-bottom: 14px; }
+    .field { margin-bottom: 10px; }
 
     label {
-      display: block; font-size: 11px; font-weight: 500;
-      color: #64748B; margin-bottom: 5px; letter-spacing: 0.3px;
+      display: block; font-size: 10px; font-weight: 500;
+      color: #64748B; margin-bottom: 4px; letter-spacing: 0.3px;
     }
 
     textarea {
-      width: 100%; height: 150px;
+      width: 100%; height: 110px;
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; color: #E2E8F0;
+      border-radius: 7px; color: #E2E8F0;
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      font-size: 10.5px; line-height: 1.5;
-      padding: 10px 12px; resize: vertical; outline: none;
+      font-size: 10px; line-height: 1.5;
+      padding: 7px 10px; resize: vertical; outline: none;
       transition: border-color 0.15s;
     }
     textarea:focus { border-color: #6366F1; }
-    textarea::placeholder { color: #334155; font-family: inherit; font-size: 11px; }
+    textarea::placeholder { color: #334155; font-family: inherit; font-size: 10px; }
     textarea[readonly] { cursor: default; color: #94A3B8; }
 
     select {
       width: 100%;
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; color: #E2E8F0;
-      font-size: 12px; padding: 8px 12px; outline: none;
+      border-radius: 7px; color: #E2E8F0;
+      font-size: 11px; padding: 6px 10px; outline: none;
       cursor: pointer; transition: border-color 0.15s;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-image: url(“data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E”);
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
+      background-position: right 10px center;
+      padding-right: 28px;
     }
     select:focus { border-color: #6366F1; }
 
     .preview {
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; padding: 10px 12px;
-      margin-bottom: 14px; display: none;
+      border-radius: 7px; padding: 7px 10px;
+      margin-bottom: 10px; display: none;
     }
     .preview-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 3px 0; font-size: 11.5px; color: #94A3B8;
+      display: flex; align-items: center; gap: 5px;
+      padding: 2px 0; font-size: 11px; color: #94A3B8;
     }
     .preview-item + .preview-item { border-top: 1px solid #1E293B; }
-    .preview-code  { font-family: monospace; font-size: 10px; color: #475569; min-width: 52px; }
+    .preview-code  { font-family: monospace; font-size: 10px; color: #475569; min-width: 48px; }
     .preview-name  { color: #E2E8F0; font-weight: 500; flex: 1; }
-    .preview-more  { color: #475569; font-size: 11px; padding: 4px 0 0; }
+    .preview-more  { color: #475569; font-size: 10px; padding: 3px 0 0; }
 
-    .badge { font-size: 10px; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+    .badge { font-size: 9px; padding: 1px 6px; border-radius: 9px; white-space: nowrap; }
     .badge-persona      { background: rgba(99,102,241,.18); color: #818CF8; }
     .badge-protopersona { background: rgba(139,92,246,.18); color: #A78BFA; }
     .badge-ok           { background: rgba(16,185,129,.18); color: #34D399; }
@@ -110,10 +93,10 @@
     .badge-blue         { background: rgba(59,130,246,.18); color: #60A5FA; }
 
     button {
-      width: 100%; padding: 10px 16px;
+      width: 100%; padding: 7px 14px;
       background: #6366F1; border: none;
-      border-radius: 8px; color: #fff;
-      font-size: 13px; font-weight: 600; cursor: pointer;
+      border-radius: 7px; color: #fff;
+      font-size: 12px; font-weight: 600; cursor: pointer;
       transition: background 0.15s, opacity 0.15s; letter-spacing: 0.1px;
     }
     button:hover:not(:disabled) { background: #4F46E5; }
@@ -121,31 +104,31 @@
 
     .btn-secondary {
       background: #1E293B; border: 1px solid #334155;
-      color: #94A3B8; font-size: 12px; font-weight: 500;
-      margin-top: 8px; padding: 8px 16px;
+      color: #94A3B8; font-size: 11px; font-weight: 500;
+      margin-top: 6px; padding: 6px 14px;
     }
     .btn-secondary:hover:not(:disabled) { background: #334155; color: #E2E8F0; }
 
-    .status { margin-top: 12px; font-size: 11.5px; min-height: 18px; line-height: 1.4; }
+    .status { margin-top: 8px; font-size: 11px; min-height: 16px; line-height: 1.4; }
     .status-info { color: #475569; }
     .status-ok   { color: #4ADE80; }
     .status-err  { color: #F87171; }
 
     .sel-info {
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; padding: 12px; margin-bottom: 14px;
-      font-size: 12px; color: #94A3B8; line-height: 1.5;
+      border-radius: 7px; padding: 8px 10px; margin-bottom: 10px;
+      font-size: 11px; color: #94A3B8; line-height: 1.4;
     }
     .sel-info strong { color: #E2E8F0; }
-    .sel-count { font-size: 20px; font-weight: 700; color: #6366F1; display: block; margin-bottom: 2px; }
-    .sel-breakdown { font-size: 10.5px; color: #475569; margin-top: 4px; }
+    .sel-count { font-size: 18px; font-weight: 700; color: #6366F1; display: block; margin-bottom: 2px; }
+    .sel-breakdown { font-size: 10px; color: #475569; margin-top: 3px; }
 
     .field-hidden { display: none; }
 
-    /* Select a „načítám“ sdílejí stejný prostor (žádné vertikální skládání). */
+    /* Select a „načítám” sdílejí stejný prostor (žádné vertikální skládání). */
     .api-entity-type-slot {
       position: relative;
-      min-height: 38px;
+      min-height: 32px;
       box-sizing: border-box;
     }
     .api-entity-type-slot .api-entity-loading,
@@ -159,23 +142,23 @@
     }
     .api-entity-loading {
       display: flex; align-items: center;
-      min-height: 38px; padding: 8px 12px;
+      min-height: 32px; padding: 6px 10px;
       margin: 0;
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; color: #94A3B8; font-size: 12px;
+      border-radius: 7px; color: #94A3B8; font-size: 11px;
       box-sizing: border-box;
     }
     .api-entity-type-slot .api-entity-type-select.field-hidden,
     .api-entity-type-slot .api-entity-loading.field-hidden { display: none !important; }
 
     .sync-bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; margin-bottom: 14px;
-      background: #1E293B; border-radius: 8px; border: 1px solid #334155;
-      font-size: 11px; color: #94A3B8; line-height: 1.35;
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 9px; margin-bottom: 8px;
+      background: #1E293B; border-radius: 7px; border: 1px solid #334155;
+      font-size: 10px; color: #94A3B8; line-height: 1.3;
     }
     .sync-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
       background: #64748B;
     }
     .sync-dot.connecting { background: #FBBF24; animation: pulse 1s ease-in-out infinite; }
@@ -186,29 +169,26 @@
     .sync-dot.offline { background: #64748B; }
     @keyframes pulse { 50% { opacity: 0.45; } }
 
-    .hint { font-size: 10px; color: #475569; line-height: 1.4; margin-top: 6px; }
+    .hint { font-size: 10px; color: #475569; line-height: 1.4; margin-top: 5px; }
 
-    input[type="text"], input[type="password"] {
+    input[type=”text”], input[type=”password”] {
       width: 100%;
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 8px; color: #E2E8F0;
-      font-size: 12px; padding: 8px 12px; outline: none;
+      border-radius: 7px; color: #E2E8F0;
+      font-family: inherit; font-size: 11px; padding: 6px 10px;
+      outline: none; transition: border-color 0.15s;
     }
     input:focus { border-color: #6366F1; }
 
-    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-row { display: flex; gap: 6px; margin-top: 8px; }
     .btn-row button { flex: 1; margin-top: 0; }
+
+    #app-wrap { overflow: hidden; }
+
   </style>
 </head>
 <body>
-
-  <div class="header">
-    <div class="logo">U</div>
-    <div class="header-text">
-      <h1>UXLog</h1>
-      <p>Figma plugin</p>
-    </div>
-  </div>
+<div id="app-wrap">
 
   <div class="sync-bar" id="syncBar" role="status" aria-live="polite">
     <span class="sync-dot offline" id="syncDot" aria-hidden="true"></span>
@@ -216,14 +196,14 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tabImportBtn">YAML → Figma</button>
+    <button class="tab-btn" id="tabImportBtn">YAML → Figma</button>
     <button class="tab-btn"        id="tabExportBtn">Figma → YAML</button>
     <button class="tab-btn"        id="tabApiBtn">API → Figma</button>
     <button class="tab-btn"        id="tabSettingsBtn">Nastavení</button>
   </div>
 
   <!-- ====== ZÁLOŽKA: IMPORT ====== -->
-  <div id="tab-import">
+  <div id="tab-import" style="display:none">
 
     <div class="field">
       <label for="entityType">Typ entity</label>
@@ -331,8 +311,40 @@ personas:
 
   </div>
 
+</div><!-- #app-wrap -->
+
   <script>
     'use strict';
+
+    // -----------------------------------------------------------------------
+    // Auto-resize: přizpůsobuje výšku okna obsahu
+    // -----------------------------------------------------------------------
+    (function () {
+      // Šířku zachytíme jednou při startu a dál ji neměníme
+      var PLUGIN_W = document.documentElement.offsetWidth || 380;
+
+      function sendResize() {
+        const wrap = document.getElementById('app-wrap');
+        const h = (wrap ? wrap.offsetHeight : 0) + 24; // 24 = 2× padding 12px
+        console.log('[resize] wrapH=' + (wrap && wrap.offsetHeight) + ' →' + PLUGIN_W + 'x' + h + ' t=' + Date.now());
+        if (h > 24) parent.postMessage({ pluginMessage: { type: 'resize', width: PLUGIN_W, height: h } }, '*');
+      }
+
+      // Explicitní první resize po dokončení layoutu (double-rAF zajistí post-paint)
+      requestAnimationFrame(function () { requestAnimationFrame(sendResize); });
+      // Záloha pro případ zpožděného renderu v prostředí Figma iframe
+      setTimeout(sendResize, 150);
+
+      // Sledování všech dalších změn (otevření záložky, roztažení textarea…)
+      if (typeof ResizeObserver !== 'undefined') {
+        var raf = null;
+        var target = document.getElementById('app-wrap') || document.body;
+        new ResizeObserver(function () {
+          if (raf) return;
+          raf = requestAnimationFrame(function () { raf = null; sendResize(); });
+        }).observe(target);
+      }
+    }());
 
     // -----------------------------------------------------------------------
     // Konfigurace typů entit (musí odpovídat storage.js + ENTITY_CONFIGS v code.js)
@@ -562,11 +574,14 @@ personas:
     const tabApi       = document.getElementById('tab-api');
     const tabSettings  = document.getElementById('tab-settings');
 
+    let activeTab = null;
+
     /**
-     * Přepne viditelnou záložku (YAML import, export, API import, nastavení).
-     * @param {'import'|'export'|'api'|'settings'} tab
+     * Přepne viditelnou záložku. Opakované kliknutí na aktivní záložku ji zavře.
+     * @param {'import'|'export'|'api'|'settings'|null} tab
      */
     function showTab(tab) {
+      activeTab = tab;
       tabImportBtn.classList.toggle('active', tab === 'import');
       tabExportBtn.classList.toggle('active', tab === 'export');
       tabApiBtn.classList.toggle('active', tab === 'api');
@@ -577,10 +592,12 @@ personas:
       tabSettings.style.display = tab === 'settings' ? 'block' : 'none';
     }
 
-    tabImportBtn.addEventListener('click', () => showTab('import'));
-    tabExportBtn.addEventListener('click', () => showTab('export'));
-    tabApiBtn.addEventListener('click', () => showTab('api'));
-    tabSettingsBtn.addEventListener('click', () => showTab('settings'));
+    function toggleTab(tab) { showTab(activeTab === tab ? null : tab); }
+
+    tabImportBtn.addEventListener('click', () => toggleTab('import'));
+    tabExportBtn.addEventListener('click', () => toggleTab('export'));
+    tabApiBtn.addEventListener('click', () => toggleTab('api'));
+    tabSettingsBtn.addEventListener('click', () => toggleTab('settings'));
 
     // -----------------------------------------------------------------------
     // Pomocné

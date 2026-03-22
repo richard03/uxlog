@@ -112,7 +112,7 @@ const ERR_UNKNOWN_ENTITY = 'Neznámý typ entity: ';
 // Definice barev pro Figma objekty
 // ---------------------------------------------------------------------------
 
-figma.showUI(__html__, { width: 440, height: 760, title: TITLE_PLUGIN });
+figma.showUI(__html__, { width: 380, height: 300, title: TITLE_PLUGIN });
 const COLOR_BLACK = '#1E293B';
 const COLOR_WHITE = '#f0f0f0';
 const COLOR_GREY = '#94A3B8';
@@ -1087,6 +1087,11 @@ figma.ui.onmessage = async (msg) => {
     }
     figma.ui.postMessage({ type: 'selectionData', byType, projects: Object.values(projectsMap) });
 
+  } else if (msg.type === 'resize') {
+    const w = Math.max(280, Math.min(800, Math.round(msg.width)));
+    const h = Math.max(60, Math.min(1200, Math.round(msg.height)));
+    console.log('[resize] → ' + w + 'x' + h);
+    figma.ui.resize(w, h);
   } else if (msg.type === 'close') {
     figma.closePlugin();
   }
