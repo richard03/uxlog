@@ -3,14 +3,10 @@
     <span class="status-item status-version">
       {{ t.statusBar.version }}{{ version }}
     </span>
-    <span class="status-divider" aria-hidden="true">·</span>
-    <span class="status-item" :title="localSaveFull">
-      {{ t.statusBar.localSave }}: <time :datetime="localSaveIso">{{ localSaveShort }}</time>
-    </span>
-    <template v-if="isFlexiEnabled()">
+    <template v-for="item in visibleItems" :key="item.id">
       <span class="status-divider" aria-hidden="true">·</span>
-      <span class="status-item" :title="apiSyncFull">
-        {{ t.statusBar.apiSync }}: <time :datetime="apiSyncIso">{{ apiSyncShort }}</time>
+      <span class="status-item" :title="toIso(item.value?.value)">
+        {{ tPath(item.label) }}: <time :datetime="toIso(item.value?.value)">{{ formatTs(item.value?.value) ?? t.statusBar.never }}</time>
       </span>
     </template>
   </footer>
@@ -20,11 +16,19 @@
 import { computed } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { APP_VERSION } from '../lib/version.js'
-import { lastLocalSave, lastApiSync } from '../lib/dataStatus.js'
-import { isFlexiEnabled } from '../lib/flexiApi.js'
+import { getStatusItems } from '../lib/plugins/registry.js'
 
-const { t } = useI18n()
+const { t, tPath } = useI18n()
 const version = APP_VERSION
+
+const statusItems = getStatusItems()
+
+const visibleItems = computed(() =>
+  statusItems.filter((item) => {
+    if (typeof item.visible === 'function') return item.visible()
+    return item.visible !== false
+  })
+)
 
 /** Formátuje timestamp jako HH:MM:SS pokud dnes, jinak D.M.YYYY HH:MM:SS */
 function formatTs(ts) {
@@ -44,14 +48,6 @@ function formatTs(ts) {
 function toIso(ts) {
   return ts ? new Date(ts).toISOString() : ''
 }
-
-const localSaveShort = computed(() => formatTs(lastLocalSave.value) ?? t.statusBar.never)
-const localSaveFull = computed(() => toIso(lastLocalSave.value))
-const localSaveIso = computed(() => toIso(lastLocalSave.value))
-
-const apiSyncShort = computed(() => formatTs(lastApiSync.value) ?? t.statusBar.never)
-const apiSyncFull = computed(() => toIso(lastApiSync.value))
-const apiSyncIso = computed(() => toIso(lastApiSync.value))
 </script>
 
 <style scoped>

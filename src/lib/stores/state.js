@@ -4,16 +4,14 @@
  * persist() automaticky orazítkuje updatedAt na každém záznamu, který se
  * od posledního persist() lišil – bez nutnosti cokoliv měnit v store modulech.
  * Porovnání probíhá vůči persistedSnapshot (deep-clone stavu po posledním uložení).
+ *
+ * Vedlejší efekty (sync, status tracking) jsou odděleny do pluginů –
+ * state.js pouze emituje událost 'data:persisted' přes plugin registry.
  */
 
 import { reactive, toRaw } from 'vue'
 import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
-import { diffAndSync, addTombstones } from '../flexiSync.js'
-
-/** Debounce zápisů do API – čeká na klid 2 s po posledním persist(). */
-const DIFF_SYNC_DEBOUNCE_MS = 2000
-let _diffSyncTimer = null
-import { recordLocalSave } from '../dataStatus.js'
+import { emit } from '../plugins/registry.js'
 
 const _initialData = Object.assign(getEmptyData(), loadData())
 export const state = reactive(_initialData)
@@ -79,25 +77,22 @@ export function persist() {
 
   const raw = toRaw(state)
 
-  // Zaznamenej smazané entity do tombstones (pro ochranu před jejich návratem z API)
-  const deleted = {}
+  // Detekuj smazané entity (pro tombstones v pluginech)
+  const deletedEntities = {}
   for (const key of Object.keys(getEmptyData())) {
     if (!Array.isArray(raw[key])) continue
     const newIds = new Set(raw[key].map((r) => r?.id).filter(Boolean))
     const deletedIds = (persistedSnapshot[key] || [])
       .filter((r) => r?.id && !newIds.has(r.id))
       .map((r) => r.id)
-    if (deletedIds.length) deleted[key] = deletedIds
+    if (deletedIds.length) deletedEntities[key] = deletedIds
   }
-  if (Object.keys(deleted).length) addTombstones(deleted)
 
   persistedSnapshot = JSON.parse(JSON.stringify(raw))
   saveData(raw)
-  recordLocalSave()
 
-  // Debounce: nespamuj API při rychlé editaci – odešli až po 2 s klidu
-  clearTimeout(_diffSyncTimer)
-  _diffSyncTimer = setTimeout(() => diffAndSync(toRaw(state)), DIFF_SYNC_DEBOUNCE_MS)
+  // Emituj událost pro pluginy (data-status, flexi sync, atd.)
+  emit('data:persisted', { state: raw, deletedEntities })
 
   console.log('[UXLog] persist, projektů:', state.projects?.length ?? 0)
 }

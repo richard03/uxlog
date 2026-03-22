@@ -7,8 +7,12 @@ import App from './App.vue'
 import router from './router/index.js'
 import './style.css'
 import './lib/store.js'
+import { installPlugins } from './lib/plugins/install.js'
 
 console.log('[UXLog] Aplikace startuje')
+
+// Inicializuj plugin systém před vytvořením Vue app
+installPlugins()
 
 try {
   const app = createApp(App)

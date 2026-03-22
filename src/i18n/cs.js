@@ -465,6 +465,17 @@ export default {
       apiKeyHint: 'Pokud je zadán, odesílá se jako hlavička Authorization: Bearer {klíč}.',
     },
   },
+  plugins: {
+    title: 'Pluginy',
+    hint: 'Pluginy rozšiřují funkce aplikace. Vypnuté pluginy se po reloadu stránky znovu nenačtou.',
+    enabled: 'Zapnuto',
+    disabled: 'Vypnuto',
+    enable: 'Zapnout',
+    disable: 'Vypnout',
+    enableAria: (name) => `Zapnout plugin ${name}`,
+    disableAria: (name) => `Vypnout plugin ${name}`,
+    reloadNeeded: 'Změna se plně projeví po obnovení stránky.',
+  },
   completeness: {
     ariaLabel: (filled, total) => `Vyplněno ${filled} z ${total} polí`,
   },

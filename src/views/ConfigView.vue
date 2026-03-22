@@ -43,8 +43,10 @@ import { computed } from 'vue'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
-import { AI_SERVICES, loadAiKeys } from '../lib/aiKeys.js'
-import { loadFlexiConfig } from '../lib/flexiApi.js'
+import { loadAiKeys } from '../lib/plugins/ai-shared/keys.js'
+import { SERVICE_DEF as GEMINI_SERVICE } from '../lib/plugins/gemini/index.js'
+import { SERVICE_DEF as OPENAI_SERVICE } from '../lib/plugins/openai/index.js'
+import { loadFlexiConfig } from '../lib/plugins/flexi/flexiApi.js'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
 
@@ -62,7 +64,7 @@ const apiKeyCount = computed(() => {
   const flexi = loadFlexiConfig()
   const aiKeys = loadAiKeys()
   const flexiCount = flexi.url ? 1 : 0
-  const aiCount = AI_SERVICES.filter((s) => aiKeys[s.id]).length
+  const aiCount = [GEMINI_SERVICE, OPENAI_SERVICE].filter((s) => aiKeys[s.id]).length
   return flexiCount + aiCount
 })
 </script>

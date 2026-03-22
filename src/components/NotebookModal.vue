@@ -90,7 +90,7 @@ import { ref, watch } from 'vue'
 import Modal from './Modal.vue'
 import AppButton from './AppButton.vue'
 import { useI18n } from '../composables/useI18n.js'
-import { processNotebook, hasAiKey } from '../lib/aiProcessor.js'
+import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 
 const props = defineProps({
   initialText: { type: String, default: '' },
@@ -106,7 +106,7 @@ const view = ref('edit') // 'edit' | 'processing' | 'actions'
 const aiActions = ref([])
 const aiResidualText = ref('')
 const aiError = ref('')
-const aiKeyAvailable = ref(hasAiKey())
+const aiKeyAvailable = ref(hasCapability('ai:available') && callCapability('ai:available'))
 
 watch(() => props.initialText, (v) => { text.value = v }, { immediate: true })
 
@@ -119,7 +119,7 @@ async function runAiProcess() {
   aiError.value = ''
   aiActions.value = []
   try {
-    const { actions, residualText } = await processNotebook(text.value, props.projectData)
+    const { actions, residualText } = await callCapability('ai:notebook', text.value, props.projectData)
     aiResidualText.value = residualText
     if (actions.length === 0) {
       aiError.value = t.notebook.noActions

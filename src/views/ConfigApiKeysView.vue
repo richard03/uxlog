@@ -6,8 +6,32 @@
       <p class="page-hint">{{ t.settings.hint }}</p>
     </header>
 
-    <!-- Flexi API konektor -->
-    <SectionCard :title="t.settings.flexi.name" :aria-label="t.settings.flexi.name">
+    <!-- Pluginy -->
+    <SectionCard :title="t.plugins.title" :aria-label="t.plugins.title">
+      <p class="service-hint">{{ t.plugins.hint }}</p>
+      <div class="plugin-list">
+        <div v-for="def in pluginDefs" :key="def.id" class="plugin-row">
+          <div class="plugin-info">
+            <strong>{{ def.name }}</strong>
+            <span class="plugin-status" :class="isActive(def.id) ? 'status-on' : 'status-off'">
+              {{ isActive(def.id) ? t.plugins.enabled : t.plugins.disabled }}
+            </span>
+          </div>
+          <AppButton
+            :variant="isActive(def.id) ? 'danger' : 'primary'"
+            size="sm"
+            :aria-label="isActive(def.id) ? t.plugins.disableAria(def.name) : t.plugins.enableAria(def.name)"
+            @click="togglePlugin(def.id)"
+          >
+            {{ isActive(def.id) ? t.plugins.disable : t.plugins.enable }}
+          </AppButton>
+        </div>
+      </div>
+      <p v-if="pluginChanged" class="reload-hint" role="status">{{ t.plugins.reloadNeeded }}</p>
+    </SectionCard>
+
+    <!-- Flexi API konektor (jen pokud je plugin aktivní) -->
+    <SectionCard v-if="isActive('flexi-api')" :title="t.settings.flexi.name" :aria-label="t.settings.flexi.name">
       <dl class="detail-list">
         <div class="detail-item">
           <dt>{{ t.settings.flexi.urlLabel }}</dt>
@@ -35,9 +59,10 @@
       <p class="service-hint">{{ t.settings.flexi.hint }}</p>
     </SectionCard>
 
-    <!-- AI služby -->
+    <!-- AI služby – každá podmíněná svým pluginem -->
     <SectionCard
-      v-for="service in AI_SERVICES"
+      v-for="service in aiServices"
+      v-show="isActive(service.pluginId)"
       :key="service.id"
       :title="service.name"
       :aria-label="service.name"
@@ -127,9 +152,12 @@
 import { reactive, ref, computed } from 'vue'
 import { toRaw } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
-import { AI_SERVICES, loadAiKeys, saveAiKeys, isAiServiceEnabled, setAiServiceEnabled } from '../lib/aiKeys.js'
-import { loadFlexiConfig, saveFlexiConfig } from '../lib/flexiApi.js'
-import { initFlexiSync, setFlexiSnapshot } from '../lib/flexiSync.js'
+import { loadAiKeys, saveAiKeys, isAiServiceEnabled, setAiServiceEnabled } from '../lib/plugins/ai-shared/keys.js'
+import { SERVICE_DEF as GEMINI_SERVICE } from '../lib/plugins/gemini/index.js'
+import { SERVICE_DEF as OPENAI_SERVICE } from '../lib/plugins/openai/index.js'
+import { loadFlexiConfig, saveFlexiConfig } from '../lib/plugins/flexi/flexiApi.js'
+import { initFlexiSync, setFlexiSnapshot } from '../lib/plugins/flexi/flexiSync.js'
+import { getAllPluginDefs, isPluginActive, enablePlugin, disablePlugin } from '../lib/plugins/registry.js'
 import { state, getData, persist } from '../lib/stores/index.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import SectionCard from '../components/SectionCard.vue'
@@ -138,6 +166,23 @@ import Modal from '../components/Modal.vue'
 import AppButton from '../components/AppButton.vue'
 
 const { t } = useI18n()
+
+// --- Pluginy ---
+const pluginDefs = computed(() => getAllPluginDefs().filter((p) => !p.core))
+const pluginChanged = ref(false)
+
+function isActive(id) {
+  return isPluginActive(id)
+}
+
+function togglePlugin(id) {
+  if (isPluginActive(id)) {
+    disablePlugin(id)
+  } else {
+    enablePlugin(id)
+  }
+  pluginChanged.value = true
+}
 
 const breadcrumbs = computed(() => [
   { label: t.nav.config, to: { name: 'config' } },
@@ -195,15 +240,21 @@ async function runSync() {
 
 // --- AI služby ---
 
+/** Seznam AI služeb s mapováním na plugin id */
+const aiServices = [
+  { ...GEMINI_SERVICE, pluginId: 'ai-gemini' },
+  { ...OPENAI_SERVICE, pluginId: 'ai-openai' },
+]
+
 const loadedAi = loadAiKeys()
 const keys = reactive(
-  Object.fromEntries(AI_SERVICES.map((s) => [s.id, loadedAi[s.id] ?? '']))
+  Object.fromEntries(aiServices.map((s) => [s.id, loadedAi[s.id] ?? '']))
 )
 const models = reactive(
-  Object.fromEntries(AI_SERVICES.map((s) => [s.id, loadedAi[`${s.id}_model`] ?? '']))
+  Object.fromEntries(aiServices.map((s) => [s.id, loadedAi[`${s.id}_model`] ?? '']))
 )
 const enabled = reactive(
-  Object.fromEntries(AI_SERVICES.map((s) => [s.id, isAiServiceEnabled(s.id)]))
+  Object.fromEntries(aiServices.map((s) => [s.id, isAiServiceEnabled(s.id)]))
 )
 
 function maskedKey(serviceId) {
@@ -224,7 +275,7 @@ function saveAiField(serviceId, field, value) {
     models[serviceId] = value
   }
   const data = {}
-  for (const s of AI_SERVICES) {
+  for (const s of aiServices) {
     data[s.id] = keys[s.id]
     data[`${s.id}_model`] = models[s.id]
   }
@@ -299,5 +350,54 @@ dd {
   justify-content: flex-end;
   gap: var(--space-xs);
   margin-top: var(--space-md);
+}
+
+.plugin-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.plugin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.plugin-row:last-child {
+  border-bottom: none;
+}
+
+.plugin-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.plugin-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-on {
+  color: var(--success, #16a34a);
+  background: var(--success-bg, rgba(22, 163, 74, 0.1));
+}
+
+.status-off {
+  color: var(--text-muted);
+  background: var(--bg-muted, rgba(128, 128, 128, 0.1));
+}
+
+.reload-hint {
+  margin-top: var(--space-sm);
+  color: var(--warning, #ca8a04);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 </style>

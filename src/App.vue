@@ -25,8 +25,7 @@ import AppHeader from './components/AppHeader.vue'
 import StatusBar from './components/StatusBar.vue'
 import { useI18n } from './composables/useI18n.js'
 import { state, getData, persist } from './lib/stores/index.js'
-import { initFlexiSync } from './lib/flexiSync.js'
-import { isFlexiEnabled } from './lib/flexiApi.js'
+import { hasCapability, callCapability } from './lib/plugins/registry.js'
 
 const { t } = useI18n()
 
@@ -36,10 +35,13 @@ let syncTimer = null
 let syncing = false
 
 async function runSync() {
-  if (syncing || !isFlexiEnabled()) return
+  if (syncing || !hasCapability('sync:run')) return
+  // Ověř, zda je sync skutečně povolený (URL nastaveno + syncEnabled)
+  const isEnabled = callCapability('sync:enabled')
+  if (!isEnabled) return
   syncing = true
   try {
-    await initFlexiSync(toRaw(getData()), (updates) => {
+    await callCapability('sync:run', toRaw(getData()), (updates) => {
       Object.assign(state, updates)
       persist()
     })

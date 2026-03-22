@@ -185,7 +185,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
-import { hasAiKey, suggestConnections } from '../lib/aiProcessor.js'
+import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 import AppButton from './AppButton.vue'
 import Modal from './Modal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -347,7 +347,7 @@ const aiSuggestTitle = computed(() => {
 })
 
 // --- AI: najít souvislost ---
-const aiAvailable = computed(() => hasAiKey())
+const aiAvailable = computed(() => hasCapability('ai:available') && callCapability('ai:available'))
 const showAiSuggest = ref(false)
 const aiLoading = ref(false)
 const aiError = ref('')
@@ -380,7 +380,7 @@ async function runAiSuggest() {
       projectData[key] = (data[key] ?? []).filter((e) => e.projectId === props.projectId)
     }
 
-    const raw = await suggestConnections(entity, props.entityType, projectData)
+    const raw = await callCapability('ai:suggestions', entity, props.entityType, projectData)
 
     aiSuggestions.value = raw
       .map((s) => {
