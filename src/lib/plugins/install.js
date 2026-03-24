@@ -11,6 +11,7 @@ import { setCoreRefs, registerPlugin } from './registry.js'
 import { state, getData, persist } from '../stores/state.js'
 
 import dataStatusPlugin from './data-status/index.js'
+import tauriLocalApiPlugin from './tauri-local-api/index.js'
 import flexiPlugin from './flexi/index.js'
 import geminiPlugin from './gemini/index.js'
 import openaiPlugin from './openai/index.js'
@@ -29,6 +30,8 @@ export function installPlugins() {
   // Registrace pluginů v pořadí závislostí:
   // 1. data-status – musí být první, protože flexi emituje sync:api-write
   registerPlugin(dataStatusPlugin)
+  // 1b. tauri-local-api – StatusBar URL lokálního HTTP API (jen Tauri)
+  registerPlugin(tauriLocalApiPlugin)
   // 2. flexi – závisí na data-status (importuje lastApiSync)
   registerPlugin(flexiPlugin)
   // 3. AI pluginy – nezávisí na ostatních, registrují stejné capabilities

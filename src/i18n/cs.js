@@ -10,6 +10,7 @@ export default {
   statusBar: {
     version: 'v',
     localSave: 'Lokálně uloženo',
+    localApi: 'Lokální API',
     apiSync: 'API synchronizováno',
     never: 'nikdy',
     ariaLabel: 'Stav aplikace',

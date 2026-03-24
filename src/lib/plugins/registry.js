@@ -193,7 +193,7 @@ export function callCapability(id, ...args) {
 
 /**
  * Register a status item for StatusBar.
- * @param {{ id: string, label: string, value: import('vue').Ref, visible?: import('vue').Ref<boolean>|Function }} item
+ * @param {{ id: string, label: string, value: import('vue').Ref, visible?: import('vue').Ref<boolean>|Function, kind?: 'timestamp'|'text' }} item  kind: 'text' = prostý řetězec (výchozí: časové razítko)
  * @param {string} pluginId
  */
 function registerStatusItem(item, pluginId) {

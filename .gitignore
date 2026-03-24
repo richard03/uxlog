@@ -9,6 +9,9 @@ api/config.example.php
 /node_modules
 /dist
 
+# Installers
+/install
+
 # Tauri
 /src-tauri/target
 /src-tauri/gen

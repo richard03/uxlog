@@ -5,7 +5,15 @@
     </span>
     <template v-for="item in visibleItems" :key="item.id">
       <span class="status-divider" aria-hidden="true">·</span>
-      <span class="status-item" :title="toIso(item.value?.value)">
+      <span
+        v-if="item.kind === 'text'"
+        class="status-item"
+        :title="plainStatusValue(item)"
+        :aria-label="`${tPath(item.label)}: ${plainStatusValue(item)}`"
+      >
+        {{ tPath(item.label) }}: <span class="status-plain">{{ plainStatusValue(item) }}</span>
+      </span>
+      <span v-else class="status-item" :title="toIso(item.value?.value)">
         {{ tPath(item.label) }}: <time :datetime="toIso(item.value?.value)">{{ formatTs(item.value?.value) ?? t.statusBar.never }}</time>
       </span>
     </template>
@@ -13,7 +21,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, unref } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { APP_VERSION } from '../lib/version.js'
 import { getStatusItems } from '../lib/plugins/registry.js'
@@ -48,6 +56,16 @@ function formatTs(ts) {
 function toIso(ts) {
   return ts ? new Date(ts).toISOString() : ''
 }
+
+/**
+ * Vrátí zobrazený text pro status položku typu plain (ref na řetězec).
+ * @param {{ value: import('vue').Ref<string>|string }} item
+ * @returns {string}
+ */
+function plainStatusValue(item) {
+  const v = unref(item.value)
+  return v == null || v === '' ? '—' : String(v)
+}
 </script>
 
 <style scoped>
@@ -80,6 +98,11 @@ function toIso(ts) {
 }
 
 time {
+  font-variant-numeric: tabular-nums;
+}
+
+.status-plain {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 </style>
