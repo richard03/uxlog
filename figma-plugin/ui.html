@@ -416,6 +416,8 @@ personas:
     var _parseYamlWaiters = new Map();
     var _serializeYamlWaiters = new Map();
     var _flexiValidateWaiters = new Map();
+    /** Čekání na dokončení jedné entity při pull z API (postupná aktualizace Figmy). */
+    var _applyRemoteEntityWaiters = new Map();
 
     /**
      * Obnoví mapu typ → yamlKey z ENTITY_TYPE_CONFIG.
@@ -479,6 +481,27 @@ personas:
         const requestId = 'f' + String(++_bridgeSeq);
         _flexiValidateWaiters.set(requestId, resolve);
         parent.postMessage({ pluginMessage: { type: 'validateFlexiConnect', url: url, requestId: requestId } }, '*');
+      });
+    }
+
+    /**
+     * Propíše jednu entitu do karet ve Figmě a počká na dokončení v main threadu.
+     * @param {string} pluginType
+     * @param {Object} entity
+     * @returns {Promise<void>}
+     */
+    function applyRemoteEntityAndWait(pluginType, entity) {
+      return new Promise(function (resolve, reject) {
+        const requestId = 'a' + String(++_bridgeSeq);
+        _applyRemoteEntityWaiters.set(requestId, { resolve: resolve, reject: reject });
+        parent.postMessage({
+          pluginMessage: {
+            type: 'applyRemoteEntity',
+            entityType: pluginType,
+            entity: entity,
+            requestId: requestId,
+          },
+        }, '*');
       });
     }
 
@@ -795,7 +818,8 @@ personas:
      */
     async function hydrateEntityCacheIfNeeded() {
       var missing = PLUGIN_CARD_TYPES.filter(function (pt) {
-        return !flexiEntityCacheLoaded.has(PLUGIN_TO_API_ENTITY[pt]);
+        var ae = PLUGIN_TO_API_ENTITY[pt];
+        return !!ae && !flexiEntityCacheLoaded.has(ae);
       });
       if (missing.length === 0) return;
       try {
@@ -975,16 +999,14 @@ personas:
         apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum');
       } catch (_) { return null; }
 
-      console.log('[countApiChanges] lastPull=' + lastPull + ', storedChecksums=', storedChecksums, 'apiChecksums=', apiChecksums);
-
       var totalChanges = 0;
       for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
         var pluginType = PLUGIN_CARD_TYPES[i];
         var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+        if (!apiEntity) continue;
         var storedVal = storedChecksums[apiEntity];
         var apiVal = apiChecksums ? apiChecksums[apiEntity] : undefined;
         var same = apiVal !== undefined && storedVal === apiVal;
-        console.log('[countApiChanges] ' + apiEntity + ': stored=' + storedVal + ' api=' + apiVal + ' same=' + same);
         if (same) continue;
 
         if (lastPull > 0) {
@@ -992,10 +1014,8 @@ personas:
             var resp = await flexiFetch('GET', '/api/uxlog_' + apiEntity + '?since=' + lastPull);
             var parsed = parseUxlogCollectionBody(resp);
             var filtered = filterByProject(parsed.records.map(normalizeApiRecord), projectId);
-            console.log('[countApiChanges] ' + apiEntity + ' since=' + lastPull + ': records=' + parsed.records.length + ' filtered=' + filtered.length + ' deleted=' + (parsed.deleted || []).length);
             totalChanges += filtered.length + (parsed.deleted || []).length;
           } catch (e) {
-            console.warn('[countApiChanges] ' + apiEntity + ' fetch error:', e);
             totalChanges += 1;
           }
         } else {
@@ -1004,7 +1024,6 @@ personas:
           totalChanges += filterByProject(arr, projectId).length;
         }
       }
-      console.log('[countApiChanges] totalChanges=' + totalChanges);
       return totalChanges;
     }
 
@@ -1201,6 +1220,10 @@ personas:
     btnPull.addEventListener('click', async () => {
       var projectId = apiProjectSel.value;
       if (!projectId || !pluginConfig || !pluginConfig.connected) return;
+      if (!PLUGIN_CARD_TYPES.length || !Object.keys(PLUGIN_TO_API_ENTITY).length) {
+        setApiStatus('Konfigurace pluginu se ještě načítá. Zkuste to za chvíli znovu.', 'err');
+        return;
+      }
 
       btnPull.disabled = true;
       btnPush.disabled = true;
@@ -1209,6 +1232,7 @@ personas:
 
       try {
         var totalApplied = 0;
+        var applyErrors = 0;
         var now = Date.now();
         var newChecksums = {};
 
@@ -1218,26 +1242,28 @@ personas:
         for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
           var pluginType = PLUGIN_CARD_TYPES[i];
           var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          if (!apiEntity) continue;
+          var typeCfg = ENTITY_TYPE_CONFIG[pluginType];
+          var typeLabel = typeCfg && typeCfg.label ? typeCfg.label : pluginType;
+
+          setApiStatus('API: stahuji ' + typeLabel + '…', 'info');
           var result = await fetchCollection(apiEntity);
           var filtered = filterByProject(result.records.map(normalizeApiRecord), projectId);
 
           for (var j = 0; j < filtered.length; j++) {
-            parent.postMessage({
-              pluginMessage: {
-                type: 'applyRemoteEntity',
-                entityType: pluginType,
-                entity: filtered[j],
-              },
-            }, '*');
-            totalApplied++;
+            setApiStatus('Figmu: ' + typeLabel + ' ' + (j + 1) + '/' + filtered.length + '…', 'info');
+            try {
+              await applyRemoteEntityAndWait(pluginType, filtered[j]);
+              totalApplied++;
+            } catch (errApply) {
+              applyErrors++;
+              console.error('[UXLog] Pull — zápis entity selhal:', pluginType, filtered[j] && filtered[j].id, errApply);
+            }
           }
 
           if (apiChecksums && apiChecksums[apiEntity] !== undefined) {
             newChecksums[apiEntity] = apiChecksums[apiEntity];
           }
-
-          // Krátká pauza mezi typy entit
-          await new Promise(function (r) { setTimeout(r, 200); });
         }
 
         // Uložit timestamp a checksums
@@ -1249,7 +1275,14 @@ personas:
         }, '*');
 
         setSyncIndicator('idle', 'Připojeno');
-        setApiStatus('Aktualizováno: ' + totalApplied + ' entit z API.', 'ok');
+        if (applyErrors > 0) {
+          setApiStatus(
+            'Aktualizováno ' + totalApplied + ' entit, ' + applyErrors + ' zápisů selhalo (viz konzoli).',
+            'err',
+          );
+        } else {
+          setApiStatus('Aktualizováno: ' + totalApplied + ' entit z API.', 'ok');
+        }
         displaySyncTimestamps(projectId);
         await refreshChangeCounters();
       } catch (e) {
@@ -1300,6 +1333,7 @@ personas:
         for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
           var pluginType = PLUGIN_CARD_TYPES[i];
           var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          if (!apiEntity) continue;
           var arr = flexiEntityCache[apiEntity] || [];
           var filtered = filterByProject(arr.map(normalizeApiRecord), projectId);
           if (filtered.length === 0) continue;
@@ -1630,6 +1664,15 @@ personas:
         }
         return;
       }
+      if (msg.type === 'applyRemoteEntityDone') {
+        var aw = msg.requestId ? _applyRemoteEntityWaiters.get(msg.requestId) : null;
+        if (aw) {
+          _applyRemoteEntityWaiters.delete(msg.requestId);
+          if (msg.ok) aw.resolve();
+          else aw.reject(new Error(msg.message || 'applyRemoteEntity'));
+        }
+        return;
+      }
 
       if (msg.type === 'success') {
         btn.disabled = false;
@@ -1743,10 +1786,13 @@ personas:
             var item = entities[i];
             try {
               var apiEntity = PLUGIN_TO_API_ENTITY[item.entityType];
+              if (!apiEntity) {
+                errors++;
+                continue;
+              }
               var putId = item.entity._apiId != null ? item.entity._apiId : item.entity.id;
               var ts = Date.now();
               var body = Object.assign({}, item.entity, { _uxlog_id: item.entity.id, _ts: ts });
-              console.log('[push] PUT /api/uxlog_' + apiEntity + '/' + putId, JSON.stringify(body).slice(0, 500));
               await flexiFetch('PUT', '/api/uxlog_' + apiEntity + '/' + encodeURIComponent(putId), body);
               saved++;
               savedEntities.push({ entityType: item.entityType, entityId: item.entityId });

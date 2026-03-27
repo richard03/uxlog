@@ -691,12 +691,14 @@ function notifySelection() {
   const sel = figma.currentPage.selection;
   const total = sel.length;
   const counts = {};
-  let uxlog = 0;
-  for (const node of sel) {
+  const cards = collectUxlogCardNodesFromSubtreeRoots(sel);
+  let uxlog = cards.length;
+  for (var ci = 0; ci < cards.length; ci++) {
     try {
+      const node = cards[ci];
       const type = node.getPluginData('uxlogEntityType') ||
                    (node.getPluginData('uxlogPersona') ? 'persona' : null);
-      if (type) { counts[type] = (counts[type] || 0) + 1; uxlog++; }
+      if (type) { counts[type] = (counts[type] || 0) + 1; }
     } catch (_) {}
   }
   setTimeout(function () {
@@ -767,6 +769,7 @@ function applyCardSyncMetadata(card, entityType, entity, project, meta) {
 
 /**
  * Najde všechny karty dané entity na aktuální stránce (včetně vnořených skupin).
+ * Duplicitní kopie se stejným ID se vrátí všechny — pull z API je aktualizuje najednou.
  * @param {string} entityType
  * @param {string} uxlogEntityId
  * @returns {FrameNode[]}
@@ -945,6 +948,34 @@ function extractPersonaFromCard(card) {
     targetGroupSize,
     targetGroupValue,
   });
+}
+
+/**
+ * Rekurzivně najde všechny UXLog karty (FRAME s plugin daty) pod vybranými kořeny.
+ * Umožní export při výběru skupiny/sekce, ne jen přímém výběru karty.
+ * @param {ReadonlyArray<SceneNode>} selection
+ * @returns {FrameNode[]}
+ */
+function collectUxlogCardNodesFromSubtreeRoots(selection) {
+  const seen = new Set();
+  const out = [];
+  function visit(n) {
+    if (n.type === 'FRAME') {
+      const et = n.getPluginData('uxlogEntityType');
+      const legacy = n.getPluginData('uxlogPersona');
+      if (et || legacy) {
+        if (!seen.has(n.id)) {
+          seen.add(n.id);
+          out.push(n);
+        }
+      }
+    }
+    if ('children' in n && n.children) {
+      for (var i = 0; i < n.children.length; i++) visit(n.children[i]);
+    }
+  }
+  for (var s = 0; s < selection.length; s++) visit(selection[s]);
+  return out;
 }
 
 /** Jednotný vstupní bod pro extrakci — vrátí { type, entity } nebo null */
@@ -1238,7 +1269,7 @@ function isCardDirty(stored, current, entityType) {
 }
 
 /**
- * Propíše data entity do všech karet stejné entity na aktuální stránce.
+ * Propíše data entity do všech karet stejné entity na aktuální stránce (všechny duplicity podle ID).
  *
  * Vícevrstvá ochrana proti přepsání lokálních změn:
  *   1) Timestamp uxlogLocalEditTs > uxlogLastDbSyncTs — jen pro poll (ne save response,
@@ -1391,31 +1422,74 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({ type: 'pluginConfigLoaded', config: config });
   } else if (msg.type === 'savePluginConfig') {
     var toSave = msg.config;
-    if (toSave && typeof toSave === 'object' && toSave.url != null) {
-      toSave = Object.assign({}, toSave, { url: normalizeFlexiBaseUrl(String(toSave.url).trim()) });
+    if (toSave == null || typeof toSave !== 'object') {
+      figma.ui.postMessage({ type: 'pluginConfigSaved', ok: false });
+    } else {
+      if (toSave.url != null) {
+        toSave = Object.assign({}, toSave, { url: normalizeFlexiBaseUrl(String(toSave.url).trim()) });
+      }
+      await figma.clientStorage.setAsync(PLUGIN_CONFIG_STORAGE_KEY, toSave);
+      figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
     }
-    await figma.clientStorage.setAsync(PLUGIN_CONFIG_STORAGE_KEY, toSave);
-    figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
   } else if (msg.type === 'applyRemoteEntity') {
-    try {
-      await applyEntityToAllMatchingCards(msg.entityType, msg.entity);
-      figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: true });
-    } catch (err) {
-      figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: false, message: String(err) });
+    var applyRid = msg.requestId;
+    if (!msg.entity || typeof msg.entity !== 'object') {
+      figma.ui.postMessage({
+        type: 'applyRemoteEntityDone',
+        ok: false,
+        message: 'Chybí platná data entity.',
+        requestId: applyRid,
+      });
+    } else if (!msg.entityType || typeof msg.entityType !== 'string') {
+      figma.ui.postMessage({
+        type: 'applyRemoteEntityDone',
+        ok: false,
+        message: 'Chybí typ entity.',
+        requestId: applyRid,
+      });
+    } else {
+      try {
+        await applyEntityToAllMatchingCards(msg.entityType, msg.entity);
+        figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: true, requestId: applyRid });
+      } catch (err) {
+        figma.ui.postMessage({
+          type: 'applyRemoteEntityDone',
+          ok: false,
+          message: String(err),
+          requestId: applyRid,
+        });
+      }
     }
   } else if (msg.type === 'generate') {
     try {
-      if (msg.entityType === 'persona') {
-        await generatePersonaCards(msg.entities, msg.projects || [], msg);
+      const genEntities = msg.entities;
+      if (!Array.isArray(genEntities) || genEntities.length === 0) {
+        figma.ui.postMessage({
+          type: 'error',
+          message: 'Neplatná data: žádné entity k vygenerování.',
+        });
+      } else if (!msg.entityType || typeof msg.entityType !== 'string') {
+        figma.ui.postMessage({
+          type: 'error',
+          message: 'Neplatná data: chybí typ entity.',
+        });
+      } else if (msg.entityType === 'persona') {
+        await generatePersonaCards(genEntities, msg.projects || [], msg);
+        figma.ui.postMessage({
+          type: 'success',
+          count: genEntities.length,
+          entityType: msg.entityType,
+          silent: !!msg.silent,
+        });
       } else {
-        await generateGenericCards(msg.entities, msg.entityType, msg.projects || [], msg);
+        await generateGenericCards(genEntities, msg.entityType, msg.projects || [], msg);
+        figma.ui.postMessage({
+          type: 'success',
+          count: genEntities.length,
+          entityType: msg.entityType,
+          silent: !!msg.silent,
+        });
       }
-      figma.ui.postMessage({
-        type: 'success',
-        count: msg.entities.length,
-        entityType: msg.entityType,
-        silent: !!msg.silent,
-      });
     } catch (err) {
       console.error(err);
       figma.ui.postMessage({ type: 'error', message: String(err) });
@@ -1425,9 +1499,10 @@ figma.ui.onmessage = async (msg) => {
     const byType = {};
     const projectsMap = {};
     const sel = figma.currentPage.selection;
+    const nodesToRead = collectUxlogCardNodesFromSubtreeRoots(sel);
     let readSelStep = 0;
-    for (let si = 0; si < sel.length; si++) {
-      const node = sel[si];
+    for (let si = 0; si < nodesToRead.length; si++) {
+      const node = nodesToRead[si];
       try {
         const result = extractEntityFromCard(node);
         if (!result) continue;
@@ -1494,10 +1569,14 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({ type: 'localChangesCount', total });
 
   } else if (msg.type === 'collectDirtyEntities') {
-    // Extrahuje entity se změněnými field-level atributy z aktuální stránky
+    /**
+     * Duplicitní karty se stejným typem a ID: do API jeden PUT (vybere se payload z karty
+     * s nejnovějším uxlogLocalEditTs; při shodě rozhoduje stabilně node.id).
+     * Po uložení markSavedEntitiesClean vyčistí všechny takové karty na stránce.
+     */
     const projectId = msg.projectId;
-    const results = [];
-    const seen = new Set();
+    /** @type {Map<string, { entityType: string, entityId: string, entity: Object, localTs: number, cardId: string }>} */
+    const bestByKey = new Map();
     function hasFieldLevelChange(card) {
       let storedEntity = {};
       try { storedEntity = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
@@ -1527,16 +1606,28 @@ figma.ui.onmessage = async (msg) => {
         const eid = node.getPluginData('uxlogEntityId');
         if (et && eid) {
           const key = et + ':' + eid;
-          if (seen.has(key)) return;
           if (projectId) {
             const cardPid = node.getPluginData('uxlogProjectId');
             if (cardPid && cardPid !== String(projectId)) return;
           }
           if (hasFieldLevelChange(node)) {
-            seen.add(key);
             const merged = mergeEntityForPayload(node);
             if (merged && merged.id) {
-              results.push({ entityType: et, entityId: eid, entity: merged });
+              const localTs = parseInt(node.getPluginData('uxlogLocalEditTs') || '0', 10) || 0;
+              const cardId = node.id;
+              const prev = bestByKey.get(key);
+              const better = !prev ||
+                localTs > prev.localTs ||
+                (localTs === prev.localTs && String(cardId) > String(prev.cardId));
+              if (better) {
+                bestByKey.set(key, {
+                  entityType: et,
+                  entityId: eid,
+                  entity: merged,
+                  localTs: localTs,
+                  cardId: cardId,
+                });
+              }
             }
           }
           return;
@@ -1549,6 +1640,10 @@ figma.ui.onmessage = async (msg) => {
     }
     const collectRoots = figma.currentPage.children;
     for (let ri = 0; ri < collectRoots.length; ri++) await walkCollect(collectRoots[ri]);
+    const results = [];
+    bestByKey.forEach(function (v) {
+      results.push({ entityType: v.entityType, entityId: v.entityId, entity: v.entity });
+    });
     figma.ui.postMessage({ type: 'dirtyEntitiesCollected', entities: results });
 
   } else if (msg.type === 'markSavedEntitiesClean' || msg.type === 'markAllCardsClean') {
