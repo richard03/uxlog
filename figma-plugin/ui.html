@@ -400,202 +400,121 @@ personas:
     }());
 
     // -----------------------------------------------------------------------
-    // Konfigurace typů entit (musí odpovídat storage.js + ENTITY_CONFIGS v code.js)
+    // Konfigurace z main threadu (code.js) — uiBootstrap po uiReady
     // -----------------------------------------------------------------------
 
-    const ENTITY_TYPE_CONFIG = {
-      persona:     { yamlKey: 'personas',     sg: 'personu',      few: 'persony',       many: 'person',        label: 'Persona'     },
-      hypothesis:  { yamlKey: 'hypotheses',   sg: 'hypotézu',     few: 'hypotézy',      many: 'hypotéz',       label: 'Hypotéza'    },
-      scenario:    { yamlKey: 'scenarios',    sg: 'scénář',       few: 'scénáře',       many: 'scénářů',       label: 'Scénář'      },
-      stakeholder: { yamlKey: 'stakeholders', sg: 'stakeholdera', few: 'stakeholdery',  many: 'stakeholderů',  label: 'Stakeholder' },
-      goal:        { yamlKey: 'goals',        sg: 'cíl',          few: 'cíle',          many: 'cílů',          label: 'Cíl'         },
-      competition: { yamlKey: 'competitions', sg: 'konkurenta',   few: 'konkurenty',    many: 'konkurentů',    label: 'Konkurent'   },
-      requirement: { yamlKey: 'requirements', sg: 'požadavek',    few: 'požadavky',     many: 'požadavků',     label: 'Požadavek'   },
-    };
+    /** @type {Record<string, { yamlKey: string, sg: string, few: string, many: string, label: string }>} */
+    let ENTITY_TYPE_CONFIG = {};
+    /** typ entity → YAML kořenový klíč */
+    let TYPE_TO_KEY = {};
+    /** @type {Record<string, string>} */
+    let PLUGIN_TO_API_ENTITY = {};
+    /** @type {string[]} */
+    let PLUGIN_CARD_TYPES = [];
 
-    // Mapování typ → YAML klíč pro export
-    const TYPE_TO_KEY = {};
-    for (const [t, c] of Object.entries(ENTITY_TYPE_CONFIG)) TYPE_TO_KEY[t] = c.yamlKey;
+    var _bridgeSeq = 0;
+    var _parseYamlWaiters = new Map();
+    var _serializeYamlWaiters = new Map();
+    var _flexiValidateWaiters = new Map();
 
+    /**
+     * Obnoví mapu typ → yamlKey z ENTITY_TYPE_CONFIG.
+     */
+    function rebuildTypeToKey() {
+      TYPE_TO_KEY = {};
+      for (const t in ENTITY_TYPE_CONFIG) {
+        if (Object.prototype.hasOwnProperty.call(ENTITY_TYPE_CONFIG, t)) {
+          TYPE_TO_KEY[t] = ENTITY_TYPE_CONFIG[t].yamlKey;
+        }
+      }
+    }
+
+    /**
+     * České skloňování počtu entit v tlačítku / stavu.
+     * @param {number} n
+     * @param {string} sg
+     * @param {string} few
+     * @param {string} many
+     * @returns {string}
+     */
     function czPlural(n, sg, few, many) {
       if (n === 1) return `${n} ${sg}`;
       if (n >= 2 && n <= 4) return `${n} ${few}`;
       return `${n} ${many}`;
     }
 
-    // -----------------------------------------------------------------------
-    // Minimální YAML parser — podmnožina podporovaná UXLog exportem
-    // -----------------------------------------------------------------------
-
-    function parseYaml(text) {
-      const lines = text.split('\n');
-      let pos = 0;
-
-      function skipBlank() {
-        while (pos < lines.length && /^\s*$/.test(lines[pos])) pos++;
-      }
-      function countIndent(s) { let n = 0; while (n < s.length && s[n] === ' ') n++; return n; }
-      function parseScalar(s) {
-        s = s.trim();
-        if (s === 'null' || s === '~') return null;
-        if (s === 'true') return true;
-        if (s === 'false') return false;
-        if (s === "''") return '';
-        if (s === '[]') return [];
-        if (s === '{}') return {};
-        if (s.startsWith('"') && s.endsWith('"')) { try { return JSON.parse(s); } catch (_) { return s.slice(1, -1); } }
-        return s;
-      }
-      function parseMapping(baseIndent) {
-        const obj = {};
-        while (pos < lines.length) {
-          skipBlank(); if (pos >= lines.length) break;
-          const line = lines[pos]; const ind = countIndent(line);
-          if (ind < baseIndent) break;
-          const trimmed = line.trim();
-          const m = trimmed.match(/^([^:]+?):\s*(.*)/);
-          if (!m) { pos++; continue; }
-          const key = m[1]; const rest = m[2];
-          pos++;
-          if (rest === '') {
-            skipBlank();
-            if (pos < lines.length) {
-              const nt = lines[pos].trim();
-              obj[key] = (nt.startsWith('- ') || nt === '-') ? parseArray(ind + 2) : parseMapping(ind + 2);
-            } else { obj[key] = null; }
-          } else { obj[key] = parseScalar(rest); }
-        }
-        return obj;
-      }
-      function parseArray(baseIndent) {
-        const arr = [];
-        while (pos < lines.length) {
-          skipBlank(); if (pos >= lines.length) break;
-          const line = lines[pos]; const ind = countIndent(line);
-          if (ind < baseIndent) break;
-          const trimmed = line.trim();
-          if (!trimmed.startsWith('- ') && trimmed !== '-') break;
-          pos++;
-          if (trimmed === '-') { skipBlank(); arr.push(parseBlock(ind + 2)); continue; }
-          const content = trimmed.slice(2);
-          const ci = content.indexOf(': ');
-          if (ci !== -1) {
-            const k = content.slice(0, ci); const v = content.slice(ci + 2);
-            const obj = {}; obj[k] = v === '' ? (skipBlank(), parseBlock(ind + 2)) : parseScalar(v);
-            parseObjCont(obj, ind + 2); arr.push(obj);
-          } else if (content.endsWith(':')) {
-            const obj = {}; const k = content.slice(0, -1);
-            skipBlank(); obj[k] = parseBlock(ind + 2);
-            parseObjCont(obj, ind + 2); arr.push(obj);
-          } else { arr.push(parseScalar(content)); }
-        }
-        return arr;
-      }
-      function parseObjCont(obj, baseIndent) {
-        while (pos < lines.length) {
-          skipBlank(); if (pos >= lines.length) break;
-          const line = lines[pos]; const ind = countIndent(line);
-          if (ind < baseIndent) break;
-          const trimmed = line.trim();
-          if (trimmed.startsWith('- ')) break;
-          const ci = trimmed.indexOf(': ');
-          if (ci !== -1) {
-            const k = trimmed.slice(0, ci); const v = trimmed.slice(ci + 2);
-            pos++; obj[k] = v === '' ? (skipBlank(), parseBlock(ind + 2)) : parseScalar(v);
-          } else if (trimmed.endsWith(':')) {
-            const k = trimmed.slice(0, -1); pos++; skipBlank(); obj[k] = parseBlock(ind + 2);
-          } else { pos++; }
-        }
-      }
-      function parseBlock(baseIndent) {
-        skipBlank(); if (pos >= lines.length) return null;
-        const t = lines[pos].trim();
-        return (t.startsWith('- ') || t === '-') ? parseArray(baseIndent) : parseMapping(baseIndent);
-      }
-      return parseMapping(0);
+    /**
+     * Parsuje YAML v code.js (neblokuje iframe UI).
+     * @param {string} text
+     * @returns {Promise<Object>}
+     */
+    function parseYamlViaMain(text) {
+      return new Promise(function (resolve, reject) {
+        const requestId = 'y' + String(++_bridgeSeq);
+        _parseYamlWaiters.set(requestId, { resolve: resolve, reject: reject });
+        parent.postMessage({ pluginMessage: { type: 'parseYaml', text: text, requestId: requestId } }, '*');
+      });
     }
-
-    // -----------------------------------------------------------------------
-    // YAML serializer (zrcadlo yaml.js z UXLog)
-    // -----------------------------------------------------------------------
 
     /**
-     * Normalizuje speciální znaky Figmy před serializací do YAML.
-     * Převádí Figma line/paragraph separátory na \n a odrážkové znaky na "- ".
-     * @param {string} s
+     * Serializuje objekt do YAML v code.js.
+     * @param {Object} value
+     * @returns {Promise<string>}
+     */
+    function serializeYamlViaMain(value) {
+      return new Promise(function (resolve, reject) {
+        const requestId = 's' + String(++_bridgeSeq);
+        _serializeYamlWaiters.set(requestId, { resolve: resolve, reject: reject });
+        parent.postMessage({ pluginMessage: { type: 'serializeYaml', value: value, requestId: requestId } }, '*');
+      });
+    }
+
+    /**
+     * Normalizace URL a kontrola lokálního Flexi bez proxy (logika v code.js).
+     * @param {string} url
+     * @returns {Promise<{ normalizedUrl: string, blocked: boolean, hint?: string }>}
+     */
+    function validateFlexiConnectViaMain(url) {
+      return new Promise(function (resolve) {
+        const requestId = 'f' + String(++_bridgeSeq);
+        _flexiValidateWaiters.set(requestId, resolve);
+        parent.postMessage({ pluginMessage: { type: 'validateFlexiConnect', url: url, requestId: requestId } }, '*');
+      });
+    }
+
+    /**
+     * Normalizace základní URL pro skládání fetch (stejná pravidla jako v code.js).
+     * @param {string} raw
      * @returns {string}
      */
-    function normalizeFigmaText(s) {
-      return s
-        .replace(/[\u2028\u2029\u000B]/g, '\n')
-        .replace(/[\u2022\u2023\u25CF\u25E6\u25AA\u00B7]\s*/g, '- ');
+    function normalizeFlexiBaseUrlForFetch(raw) {
+      var s = (raw || '').trim();
+      if (s === '') return '';
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s)) return s;
+      return 'http://' + s;
     }
 
-    function yamlEscape(str) {
-      if (str === '') return "''";
-      str = normalizeFigmaText(str);
-      if (str.includes('\n')) return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"';
-      const specialStart = /^[\-?:,\[\]{}#&*!|>'"%@`~]/.test(str);
-      const hasSpecial   = /[:#,\[\]{}]/.test(str);
-      const isReserved   = ['true','false','null','yes','no','on','off'].includes(str.toLowerCase());
-      if (specialStart || hasSpecial || isReserved) return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
-      return str;
+    /**
+     * @param {string} baseUrl
+     * @returns {boolean}
+     */
+    function isFlexiProxyScriptUrl(baseUrl) {
+      return /flexi-proxy[^?&]*\.php/i.test((baseUrl || '').trim());
     }
 
-    function serializeKV(key, value, depth) {
-      const indent = '  '.repeat(depth);
-      if (value === null || value === undefined) return `${indent}${key}: null`;
-      if (typeof value === 'boolean' || typeof value === 'number') return `${indent}${key}: ${value}`;
-      if (typeof value === 'string') return `${indent}${key}: ${yamlEscape(value)}`;
-      if (Array.isArray(value)) {
-        if (value.length === 0) return `${indent}${key}: []`;
-        return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
+    /**
+     * Složí URL pro fetch v iframe (vyžaduje přístup k síti z UI).
+     * @param {string} baseUrl
+     * @param {string} path
+     * @returns {string}
+     */
+    function buildFlexiRequestUrl(baseUrl, path) {
+      var base = normalizeFlexiBaseUrlForFetch(baseUrl).replace(/\/$/, '');
+      if (isFlexiProxyScriptUrl(base)) {
+        var sep = base.indexOf('?') >= 0 ? '&' : '?';
+        return base + sep + 'path=' + encodeURIComponent(path);
       }
-      const entries = Object.entries(value);
-      if (entries.length === 0) return `${indent}${key}: {}`;
-      return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
-    }
-
-    function serializeArrayItem(item, depth) {
-      const indent = '  '.repeat(depth);
-      if (item === null || item === undefined) return `${indent}- null`;
-      if (typeof item === 'boolean' || typeof item === 'number') return `${indent}- ${item}`;
-      if (typeof item === 'string') return `${indent}- ${yamlEscape(item)}`;
-      if (Array.isArray(item)) {
-        if (item.length === 0) return `${indent}- []`;
-        return `${indent}-\n${toYaml(item, depth + 1)}`;
-      }
-      const entries = Object.entries(item);
-      if (entries.length === 0) return `${indent}- {}`;
-      const lines = [];
-      entries.forEach(([k, v], i) => {
-        const prefix = i === 0 ? `${indent}- ` : `${indent}  `;
-        if (v === null || v === undefined) { lines.push(`${prefix}${k}: null`); }
-        else if (typeof v === 'boolean' || typeof v === 'number') { lines.push(`${prefix}${k}: ${v}`); }
-        else if (typeof v === 'string') { lines.push(`${prefix}${k}: ${yamlEscape(v)}`); }
-        else if (Array.isArray(v)) {
-          if (v.length === 0) { lines.push(`${prefix}${k}: []`); }
-          else { lines.push(`${prefix}${k}:`); lines.push(toYaml(v, depth + 2)); }
-        } else {
-          const sub = Object.entries(v);
-          if (sub.length === 0) { lines.push(`${prefix}${k}: {}`); }
-          else { lines.push(`${prefix}${k}:`); lines.push(toYaml(v, depth + 2)); }
-        }
-      });
-      return lines.join('\n');
-    }
-
-    function toYaml(value, depth = 0) {
-      if (value === null || value === undefined) return 'null';
-      if (typeof value === 'boolean' || typeof value === 'number') return String(value);
-      if (typeof value === 'string') return yamlEscape(value);
-      if (Array.isArray(value)) {
-        if (value.length === 0) return '[]';
-        return value.map(item => serializeArrayItem(item, depth)).join('\n');
-      }
-      const entries = Object.entries(value);
-      if (entries.length === 0) return '{}';
-      return entries.map(([k, v]) => serializeKV(k, v, depth)).join('\n');
+      return base + path;
     }
 
     // -----------------------------------------------------------------------
@@ -678,20 +597,8 @@ personas:
     }
 
     // -----------------------------------------------------------------------
-    // Flexi API – mapování typů, stav, HTTP, polling (stejný kontrakt jako flexiApi.js)
+    // Flexi API – PLUGIN_TO_API_ENTITY / PLUGIN_CARD_TYPES z uiBootstrap (code.js)
     // -----------------------------------------------------------------------
-
-    const PLUGIN_TO_API_ENTITY = {
-      persona: 'personas',
-      hypothesis: 'hypotheses',
-      scenario: 'scenarios',
-      stakeholder: 'stakeholders',
-      goal: 'goals',
-      competition: 'competitions',
-      requirement: 'requirements',
-    };
-
-    const PLUGIN_CARD_TYPES = ['persona', 'hypothesis', 'scenario', 'stakeholder', 'goal', 'competition', 'requirement'];
 
     const LS_CHECKSUMS = 'uxlog_figma_checksums_v1';
     const LS_FETCH_TS = 'uxlog_figma_fetch_ts_v1';
@@ -790,67 +697,6 @@ personas:
       const apiIdRaw = entity.id;
       const _apiId = apiIdRaw !== undefined && String(apiIdRaw) !== String(uxlogId) ? apiIdRaw : undefined;
       return { ...entity, id: uxlogId, _apiId };
-    }
-
-    /**
-     * Zjistí, zda základ URL vede na skript flexi-proxy*.php (parametr path=).
-     * @param {string} baseUrl
-     * @returns {boolean}
-     */
-    function isFlexiProxyScriptUrl(baseUrl) {
-      return /flexi-proxy[^?&]*\.php/i.test((baseUrl || '').trim());
-    }
-
-    /**
-     * Zjistí, zda jde o přímé volání lokálního hostu bez proxy skriptu (ve Figmy selže CORS preflight).
-     * @param {string} baseUrl
-     * @returns {boolean}
-     */
-    function isDirectLocalFlexiWithoutProxy(baseUrl) {
-      var trimmed = normalizeFlexiBaseUrl(baseUrl || '');
-      if (trimmed === '') return false;
-      if (isFlexiProxyScriptUrl(trimmed)) return false;
-      return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(trimmed);
-    }
-
-    /**
-     * Vrátí text chyby pro případ přímého lokálního Flexi bez proxy ve Figmy.
-     * @returns {string}
-     */
-    function getLocalFlexiCorsHintMessage() {
-      return (
-        'Z Figmy nelze volat přímo http://127.0.0.1 nebo localhost (CORS). ' +
-        'Spusťte PHP z kořene projektu: php -S localhost:8787 -t public ' +
-        'a v nastavení zadejte http://localhost:8787/flexi-proxy-windows.php (lokální Windows API) ' +
-        'nebo https://uxlog.prokoho.cz/flexi-proxy-php.php (hostované API).'
-      );
-    }
-
-    /**
-     * Zajistí absolutní URL se schématem — bez http(s):// fetch() vyhodí „failed to parse URL“.
-     * @param {string} raw
-     * @returns {string}
-     */
-    function normalizeFlexiBaseUrl(raw) {
-      var s = (raw || '').trim();
-      if (s === '') return '';
-      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s)) return s;
-      return 'http://' + s;
-    }
-
-    /**
-     * Složí URL: přímé volání Flexi, nebo proxy flexi-proxy*.php s parametrem path= (obejde CORS z Figmy).
-     * @param {string} baseUrl
-     * @param {string} path
-     * @returns {string}
-     */
-    function buildFlexiRequestUrl(baseUrl, path) {
-      var base = normalizeFlexiBaseUrl(baseUrl).replace(/\/$/, '');
-      if (isFlexiProxyScriptUrl(base)) {
-        var sep = base.indexOf('?') >= 0 ? '&' : '?';
-        return base + sep + 'path=' + encodeURIComponent(path);
-      }
-      return base + path;
     }
 
     /**
@@ -1299,7 +1145,14 @@ personas:
         setSyncIndicator('notConfigured', 'Není nastaveno');
         return;
       }
-      const url = normalizeFlexiBaseUrl(rawUrl);
+      const validated = await validateFlexiConnectViaMain(rawUrl);
+      if (validated.blocked) {
+        setSettingsStatus(validated.hint || 'Neplatná URL', 'err');
+        setSyncIndicator('offline', 'Nepřipojeno');
+        updateConnectButtonsVisibility();
+        return;
+      }
+      const url = validated.normalizedUrl;
       flexiUrlInput.value = url;
       pluginConfig = { url, apiKey, connected: false };
       try {
@@ -1531,24 +1384,47 @@ personas:
     }
 
     // -----------------------------------------------------------------------
-    // Parsování YAML
+    // Parsování YAML (debounce + main thread v code.js)
     // -----------------------------------------------------------------------
 
-    function parseJSON() {
+    var parseYamlTimer = null;
+
+    /**
+     * Naplánuje přeparse po krátké pauze — textarea neblokuje při každém znaku.
+     */
+    function scheduleParseYAML() {
+      clearTimeout(parseYamlTimer);
+      parseYamlTimer = setTimeout(function () { runParseYAML(); }, 280);
+    }
+
+    /**
+     * Načte YAML z textarea přes code.js (iframe zůstane plynulý).
+     */
+    async function runParseYAML() {
       const raw = jsonTA.value.trim();
       if (!raw) { resetUI(); setStatus('Vložte YAML exportovaný z UXLog.', 'info'); return; }
 
       let data;
-      try { data = parseYaml(raw); }
-      catch (e) { resetUI(); setStatus('Neplatný YAML: ' + e.message, 'err'); return; }
+      try {
+        data = await parseYamlViaMain(raw);
+      } catch (e) {
+        resetUI();
+        setStatus('Neplatný YAML: ' + (e && e.message ? e.message : e), 'err');
+        return;
+      }
 
       currentEntityType = entityTypeSel.value;
-      const config   = ENTITY_TYPE_CONFIG[currentEntityType];
+      const config = ENTITY_TYPE_CONFIG[currentEntityType];
+      if (!config || !config.yamlKey) {
+        resetUI();
+        setStatus('Konfigurace pluginu se ještě načítá. Zkuste to znovu za okamžik.', 'err');
+        return;
+      }
       const entities = data && data[config.yamlKey];
 
       if (!entities || !Array.isArray(entities) || entities.length === 0) {
         resetUI();
-        setStatus(`YAML neobsahuje pole „${config.yamlKey}" nebo je prázdné.`, 'err');
+        setStatus('YAML neobsahuje pole „' + config.yamlKey + '" nebo je prázdné.', 'err');
         return;
       }
 
@@ -1598,6 +1474,7 @@ personas:
     function updatePreview() {
       if (!parsedData) return;
       const config   = ENTITY_TYPE_CONFIG[currentEntityType];
+      if (!config || !config.yamlKey) return;
       const all      = parsedData[config.yamlKey] || [];
       const pid      = projectSel.value;
 
@@ -1720,6 +1597,40 @@ personas:
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
+      if (msg.type === 'uiBootstrap') {
+        ENTITY_TYPE_CONFIG = msg.entityTypeConfig || {};
+        PLUGIN_TO_API_ENTITY = msg.pluginToApiEntity || {};
+        PLUGIN_CARD_TYPES = Array.isArray(msg.pluginCardTypes) ? msg.pluginCardTypes : [];
+        rebuildTypeToKey();
+        return;
+      }
+      if (msg.type === 'parseYamlResult') {
+        var pw = _parseYamlWaiters.get(msg.requestId);
+        if (pw) {
+          _parseYamlWaiters.delete(msg.requestId);
+          if (msg.ok) pw.resolve(msg.data);
+          else pw.reject(new Error(msg.error || 'YAML'));
+        }
+        return;
+      }
+      if (msg.type === 'serializeYamlResult') {
+        var sw = _serializeYamlWaiters.get(msg.requestId);
+        if (sw) {
+          _serializeYamlWaiters.delete(msg.requestId);
+          if (msg.ok) sw.resolve(msg.text);
+          else sw.reject(new Error(msg.error || 'YAML'));
+        }
+        return;
+      }
+      if (msg.type === 'validateFlexiConnectResult') {
+        var fw = _flexiValidateWaiters.get(msg.requestId);
+        if (fw) {
+          _flexiValidateWaiters.delete(msg.requestId);
+          fw(msg);
+        }
+        return;
+      }
+
       if (msg.type === 'success') {
         btn.disabled = false;
         if (msg.silent) return;
@@ -1742,7 +1653,6 @@ personas:
         const byType   = msg.byType || {};
         const projects = msg.projects || [];
 
-        // Sestavíme YAML dokument obsahující všechny nalezené typy entit
         const yamlData = {};
         if (projects.length > 0) yamlData.projects = projects;
 
@@ -1760,19 +1670,23 @@ personas:
           return;
         }
 
-        exportYamlTA.value            = toYaml(yamlData);
-        exportYamlField.style.display = 'block';
-
-        const parts = Object.entries(byType).map(([type, ents]) => {
-          const cfg = ENTITY_TYPE_CONFIG[type];
-          return cfg ? czPlural(ents.length, cfg.sg, cfg.few, cfg.many) : `${ents.length}× ${type}`;
-        });
-        setExportStatus(`✓ Exportováno: ${parts.join(', ')}.`, 'ok');
+        setExportStatus('Sestavuji YAML…', 'info');
+        (async function () {
+          try {
+            const yamlStr = await serializeYamlViaMain(yamlData);
+            exportYamlTA.value = yamlStr;
+            exportYamlField.style.display = 'block';
+            const parts = Object.entries(byType).map(([type, ents]) => {
+              const cfg = ENTITY_TYPE_CONFIG[type];
+              return cfg ? czPlural(ents.length, cfg.sg, cfg.few, cfg.many) : `${ents.length}× ${type}`;
+            });
+            setExportStatus('✓ Exportováno: ' + parts.join(', ') + '.', 'ok');
+          } catch (e) {
+            setExportStatus('Export YAML selhal: ' + (e && e.message ? e.message : e), 'err');
+          }
+        })();
       } else if (msg.type === 'pluginConfigLoaded') {
         pluginConfig = msg.config || { url: '', apiKey: '', connected: false };
-        if (pluginConfig.url) {
-          pluginConfig.url = normalizeFlexiBaseUrl(String(pluginConfig.url).trim());
-        }
         applyConfigToForm();
         updateConnectButtonsVisibility();
         if (pluginConfig.url && pluginConfig.apiKey) {
@@ -1905,10 +1819,11 @@ personas:
     // Spuštění
     // -----------------------------------------------------------------------
 
-    jsonTA.addEventListener('input',        parseJSON);
-    entityTypeSel.addEventListener('change', parseJSON);
+    jsonTA.addEventListener('input',        scheduleParseYAML);
+    entityTypeSel.addEventListener('change', scheduleParseYAML);
     projectSel.addEventListener('change',   updatePreview);
 
+    parent.postMessage({ pluginMessage: { type: 'uiReady' } }, '*');
     parent.postMessage({ pluginMessage: { type: 'loadPluginConfig' } }, '*');
     parent.postMessage({ pluginMessage: { type: 'loadSyncTimestamps' } }, '*');
 

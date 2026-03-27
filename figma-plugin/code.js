@@ -377,10 +377,316 @@ const suppressTextChangeIds = new Set();
  */
 const flexiImportLayoutSessions = new Map();
 
+/** Po kolika navštívených uzlech při průchodu stránkou předat řízení (odlehčení UI Figmy). */
+const YIELD_NODE_VISIT_INTERVAL = 120;
+
+/** Po kolika aktualizacích textu při sync z API krátce předat řízení. */
+const YIELD_TEXT_APPLY_INTERVAL = 4;
+
+/**
+ * Krátká pauza přes frontu časovače — Figma stihne vykreslit a zpracovat vstupy.
+ * @returns {Promise<void>}
+ */
+function yieldToMain() {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, 0);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Sdílená data a YAML pro UI (logika běží v main threadu, UI jen posílá zprávy)
+// ---------------------------------------------------------------------------
+
+/**
+ * Konfigurace typů entit pro UI (YAML klíče, skloňování) — odpovídá UXLog exportu.
+ */
+const ENTITY_TYPE_CONFIG_UI = {
+  persona:     { yamlKey: 'personas',     sg: 'personu',      few: 'persony',       many: 'person',        label: 'Persona'     },
+  hypothesis:  { yamlKey: 'hypotheses',   sg: 'hypotézu',     few: 'hypotézy',      many: 'hypotéz',       label: 'Hypotéza'    },
+  scenario:    { yamlKey: 'scenarios',    sg: 'scénář',       few: 'scénáře',       many: 'scénářů',       label: 'Scénář'      },
+  stakeholder: { yamlKey: 'stakeholders', sg: 'stakeholdera', few: 'stakeholdery',  many: 'stakeholderů',  label: 'Stakeholder' },
+  goal:        { yamlKey: 'goals',        sg: 'cíl',          few: 'cíle',          many: 'cílů',          label: 'Cíl'         },
+  competition: { yamlKey: 'competitions', sg: 'konkurenta',   few: 'konkurenty',    many: 'konkurentů',    label: 'Konkurent'   },
+  requirement: { yamlKey: 'requirements', sg: 'požadavek',    few: 'požadavky',     many: 'požadavků',     label: 'Požadavek'   },
+};
+
+/** Typy karet v pořadí pro synchronizaci s API. */
+const FIGMA_PLUGIN_CARD_TYPES = [
+  'persona', 'hypothesis', 'scenario', 'stakeholder', 'goal', 'competition', 'requirement',
+];
+
+/**
+ * Zajistí absolutní URL se schématem pro Flexi / proxy.
+ * @param {string} raw
+ * @returns {string}
+ */
+function normalizeFlexiBaseUrl(raw) {
+  var s = (raw || '').trim();
+  if (s === '') return '';
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s)) return s;
+  return 'http://' + s;
+}
+
+/**
+ * @param {string} baseUrl
+ * @returns {boolean}
+ */
+function isFlexiProxyScriptUrl(baseUrl) {
+  return /flexi-proxy[^?&]*\.php/i.test((baseUrl || '').trim());
+}
+
+/**
+ * @param {string} baseUrl
+ * @returns {boolean}
+ */
+function isDirectLocalFlexiWithoutProxy(baseUrl) {
+  var trimmed = normalizeFlexiBaseUrl(baseUrl || '');
+  if (trimmed === '') return false;
+  if (isFlexiProxyScriptUrl(trimmed)) return false;
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(trimmed);
+}
+
+/**
+ * @returns {string}
+ */
+function getLocalFlexiCorsHintMessage() {
+  return (
+    'Z Figmy nelze volat přímo http://127.0.0.1 nebo localhost (CORS). ' +
+    'Spusťte PHP z kořene projektu: php -S localhost:8787 -t public ' +
+    'a v nastavení zadejte http://localhost:8787/flexi-proxy-windows.php (lokální Windows API) ' +
+    'nebo https://uxlog.prokoho.cz/flexi-proxy-php.php (hostované API).'
+  );
+}
+
+/** Po kolika krocích YAML parseru uvolnit smyčku. */
+const YIELD_YAML_STEP_INTERVAL = 72;
+
+/**
+ * Normalizuje speciální znaky Figmy před serializací do YAML.
+ * @param {string} s
+ * @returns {string}
+ */
+function normalizeFigmaText(s) {
+  return s
+    .replace(/[\u2028\u2029\u000B]/g, '\n')
+    .replace(/[\u2022\u2023\u25CF\u25E6\u25AA\u00B7]\s*/g, '- ');
+}
+
+/**
+ * @param {string} str
+ * @returns {string}
+ */
+function yamlEscape(str) {
+  if (str === '') return "''";
+  str = normalizeFigmaText(str);
+  if (str.includes('\n')) return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"';
+  const specialStart = /^[\-?:,\[\]{}#&*!|>'"%@`~]/.test(str);
+  const hasSpecial   = /[:#,\[\]{}]/.test(str);
+  const isReserved   = ['true','false','null','yes','no','on','off'].includes(str.toLowerCase());
+  if (specialStart || hasSpecial || isReserved) return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  return str;
+}
+
+/**
+ * @param {string} key
+ * @param {*} value
+ * @param {number} depth
+ * @returns {string}
+ */
+function serializeKV(key, value, depth) {
+  const indent = '  '.repeat(depth);
+  if (value === null || value === undefined) return `${indent}${key}: null`;
+  if (typeof value === 'boolean' || typeof value === 'number') return `${indent}${key}: ${value}`;
+  if (typeof value === 'string') return `${indent}${key}: ${yamlEscape(value)}`;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return `${indent}${key}: []`;
+    return `${indent}${key}:\n${toYamlText(value, depth + 1)}`;
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return `${indent}${key}: {}`;
+  return `${indent}${key}:\n${toYamlText(value, depth + 1)}`;
+}
+
+/**
+ * @param {*} item
+ * @param {number} depth
+ * @returns {string}
+ */
+function serializeArrayItem(item, depth) {
+  const indent = '  '.repeat(depth);
+  if (item === null || item === undefined) return `${indent}- null`;
+  if (typeof item === 'boolean' || typeof item === 'number') return `${indent}- ${item}`;
+  if (typeof item === 'string') return `${indent}- ${yamlEscape(item)}`;
+  if (Array.isArray(item)) {
+    if (item.length === 0) return `${indent}- []`;
+    return `${indent}-\n${toYamlText(item, depth + 1)}`;
+  }
+  const entries = Object.entries(item);
+  if (entries.length === 0) return `${indent}- {}`;
+  const lines = [];
+  entries.forEach(function (kv, i) {
+    const k = kv[0];
+    const v = kv[1];
+    const prefix = i === 0 ? `${indent}- ` : `${indent}  `;
+    if (v === null || v === undefined) { lines.push(`${prefix}${k}: null`); }
+    else if (typeof v === 'boolean' || typeof v === 'number') { lines.push(`${prefix}${k}: ${v}`); }
+    else if (typeof v === 'string') { lines.push(`${prefix}${k}: ${yamlEscape(v)}`); }
+    else if (Array.isArray(v)) {
+      if (v.length === 0) { lines.push(`${prefix}${k}: []`); }
+      else { lines.push(`${prefix}${k}:`); lines.push(toYamlText(v, depth + 2)); }
+    } else {
+      const sub = Object.entries(v);
+      if (sub.length === 0) { lines.push(`${prefix}${k}: {}`); }
+      else { lines.push(`${prefix}${k}:`); lines.push(toYamlText(v, depth + 2)); }
+    }
+  });
+  return lines.join('\n');
+}
+
+/**
+ * Serializuje hodnotu do YAML (stejná podmnožina jako v UXLog webu).
+ * @param {*} value
+ * @param {number} [depth]
+ * @returns {string}
+ */
+function toYamlText(value, depth) {
+  depth = depth || 0;
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+  if (typeof value === 'string') return yamlEscape(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    return value.map(function (item) { return serializeArrayItem(item, depth); }).join('\n');
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return '{}';
+  return entries.map(function (kv) { return serializeKV(kv[0], kv[1], depth); }).join('\n');
+}
+
+/**
+ * Parsuje YAML export UXLog; průběžně předává řízení.
+ * @param {string} text
+ * @returns {Promise<Object>}
+ */
+async function parseYamlText(text) {
+  await yieldToMain();
+  const lines = text.split('\n');
+  let pos = 0;
+  let stepCounter = 0;
+  async function tick() {
+    stepCounter++;
+    if (stepCounter % YIELD_YAML_STEP_INTERVAL === 0) await yieldToMain();
+  }
+
+  function skipBlank() {
+    while (pos < lines.length && /^\s*$/.test(lines[pos])) pos++;
+  }
+  function countIndent(s) { var n = 0; while (n < s.length && s[n] === ' ') n++; return n; }
+  function parseScalar(s) {
+    s = s.trim();
+    if (s === 'null' || s === '~') return null;
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if (s === "''") return '';
+    if (s === '[]') return [];
+    if (s === '{}') return {};
+    if (s.startsWith('"') && s.endsWith('"')) { try { return JSON.parse(s); } catch (_) { return s.slice(1, -1); } }
+    return s;
+  }
+  async function parseMapping(baseIndent) {
+    const obj = {};
+    while (pos < lines.length) {
+      await tick();
+      skipBlank(); if (pos >= lines.length) break;
+      const line = lines[pos]; const ind = countIndent(line);
+      if (ind < baseIndent) break;
+      const trimmed = line.trim();
+      const m = trimmed.match(/^([^:]+?):\s*(.*)/);
+      if (!m) { pos++; continue; }
+      const key = m[1]; const rest = m[2];
+      pos++;
+      if (rest === '') {
+        skipBlank();
+        if (pos < lines.length) {
+          const nt = lines[pos].trim();
+          obj[key] = (nt.startsWith('- ') || nt === '-') ? await parseArray(ind + 2) : await parseMapping(ind + 2);
+        } else { obj[key] = null; }
+      } else { obj[key] = parseScalar(rest); }
+    }
+    return obj;
+  }
+  async function parseArray(baseIndent) {
+    const arr = [];
+    while (pos < lines.length) {
+      await tick();
+      skipBlank(); if (pos >= lines.length) break;
+      const line = lines[pos]; const ind = countIndent(line);
+      if (ind < baseIndent) break;
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('- ') && trimmed !== '-') break;
+      pos++;
+      if (trimmed === '-') { skipBlank(); arr.push(await parseBlock(ind + 2)); continue; }
+      const content = trimmed.slice(2);
+      const ci = content.indexOf(': ');
+      if (ci !== -1) {
+        const k = content.slice(0, ci); const v = content.slice(ci + 2);
+        const o = {};
+        o[k] = v === '' ? (skipBlank(), await parseBlock(ind + 2)) : parseScalar(v);
+        await parseObjCont(o, ind + 2);
+        arr.push(o);
+      } else if (content.endsWith(':')) {
+        const o = {}; const k = content.slice(0, -1);
+        skipBlank(); o[k] = await parseBlock(ind + 2);
+        await parseObjCont(o, ind + 2);
+        arr.push(o);
+      } else { arr.push(parseScalar(content)); }
+    }
+    return arr;
+  }
+  async function parseObjCont(obj, baseIndent) {
+    while (pos < lines.length) {
+      await tick();
+      skipBlank(); if (pos >= lines.length) break;
+      const line = lines[pos]; const ind = countIndent(line);
+      if (ind < baseIndent) break;
+      const trimmed = line.trim();
+      if (trimmed.startsWith('- ')) break;
+      const ci = trimmed.indexOf(': ');
+      if (ci !== -1) {
+        const k = trimmed.slice(0, ci); const v = trimmed.slice(ci + 2);
+        pos++; obj[k] = v === '' ? (skipBlank(), await parseBlock(ind + 2)) : parseScalar(v);
+      } else if (trimmed.endsWith(':')) {
+        const k = trimmed.slice(0, -1); pos++; skipBlank(); obj[k] = await parseBlock(ind + 2);
+      } else { pos++; }
+    }
+  }
+  async function parseBlock(baseIndent) {
+    skipBlank(); if (pos >= lines.length) return null;
+    const t = lines[pos].trim();
+    return (t.startsWith('- ') || t === '-') ? await parseArray(baseIndent) : await parseMapping(baseIndent);
+  }
+  return parseMapping(0);
+}
+
+/**
+ * Odešle do UI konstanty a mapování (po uiReady).
+ */
+function sendUiBootstrap() {
+  figma.ui.postMessage({
+    type: 'uiBootstrap',
+    entityTypeConfig: ENTITY_TYPE_CONFIG_UI,
+    pluginToApiEntity: PLUGIN_TO_API_ENTITY,
+    pluginCardTypes: FIGMA_PLUGIN_CARD_TYPES.slice(),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Notifikace o výběru
 // ---------------------------------------------------------------------------
 
+/**
+ * Odešle do UI stav výběru. Odeslání je odložené, aby handler selectionchange co nejdříve skončil.
+ */
 function notifySelection() {
   const sel = figma.currentPage.selection;
   const total = sel.length;
@@ -393,7 +699,9 @@ function notifySelection() {
       if (type) { counts[type] = (counts[type] || 0) + 1; uxlog++; }
     } catch (_) {}
   }
-  figma.ui.postMessage({ type: 'selectionChanged', total, uxlog, counts });
+  setTimeout(function () {
+    figma.ui.postMessage({ type: 'selectionChanged', total, uxlog, counts });
+  }, 0);
 }
 
 notifySelection();
@@ -788,6 +1096,7 @@ async function applyGenericEntityText(card, entityType, entity, changedFields) {
   const config = ENTITY_CONFIGS[entityType];
   if (!config) return;
 
+  var textApplyCount = 0;
   async function walk(node) {
     if (node.type === 'TEXT') {
       const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
@@ -806,6 +1115,8 @@ async function applyGenericEntityText(card, entityType, entity, changedFields) {
           val = val != null ? String(val) : '';
         }
         await setTextSafeAsync(node, val);
+        textApplyCount++;
+        if (textApplyCount % YIELD_TEXT_APPLY_INTERVAL === 0) await yieldToMain();
       }
     }
     for (const c of node.children || []) await walk(c);
@@ -820,6 +1131,7 @@ async function applyGenericEntityText(card, entityType, entity, changedFields) {
  * @param {Set<string>|null} [changedFields]
  */
 async function applyPersonaEntityText(card, entity, changedFields) {
+  var textApplyCount = 0;
   async function walk(node) {
     if (node.type === 'TEXT') {
       const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
@@ -837,6 +1149,8 @@ async function applyPersonaEntityText(card, entity, changedFields) {
           val = val != null ? String(val) : '';
         }
         await setTextSafeAsync(node, val);
+        textApplyCount++;
+        if (textApplyCount % YIELD_TEXT_APPLY_INTERVAL === 0) await yieldToMain();
       }
     }
     for (const c of node.children || []) await walk(c);
@@ -939,6 +1253,7 @@ async function applyEntityToAllMatchingCards(entityType, entity) {
   if (!id) return;
   const cards = findCardsForEntityOnPage(entityType, id);
   for (const card of cards) {
+    await yieldToMain();
     let storedEntity = {};
     try { storedEntity = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
     const changedFields = getChangedRemoteFields(storedEntity, entity, entityType);
@@ -978,38 +1293,40 @@ function registerDocumentChangeHandler() {
   figma.loadAllPagesAsync()
     .then(function () {
       figma.on('documentchange', function (event) {
-        const changes = event && event.documentChanges;
-        if (!changes) return;
-        let anyDirty = false;
-        for (let i = 0; i < changes.length; i++) {
-          const ch = changes[i];
-          if (ch.type !== undefined && ch.type !== 'PROPERTY_CHANGE') continue;
-          const node = ch.node;
-          if (!node || node.type !== 'TEXT') continue;
-          if (suppressTextChangeIds.has(node.id)) continue;
-          let p = node.parent;
-          while (p && p.type !== 'PAGE') {
-            if (p.type === 'FRAME') {
-              const et = p.getPluginData('uxlogEntityType') ||
-                (p.getPluginData('uxlogPersona') ? 'persona' : null);
-              const eid = p.getPluginData('uxlogEntityId');
-              if (et && eid) {
-                try { p.setPluginData('uxlogLocalEditTs', String(Date.now())); } catch (_) {}
-                anyDirty = true;
-                break;
+        // Odložit zpracování — documentchange se vrátí hned, Figma nečeká na náš průchod změnami.
+        setTimeout(function () {
+          const changes = event && event.documentChanges;
+          if (!changes) return;
+          let anyDirty = false;
+          for (let i = 0; i < changes.length; i++) {
+            const ch = changes[i];
+            if (ch.type !== undefined && ch.type !== 'PROPERTY_CHANGE') continue;
+            const node = ch.node;
+            if (!node || node.type !== 'TEXT') continue;
+            if (suppressTextChangeIds.has(node.id)) continue;
+            let p = node.parent;
+            while (p && p.type !== 'PAGE') {
+              if (p.type === 'FRAME') {
+                const et = p.getPluginData('uxlogEntityType') ||
+                  (p.getPluginData('uxlogPersona') ? 'persona' : null);
+                const eid = p.getPluginData('uxlogEntityId');
+                if (et && eid) {
+                  try { p.setPluginData('uxlogLocalEditTs', String(Date.now())); } catch (_) {}
+                  anyDirty = true;
+                  break;
+                }
               }
+              p = p.parent;
             }
-            p = p.parent;
           }
-        }
-        // Debounced notifikace UI, aby aktualizovalo počítadlo Figma změn
-        if (anyDirty) {
-          if (localChangeNotifyTimer) clearTimeout(localChangeNotifyTimer);
-          localChangeNotifyTimer = setTimeout(function () {
-            localChangeNotifyTimer = null;
-            figma.ui.postMessage({ type: 'localChangeDetected' });
-          }, LOCAL_CHANGE_NOTIFY_DEBOUNCE_MS);
-        }
+          if (anyDirty) {
+            if (localChangeNotifyTimer) clearTimeout(localChangeNotifyTimer);
+            localChangeNotifyTimer = setTimeout(function () {
+              localChangeNotifyTimer = null;
+              figma.ui.postMessage({ type: 'localChangeDetected' });
+            }, LOCAL_CHANGE_NOTIFY_DEBOUNCE_MS);
+          }
+        }, 0);
       });
     })
     .catch(function (err) {
@@ -1024,11 +1341,60 @@ registerDocumentChangeHandler();
 // ---------------------------------------------------------------------------
 
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === 'loadPluginConfig') {
+  if (msg.type === 'uiReady') {
+    sendUiBootstrap();
+  } else if (msg.type === 'parseYaml') {
+    const requestId = msg.requestId;
+    try {
+      const data = await parseYamlText(msg.text || '');
+      figma.ui.postMessage({ type: 'parseYamlResult', requestId: requestId, ok: true, data: data });
+    } catch (e) {
+      figma.ui.postMessage({
+        type: 'parseYamlResult',
+        requestId: requestId,
+        ok: false,
+        error: String(e && e.message ? e.message : e),
+      });
+    }
+  } else if (msg.type === 'serializeYaml') {
+    const requestId = msg.requestId;
+    try {
+      await yieldToMain();
+      const text = toYamlText(msg.value);
+      await yieldToMain();
+      figma.ui.postMessage({ type: 'serializeYamlResult', requestId: requestId, ok: true, text: text });
+    } catch (e) {
+      figma.ui.postMessage({
+        type: 'serializeYamlResult',
+        requestId: requestId,
+        ok: false,
+        error: String(e && e.message ? e.message : e),
+      });
+    }
+  } else if (msg.type === 'validateFlexiConnect') {
+    var rawU = String(msg.url || '').trim();
+    var normalizedUrl = normalizeFlexiBaseUrl(rawU);
+    var blocked = isDirectLocalFlexiWithoutProxy(rawU);
+    figma.ui.postMessage({
+      type: 'validateFlexiConnectResult',
+      requestId: msg.requestId,
+      normalizedUrl: normalizedUrl,
+      blocked: blocked,
+      hint: blocked ? getLocalFlexiCorsHintMessage() : undefined,
+    });
+  } else if (msg.type === 'loadPluginConfig') {
     const raw = await figma.clientStorage.getAsync(PLUGIN_CONFIG_STORAGE_KEY);
-    figma.ui.postMessage({ type: 'pluginConfigLoaded', config: raw || null });
+    var config = raw || null;
+    if (config && config.url != null) {
+      config = Object.assign({}, config, { url: normalizeFlexiBaseUrl(String(config.url).trim()) });
+    }
+    figma.ui.postMessage({ type: 'pluginConfigLoaded', config: config });
   } else if (msg.type === 'savePluginConfig') {
-    await figma.clientStorage.setAsync(PLUGIN_CONFIG_STORAGE_KEY, msg.config);
+    var toSave = msg.config;
+    if (toSave && typeof toSave === 'object' && toSave.url != null) {
+      toSave = Object.assign({}, toSave, { url: normalizeFlexiBaseUrl(String(toSave.url).trim()) });
+    }
+    await figma.clientStorage.setAsync(PLUGIN_CONFIG_STORAGE_KEY, toSave);
     figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
   } else if (msg.type === 'applyRemoteEntity') {
     try {
@@ -1058,7 +1424,10 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'readSelection') {
     const byType = {};
     const projectsMap = {};
-    for (const node of figma.currentPage.selection) {
+    const sel = figma.currentPage.selection;
+    let readSelStep = 0;
+    for (let si = 0; si < sel.length; si++) {
+      const node = sel[si];
       try {
         const result = extractEntityFromCard(node);
         if (!result) continue;
@@ -1071,6 +1440,8 @@ figma.ui.onmessage = async (msg) => {
           if (proj && proj.id) projectsMap[proj.id] = proj;
         }
       } catch (_) {}
+      readSelStep++;
+      if (readSelStep % 20 === 0) await yieldToMain();
     }
     figma.ui.postMessage({ type: 'selectionData', byType, projects: Object.values(projectsMap) });
 
@@ -1096,7 +1467,10 @@ figma.ui.onmessage = async (msg) => {
       walkFields(card);
       return fieldCount;
     }
-    function walkCount(node) {
+    let visitCount = 0;
+    async function walkCount(node) {
+      visitCount++;
+      if (visitCount % YIELD_NODE_VISIT_INTERVAL === 0) await yieldToMain();
       if (node.type === 'FRAME') {
         const et = node.getPluginData('uxlogEntityType') ||
           (node.getPluginData('uxlogPersona') ? 'persona' : null);
@@ -1111,10 +1485,12 @@ figma.ui.onmessage = async (msg) => {
         }
       }
       if ('children' in node) {
-        for (const c of node.children) walkCount(c);
+        const ch = node.children;
+        for (let i = 0; i < ch.length; i++) await walkCount(ch[i]);
       }
     }
-    for (const c of figma.currentPage.children) walkCount(c);
+    const pageChildren = figma.currentPage.children;
+    for (let pi = 0; pi < pageChildren.length; pi++) await walkCount(pageChildren[pi]);
     figma.ui.postMessage({ type: 'localChangesCount', total });
 
   } else if (msg.type === 'collectDirtyEntities') {
@@ -1141,7 +1517,10 @@ figma.ui.onmessage = async (msg) => {
       wf(card);
       return found;
     }
-    function walkCollect(node) {
+    let collectVisitCount = 0;
+    async function walkCollect(node) {
+      collectVisitCount++;
+      if (collectVisitCount % YIELD_NODE_VISIT_INTERVAL === 0) await yieldToMain();
       if (node.type === 'FRAME') {
         const et = node.getPluginData('uxlogEntityType') ||
           (node.getPluginData('uxlogPersona') ? 'persona' : null);
@@ -1164,10 +1543,12 @@ figma.ui.onmessage = async (msg) => {
         }
       }
       if ('children' in node) {
-        for (const c of node.children) walkCollect(c);
+        const ch = node.children;
+        for (let i = 0; i < ch.length; i++) await walkCollect(ch[i]);
       }
     }
-    for (const c of figma.currentPage.children) walkCollect(c);
+    const collectRoots = figma.currentPage.children;
+    for (let ri = 0; ri < collectRoots.length; ri++) await walkCollect(collectRoots[ri]);
     figma.ui.postMessage({ type: 'dirtyEntitiesCollected', entities: results });
 
   } else if (msg.type === 'markSavedEntitiesClean' || msg.type === 'markAllCardsClean') {
@@ -1178,7 +1559,10 @@ figma.ui.onmessage = async (msg) => {
     }));
     const hasEntityFilter = entityKeys.size > 0;
     const now = String(Date.now());
-    function walkClean(node) {
+    let cleanVisitCount = 0;
+    async function walkClean(node) {
+      cleanVisitCount++;
+      if (cleanVisitCount % YIELD_NODE_VISIT_INTERVAL === 0) await yieldToMain();
       if (node.type === 'FRAME') {
         const et = node.getPluginData('uxlogEntityType') ||
           (node.getPluginData('uxlogPersona') ? 'persona' : null);
@@ -1198,17 +1582,22 @@ figma.ui.onmessage = async (msg) => {
         }
       }
       if ('children' in node) {
-        for (const c of node.children) walkClean(c);
+        const ch = node.children;
+        for (let i = 0; i < ch.length; i++) await walkClean(ch[i]);
       }
     }
-    for (const c of figma.currentPage.children) walkClean(c);
+    const cleanRoots = figma.currentPage.children;
+    for (let ci = 0; ci < cleanRoots.length; ci++) await walkClean(cleanRoots[ci]);
     figma.ui.postMessage({ type: 'cardsMarkedClean', ok: true });
 
   } else if (msg.type === 'getLocalChangesDetail') {
     // Vrátí seznam konkrétních změn (pole → staré vs nové) pro dirty karty
     const projectId = msg.projectId;
     const details = [];
-    function walkDetail(node) {
+    let detailVisitCount = 0;
+    async function walkDetail(node) {
+      detailVisitCount++;
+      if (detailVisitCount % YIELD_NODE_VISIT_INTERVAL === 0) await yieldToMain();
       if (node.type === 'FRAME') {
         const et = node.getPluginData('uxlogEntityType') ||
           (node.getPluginData('uxlogPersona') ? 'persona' : null);
@@ -1218,7 +1607,6 @@ figma.ui.onmessage = async (msg) => {
             const cardPid = node.getPluginData('uxlogProjectId');
             if (cardPid && cardPid !== String(projectId)) return;
           }
-          // Zjistit, jestli je karta dirty
           const localEditTs = parseInt(node.getPluginData('uxlogLocalEditTs') || '0', 10) || 0;
           const lastDbSyncTs = parseInt(node.getPluginData('uxlogLastDbSyncTs') || '0', 10) || 0;
           let isDirty = localEditTs > lastDbSyncTs;
@@ -1228,7 +1616,6 @@ figma.ui.onmessage = async (msg) => {
           }
           if (!isDirty) return;
 
-          // Extrahovat per-field změny
           let storedEntity = {};
           try { storedEntity = JSON.parse(node.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
           const cardName = storedEntity.code
@@ -1257,10 +1644,12 @@ figma.ui.onmessage = async (msg) => {
         }
       }
       if ('children' in node) {
-        for (const c of node.children) walkDetail(c);
+        const ch = node.children;
+        for (let i = 0; i < ch.length; i++) await walkDetail(ch[i]);
       }
     }
-    for (const c of figma.currentPage.children) walkDetail(c);
+    const detailRoots = figma.currentPage.children;
+    for (let di = 0; di < detailRoots.length; di++) await walkDetail(detailRoots[di]);
     figma.ui.postMessage({ type: 'localChangesDetail', details: details });
 
   } else if (msg.type === 'loadSyncTimestamps') {
@@ -1295,6 +1684,7 @@ let FONTS = {
  * Načte fonty pro karty. Prioritně používá pouze Inter (vestavěný font Figma),
  * aby se vyhnula chybám "[Local fonts] using agent" — lokální fonty procházejí
  * agentem, který může selhat. Fallback na další fonty pouze pokud Inter není dostupný.
+ * Mezi načteními krátce předává řízení (`yieldToMain`).
  */
 async function loadFonts() {
   // Pouze Inter — vestavěný font Figma, neprochází Local Fonts agentem.
@@ -1308,9 +1698,13 @@ async function loadFonts() {
     try {
       // Sekvenční načítání — paralelní Promise.all může u Local Fonts agenta selhat
       await figma.loadFontAsync({ family: c.family, style: c.regular });
+      await yieldToMain();
       await figma.loadFontAsync({ family: c.family, style: c.medium });
+      await yieldToMain();
       await figma.loadFontAsync({ family: c.family, style: c.semibold });
+      await yieldToMain();
       await figma.loadFontAsync({ family: c.family, style: c.bold });
+      await yieldToMain();
       FONTS.family   = c.family;
       FONTS.regular  = c.regular;
       FONTS.medium   = c.medium;
@@ -1922,6 +2316,7 @@ async function generateGenericCards(entities, entityType, projects, genMsg) {
     initAppliedValuesOnCard(card);
     figma.currentPage.appendChild(card);
     cards.push(card);
+    await yieldToMain();
   }
 
   layoutCardsAfterGenerate(cards, entityType, genMsg);
@@ -1968,6 +2363,7 @@ async function generatePersonaCards(personas, projects, genMsg) {
     initAppliedValuesOnCard(card);
     figma.currentPage.appendChild(card);
     cards.push(card);
+    await yieldToMain();
   }
 
   layoutCardsAfterGenerate(cards, 'persona', genMsg);
