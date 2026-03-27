@@ -1139,6 +1139,34 @@ personas:
     });
 
     /**
+     * Aktualizuje u položek generování text „Název (počet)“ podle cache API a vybraného projektu.
+     * Je-li kolekce ještě nenačtená nebo chybí projekt/připojení, zobrazí se v závorce pomlčka.
+     */
+    function updateApiGenerateTypeCounts() {
+      if (!apiGenerateTypesEl) return;
+      var projectId = apiProjectSel.value || '';
+      var connected = !!(pluginConfig && pluginConfig.connected);
+      var spans = apiGenerateTypesEl.querySelectorAll('.api-gen-type-label');
+      for (var i = 0; i < spans.length; i++) {
+        var span = spans[i];
+        var pt = span.getAttribute('data-plugin-type');
+        var base = span.getAttribute('data-label-base') || '';
+        if (!pt || !connected || !projectId) {
+          span.textContent = base + ' (—)';
+          continue;
+        }
+        var ae = PLUGIN_TO_API_ENTITY[pt];
+        if (!ae || !flexiEntityCacheLoaded.has(ae)) {
+          span.textContent = base + ' (—)';
+          continue;
+        }
+        var arr = flexiEntityCache[ae] || [];
+        var n = filterByProject(arr.map(normalizeApiRecord), projectId).length;
+        span.textContent = base + ' (' + n + ')';
+      }
+    }
+
+    /**
      * Vyplní seznam checkboxů typů entit pro akci „Vytvořit karty z API“.
      */
     function renderApiGenerateTypeCheckboxes() {
@@ -1158,12 +1186,16 @@ personas:
         inp.checked = true;
         inp.setAttribute('data-plugin-type', pt);
         var span = document.createElement('span');
-        span.textContent = labelText;
+        span.className = 'api-gen-type-label';
+        span.setAttribute('data-label-base', labelText);
+        span.setAttribute('data-plugin-type', pt);
+        span.textContent = labelText + ' (—)';
         wrap.appendChild(inp);
         wrap.appendChild(span);
         apiGenerateTypesEl.appendChild(wrap);
         inp.addEventListener('change', updateApiGenerateButtonState);
       }
+      updateApiGenerateTypeCounts();
       updateApiGenerateButtonState();
     }
 
@@ -1224,6 +1256,7 @@ personas:
         btnPull.disabled = true;
         btnPush.disabled = true;
         btnGenerate.disabled = true;
+        updateApiGenerateTypeCounts();
         return;
       }
       updateApiGenerateButtonState();
@@ -1244,6 +1277,8 @@ personas:
       // Figma změny (přes message do code.js)
       if (!silent) figmaChangeCountEl.textContent = '…';
       requestFigmaChangeCount(projectId);
+
+      updateApiGenerateTypeCounts();
     }
 
     function setSettingsStatus(msg, type = 'info') {
@@ -1321,6 +1356,7 @@ personas:
       btnPush.disabled = true;
       btnGenerate.disabled = true;
       updateConnectButtonsVisibility();
+      updateApiGenerateTypeCounts();
     });
 
     apiProjectSel.addEventListener('change', async () => {
@@ -1447,6 +1483,7 @@ personas:
 
       try {
         await hydrateEntityCacheIfNeeded();
+        updateApiGenerateTypeCounts();
 
         var importSessionId = 'flexi-import-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
         var batches = [];
@@ -1495,6 +1532,7 @@ personas:
         setSyncIndicator('error', 'Chyba');
         setApiStatus('Chyba: ' + (e.message || e), 'err');
       } finally {
+        updateApiGenerateTypeCounts();
         updateApiGenerateButtonState();
       }
     });
