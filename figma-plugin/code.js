@@ -1273,7 +1273,6 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'resize') {
     const w = Math.max(280, Math.min(800, Math.round(msg.width)));
     const h = Math.max(60, Math.min(1200, Math.round(msg.height)));
-    console.log('[resize] → ' + w + 'x' + h);
     figma.ui.resize(w, h);
   } else if (msg.type === 'close') {
     figma.closePlugin();

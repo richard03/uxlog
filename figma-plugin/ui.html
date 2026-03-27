@@ -380,7 +380,6 @@ personas:
       function sendResize() {
         const wrap = document.getElementById('app-wrap');
         const h = (wrap ? wrap.offsetHeight : 0) + 24; // 24 = 2× padding 12px
-        console.log('[resize] wrapH=' + (wrap && wrap.offsetHeight) + ' →' + PLUGIN_W + 'x' + h + ' t=' + Date.now());
         if (h > 24) parent.postMessage({ pluginMessage: { type: 'resize', width: PLUGIN_W, height: h } }, '*');
       }
 
@@ -808,7 +807,7 @@ personas:
      * @returns {boolean}
      */
     function isDirectLocalFlexiWithoutProxy(baseUrl) {
-      var trimmed = (baseUrl || '').trim();
+      var trimmed = normalizeFlexiBaseUrl(baseUrl || '');
       if (trimmed === '') return false;
       if (isFlexiProxyScriptUrl(trimmed)) return false;
       return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(trimmed);
@@ -828,13 +827,25 @@ personas:
     }
 
     /**
+     * Zajistí absolutní URL se schématem — bez http(s):// fetch() vyhodí „failed to parse URL“.
+     * @param {string} raw
+     * @returns {string}
+     */
+    function normalizeFlexiBaseUrl(raw) {
+      var s = (raw || '').trim();
+      if (s === '') return '';
+      if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(s)) return s;
+      return 'http://' + s;
+    }
+
+    /**
      * Složí URL: přímé volání Flexi, nebo proxy flexi-proxy*.php s parametrem path= (obejde CORS z Figmy).
      * @param {string} baseUrl
      * @param {string} path
      * @returns {string}
      */
     function buildFlexiRequestUrl(baseUrl, path) {
-      var base = (baseUrl || '').replace(/\/$/, '');
+      var base = normalizeFlexiBaseUrl(baseUrl).replace(/\/$/, '');
       if (isFlexiProxyScriptUrl(base)) {
         var sep = base.indexOf('?') >= 0 ? '&' : '?';
         return base + sep + 'path=' + encodeURIComponent(path);
@@ -860,7 +871,13 @@ personas:
       }
       const opts = { method, headers };
       if (body !== null) opts.body = JSON.stringify(body);
-      const response = await fetch(requestUrl, opts);
+      var response;
+      try {
+        response = await fetch(requestUrl, opts);
+      } catch (err) {
+        console.error('[UXLog] flexiFetch selhalo (síť / neplatná URL):', method, path, requestUrl, err);
+        throw err instanceof Error ? err : new Error(String(err));
+      }
       if (response.status === 401 || response.status === 403) {
         throw new Error('autentizace: HTTP ' + response.status);
       }
@@ -873,10 +890,11 @@ personas:
       const ct = response.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
         try {
-          const json = await response.json();
-          console.log('[flexiFetch]', method, path, json);
-          return json;
-        } catch (_) { return null; }
+          return await response.json();
+        } catch (e) {
+          console.error('[UXLog] JSON odpověď API se nepodařilo parsovat:', method, path, e);
+          throw new Error('Neplatná JSON odpověď z API');
+        }
       }
       return null;
     }
@@ -1274,13 +1292,15 @@ personas:
     }
 
     btnConnect.addEventListener('click', async () => {
-      const url = flexiUrlInput.value.trim();
+      const rawUrl = flexiUrlInput.value.trim();
       const apiKey = flexiKeyInput.value.trim();
-      if (!url || !apiKey) {
+      if (!rawUrl || !apiKey) {
         setSettingsStatus('Vyplňte URL i API klíč.', 'err');
         setSyncIndicator('notConfigured', 'Není nastaveno');
         return;
       }
+      const url = normalizeFlexiBaseUrl(rawUrl);
+      flexiUrlInput.value = url;
       pluginConfig = { url, apiKey, connected: false };
       try {
         await verifyConnection();
@@ -1291,6 +1311,7 @@ personas:
         startCheckTimer();
       } catch (e) {
         pluginConfig.connected = false;
+        console.error('[UXLog] Připojení k API selhalo:', e);
         setSettingsStatus(String(e.message || e), 'err');
         setSyncIndicator('offline', 'Nepřipojeno');
       } finally {
@@ -1749,6 +1770,9 @@ personas:
         setExportStatus(`✓ Exportováno: ${parts.join(', ')}.`, 'ok');
       } else if (msg.type === 'pluginConfigLoaded') {
         pluginConfig = msg.config || { url: '', apiKey: '', connected: false };
+        if (pluginConfig.url) {
+          pluginConfig.url = normalizeFlexiBaseUrl(String(pluginConfig.url).trim());
+        }
         applyConfigToForm();
         updateConnectButtonsVisibility();
         if (pluginConfig.url && pluginConfig.apiKey) {
@@ -1759,6 +1783,7 @@ personas:
               startCheckTimer();
             })
             .catch((e) => {
+              console.error('[UXLog] Automatické obnovení připojení selhalo:', e);
               setSyncIndicator('offline', 'Nepřipojeno');
               setSettingsStatus(String(e.message || e), 'err');
               stopCheckTimer();
