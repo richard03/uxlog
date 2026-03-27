@@ -48,6 +48,38 @@ async function loadFromTauri(key) {
 }
 
 /**
+ * Znovu načte konkrétní klíč ze souboru a přepíše jím localStorage.
+ * Vrací načtenou hodnotu, nebo null pokud neexistuje.
+ * @param {string} key
+ * @returns {Promise<string|null>}
+ */
+export async function reloadKeyFromTauri(key) {
+  const value = await loadFromTauri(key)
+  if (value == null) {
+    localStorage.removeItem(key)
+    return null
+  }
+  localStorage.setItem(key, value)
+  return value
+}
+
+/**
+ * Porovná `uxlog_data` v localStorage se souborem na disku (zápis z lokálního HTTP API).
+ * Při rozdílu přepíše localStorage a vrátí true — volající pak může obnovit Vue state.
+ * @returns {Promise<boolean>}
+ */
+export async function pullUxlogDataFromDiskIntoApp() {
+  if (!isTauri) return false
+  const { invoke } = await import('@tauri-apps/api/core')
+  const fromDisk = await invoke('load_storage', { key: 'uxlog_data' })
+  if (fromDisk == null) return false
+  const cur = localStorage.getItem('uxlog_data') ?? ''
+  if (fromDisk === cur) return false
+  localStorage.setItem('uxlog_data', fromDisk)
+  return true
+}
+
+/**
  * Při startu Tauri aplikace obnoví chybějící klíče v localStorage ze souborů.
  * Volá se z main.js PŘED inicializací storů.
  */
@@ -66,4 +98,22 @@ export async function restoreAllFromTauri() {
       console.warn(`[TauriBridge] Nelze obnovit ${key}:`, err)
     }
   }
+}
+
+/**
+ * Přihlásí listener na externí změny storage z Tauri backendu.
+ * Vrací unsubscribe funkci, nebo no-op mimo Tauri.
+ * @param {(payload: { key?: string }) => void} onChange
+ * @returns {Promise<Function>}
+ */
+export async function listenToTauriStorageUpdates(onChange) {
+  if (!isTauri) return () => {}
+  const { listen } = await import('@tauri-apps/api/event')
+  return listen('uxlog-storage-updated', (event) => {
+    try {
+      onChange((event && event.payload) || {})
+    } catch (err) {
+      console.error('[TauriBridge] storage update handler failed:', err)
+    }
+  })
 }

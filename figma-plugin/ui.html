@@ -125,31 +125,55 @@
 
     .field-hidden { display: none; }
 
-    /* Select a „načítám” sdílejí stejný prostor (žádné vertikální skládání). */
-    .api-entity-type-slot {
-      position: relative;
-      min-height: 32px;
-      box-sizing: border-box;
-    }
-    .api-entity-type-slot .api-entity-loading,
-    .api-entity-type-slot .api-entity-type-select {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .api-entity-loading {
-      display: flex; align-items: center;
-      min-height: 32px; padding: 6px 10px;
-      margin: 0;
+    .change-counters {
+      display: flex; gap: 10px; justify-content: space-between;
       background: #1E293B; border: 1px solid #334155;
-      border-radius: 7px; color: #94A3B8; font-size: 11px;
-      box-sizing: border-box;
+      border-radius: 7px; padding: 10px; margin-bottom: 10px;
     }
-    .api-entity-type-slot .api-entity-type-select.field-hidden,
-    .api-entity-type-slot .api-entity-loading.field-hidden { display: none !important; }
+    .change-counter {
+      flex: 1; text-align: center;
+    }
+    .change-counter .sel-count {
+      font-size: 22px; margin-bottom: 0;
+    }
+    .change-counter .change-label {
+      font-size: 10px; color: #64748B;
+    }
+    .sync-timestamps {
+      background: #1E293B; border: 1px solid #334155;
+      border-radius: 7px; padding: 8px 10px; margin-bottom: 10px;
+      font-size: 10px; color: #64748B; line-height: 1.6;
+    }
+    .sync-timestamps strong { color: #94A3B8; }
+
+    .change-counter.clickable { cursor: pointer; border-radius: 5px; transition: background 0.15s; }
+    .change-counter.clickable:hover { background: #334155; }
+
+    .changes-detail {
+      background: #1E293B; border: 1px solid #334155;
+      border-radius: 7px; padding: 8px 10px; margin-bottom: 10px;
+      font-size: 10px; color: #94A3B8; line-height: 1.5;
+      max-height: 200px; overflow-y: auto;
+      display: none;
+    }
+    .changes-detail-title {
+      font-size: 11px; font-weight: 600; color: #E2E8F0; margin-bottom: 4px;
+    }
+    .changes-detail-card {
+      margin-bottom: 6px; padding-bottom: 4px;
+      border-bottom: 1px solid #334155;
+    }
+    .changes-detail-card:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .changes-detail-card-name {
+      font-weight: 500; color: #CBD5E1; margin-bottom: 2px;
+    }
+    .changes-detail-field {
+      display: flex; gap: 4px; align-items: baseline; margin-left: 6px;
+    }
+    .changes-detail-field-name { color: #64748B; min-width: 60px; }
+    .changes-detail-old { color: #F87171; text-decoration: line-through; }
+    .changes-detail-arrow { color: #64748B; }
+    .changes-detail-new { color: #4ADE80; }
 
     .sync-bar {
       display: flex; align-items: center; gap: 7px;
@@ -210,7 +234,7 @@
   <div class="tabs">
     <button class="tab-btn" id="tabImportBtn">YAML → Figma</button>
     <button class="tab-btn"        id="tabExportBtn">Figma → YAML</button>
-    <button class="tab-btn"        id="tabApiBtn">API → Figma</button>
+    <button class="tab-btn"        id="tabApiBtn">Synchronizace</button>
     <button class="tab-btn"        id="tabSettingsBtn">Nastavení</button>
   </div>
 
@@ -276,7 +300,7 @@ personas:
 
   </div>
 
-  <!-- ====== ZÁLOŽKA: IMPORT Z API ====== -->
+  <!-- ====== ZÁLOŽKA: SYNCHRONIZACE S API ====== -->
   <div id="tab-api" style="display:none">
 
     <div class="field">
@@ -284,16 +308,34 @@ personas:
       <select id="apiProject"></select>
     </div>
 
-    <div class="field">
-      <label for="apiEntityType">Typ entit</label>
-      <div class="api-entity-type-slot">
-        <div id="apiEntityTypeLoading" class="api-entity-loading field-hidden" role="status" aria-live="polite">Načítám počty entit…</div>
-        <select id="apiEntityType" class="api-entity-type-select"></select>
+    <div class="sync-timestamps" id="syncTimestampsPanel">
+      <div>Poslední aktualizace z API: <strong id="lastPullTs">—</strong></div>
+      <div>Poslední uložení do API: <strong id="lastPushTs">—</strong></div>
+    </div>
+
+    <div class="change-counters" id="changeCounters">
+      <div class="change-counter">
+        <span class="sel-count" id="apiChangeCount">—</span>
+        <div class="change-label">změn v API</div>
+      </div>
+      <div class="change-counter clickable" id="figmaChangeCounter" title="Klikněte pro detail změn">
+        <span class="sel-count" id="figmaChangeCount">—</span>
+        <div class="change-label">změn ve Figmě</div>
       </div>
     </div>
 
-    <button id="apiImportBtn" disabled>Importovat do Figmy</button>
-    <p class="hint">Vyžaduje úspěšné připojení v záložce Nastavení. Data se filtrují podle vybraného projektu.</p>
+    <div class="changes-detail" id="changesDetail"></div>
+
+    <div class="btn-row">
+      <button id="btnPull" disabled>Aktualizovat Figmu</button>
+      <button id="btnPush" disabled>Uložit změny</button>
+    </div>
+
+    <div class="btn-row" style="margin-top:6px;">
+      <button id="btnGenerate" class="btn-secondary" disabled>Vytvořit karty z API</button>
+    </div>
+
+    <p class="hint">Vyžaduje úspěšné připojení v záložce Nastavení.</p>
 
     <div class="status status-info" id="apiStatus">Nejprve se připojte k API v záložce Nastavení.</div>
 
@@ -652,18 +694,6 @@ personas:
 
     const PLUGIN_CARD_TYPES = ['persona', 'hypothesis', 'scenario', 'stakeholder', 'goal', 'competition', 'requirement'];
 
-    /** Popisky typů v selectu importu z API (množné číslo). */
-    const API_IMPORT_ENTITY_LABELS = {
-      persona: 'Persony',
-      hypothesis: 'Hypotézy',
-      scenario: 'Scénáře',
-      stakeholder: 'Stakeholdeři',
-      goal: 'Cíle',
-      competition: 'Konkurence',
-      requirement: 'Požadavky',
-    };
-
-    const POLL_INTERVAL_MS = 15000;
     const LS_CHECKSUMS = 'uxlog_figma_checksums_v1';
     const LS_FETCH_TS = 'uxlog_figma_fetch_ts_v1';
 
@@ -675,16 +705,36 @@ personas:
     const btnDisconnect = document.getElementById('btnDisconnect');
     const settingsStatusEl = document.getElementById('settingsStatus');
     const apiProjectSel = document.getElementById('apiProject');
-    const apiEntityTypeSel = document.getElementById('apiEntityType');
-    const apiEntityTypeLoadingEl = document.getElementById('apiEntityTypeLoading');
-    const apiImportBtn = document.getElementById('apiImportBtn');
+    const btnPull = document.getElementById('btnPull');
+    const btnPush = document.getElementById('btnPush');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const apiChangeCountEl = document.getElementById('apiChangeCount');
+    const figmaChangeCountEl = document.getElementById('figmaChangeCount');
+    const figmaChangeCounter = document.getElementById('figmaChangeCounter');
+    const changesDetailEl = document.getElementById('changesDetail');
+    const lastPullTsEl = document.getElementById('lastPullTs');
+    const lastPushTsEl = document.getElementById('lastPushTs');
     const apiStatusEl = document.getElementById('apiStatus');
 
     /** @type {{ url: string, apiKey: string, connected?: boolean } | null} */
     let pluginConfig = null;
-    let pollTimer = null;
-    /** @type {Set<string>} */
-    const pendingSaveIds = new Set();
+
+    /** Sync timestamps per project: { [projectId]: { lastPullTs, lastPushTs, checksums } } */
+    let syncTimestamps = {};
+
+    /** Interval periodické kontroly změn (ms). */
+    const CHECK_INTERVAL_MS = 30000;
+    let checkTimer = null;
+
+    function startCheckTimer() {
+      stopCheckTimer();
+      checkTimer = setInterval(function () {
+        refreshChangeCounters(true);
+      }, CHECK_INTERVAL_MS);
+    }
+    function stopCheckTimer() {
+      if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
+    }
 
     /**
      * Normalizované kolekce z API pro počítání počtů bez dalších GET.
@@ -716,6 +766,20 @@ personas:
     }
     function saveLocalFetchTs(o) {
       try { localStorage.setItem(LS_FETCH_TS, JSON.stringify(o)); } catch (_) {}
+    }
+
+    /**
+     * Posune lokální per-kolekční fetch timestamp na zadaný čas.
+     * Pomáhá nevracet při dalším pullu právě uložené změny z Figmy.
+     * @param {string[]} apiEntities
+     * @param {number} ts
+     */
+    function bumpLocalFetchTs(apiEntities, ts) {
+      var current = loadLocalFetchTs();
+      for (var i = 0; i < apiEntities.length; i++) {
+        current[apiEntities[i]] = ts;
+      }
+      saveLocalFetchTs(current);
     }
 
     /**
@@ -856,13 +920,8 @@ personas:
         opt.textContent = p.name || opt.value || p.id || '';
         apiProjectSel.appendChild(opt);
       }
-      apiImportBtn.disabled = list.length === 0;
       if (list.length > 0 && apiProjectSel.value) {
-        await hydrateEntityCacheIfNeeded();
-        refreshEntityTypeCountsForProject(apiProjectSel.value);
-      } else {
-        setEntityTypeLoading(false);
-        rebuildApiEntityTypeSelect(null);
+        refreshChangeCounters();
       }
     }
 
@@ -875,15 +934,12 @@ personas:
         return !flexiEntityCacheLoaded.has(PLUGIN_TO_API_ENTITY[pt]);
       });
       if (missing.length === 0) return;
-      setEntityTypeLoading(true);
       try {
         await Promise.allSettled(missing.map(function (pluginType) {
           return fetchCollection(PLUGIN_TO_API_ENTITY[pluginType]);
         }));
       } catch (_) {
         /* výjimečný stav – allSettled obvykle nevyhodí */
-      } finally {
-        setEntityTypeLoading(false);
       }
     }
 
@@ -989,96 +1045,6 @@ personas:
     }
 
     /**
-     * Spočítá počty entit pro projekt z již načtené paměti (bez síťových volání).
-     * @param {string} projectId
-     * @returns {Object|null} mapa typ → počet, nebo null pokud ještě není nic v cache
-     */
-    function buildCountsMapFromCache(projectId) {
-      var countsMap = {};
-      var hasAny = false;
-      for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
-        var pluginType = PLUGIN_CARD_TYPES[i];
-        var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
-        if (!flexiEntityCacheLoaded.has(apiEntity)) {
-          countsMap[pluginType] = null;
-        } else {
-          hasAny = true;
-          var arr = flexiEntityCache[apiEntity] || [];
-          countsMap[pluginType] = filterByProject(arr, projectId).length;
-        }
-      }
-      return hasAny ? countsMap : null;
-    }
-
-    /**
-     * Při načítání počtů skryje select a zobrazí stejně vysoký řádek s textem (bez posunu layoutu).
-     * @param {boolean} isLoading
-     */
-    function setEntityTypeLoading(isLoading) {
-      if (!apiEntityTypeLoadingEl || !apiEntityTypeSel) return;
-      if (isLoading) {
-        apiEntityTypeLoadingEl.classList.remove('field-hidden');
-        apiEntityTypeSel.classList.add('field-hidden');
-      } else {
-        apiEntityTypeLoadingEl.classList.add('field-hidden');
-        apiEntityTypeSel.classList.remove('field-hidden');
-      }
-    }
-
-    /**
-     * Přestaví select typu entit; countsMap je null (bez počtů) nebo objekt typ → počet.
-     * @param {Object|null} countsMap
-     */
-    function rebuildApiEntityTypeSelect(countsMap) {
-      var prev = apiEntityTypeSel.value;
-      apiEntityTypeSel.innerHTML = '';
-      var allOpt = document.createElement('option');
-      allOpt.value = 'all';
-      var total = 0;
-      if (countsMap) {
-        for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
-          var k = PLUGIN_CARD_TYPES[i];
-          var n = countsMap[k];
-          if (typeof n === 'number') total += n;
-        }
-        allOpt.textContent = 'Všechny typy (postupně) (' + total + ')';
-      } else {
-        allOpt.textContent = 'Všechny typy (postupně)';
-      }
-      apiEntityTypeSel.appendChild(allOpt);
-      for (var j = 0; j < PLUGIN_CARD_TYPES.length; j++) {
-        var typ = PLUGIN_CARD_TYPES[j];
-        var opt = document.createElement('option');
-        opt.value = typ;
-        var label = API_IMPORT_ENTITY_LABELS[typ];
-        var cnt = countsMap && typeof countsMap[typ] === 'number' ? countsMap[typ] : null;
-        opt.textContent = cnt != null ? label + ' (' + cnt + ')' : label;
-        apiEntityTypeSel.appendChild(opt);
-      }
-      if (prev) {
-        apiEntityTypeSel.value = prev;
-        if (apiEntityTypeSel.value !== prev) apiEntityTypeSel.value = 'all';
-      } else {
-        apiEntityTypeSel.value = 'all';
-      }
-    }
-
-    /**
-     * Pro vybraný projekt přepočítá počty entit z paměti a zobrazí je v selectu (např. Persony (5)).
-     * Žádné další HTTP volání – data pocházejí z fetchCollection / pollTick.
-     * @param {string} projectId
-     */
-    function refreshEntityTypeCountsForProject(projectId) {
-      if (!projectId || !pluginConfig || !pluginConfig.connected) {
-        setEntityTypeLoading(false);
-        rebuildApiEntityTypeSelect(null);
-        return;
-      }
-      setEntityTypeLoading(false);
-      rebuildApiEntityTypeSelect(buildCountsMapFromCache(projectId));
-    }
-
-    /**
      * Stáhne kolekci z API (plně nebo inkrementálně).
      * @param {string} apiEntity
      */
@@ -1088,6 +1054,7 @@ personas:
       if (since > 0 && !flexiEntityCacheLoaded.has(apiEntity)) {
         since = 0;
       }
+      const requestStartedAt = Date.now();
       const path = since > 0
         ? `/api/uxlog_${apiEntity}?since=${since}`
         : `/api/uxlog_${apiEntity}`;
@@ -1096,132 +1063,190 @@ personas:
       var records = parsed.records;
       var deleted = parsed.deleted;
       mergeIntoEntityCache(apiEntity, since, records, deleted);
+      fetchTs[apiEntity] = requestStartedAt;
+      saveLocalFetchTs(fetchTs);
       return { records, deleted };
     }
 
+    // -----------------------------------------------------------------------
+    // Nové funkce pro manuální pull/push synchronizaci
+    // -----------------------------------------------------------------------
+
     /**
-     * Jeden cyklus pollingu: checksum → případně GET kolekcí → cache pro počty → případně aktualizace karet (jen při vybraném projektu).
-     * Entity s čekajícím zápisem z Figmy (pendingSaveIds) se z API na karty neaplikují, aby text uživatele nezmizel.
+     * Formátuje timestamp do cs-CZ čitelné podoby.
+     * @param {number|null|undefined} ts
+     * @returns {string}
      */
-    async function pollTick() {
-      if (!pluginConfig || !pluginConfig.url || !pluginConfig.connected) return;
-      const projectId = apiProjectSel.value;
-
-      try {
-        setSyncIndicator('reading', 'Načítám…');
-        let apiChecksums = null;
-        try {
-          apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum');
-        } catch (_) {
-          apiChecksums = null;
-        }
-
-        const stored = loadLocalChecksums();
-        const fetchTs = loadLocalFetchTs();
-        const now = Date.now();
-        let updatedChecksums = { ...stored };
-        let updatedFetchTs = { ...fetchTs };
-
-        for (const pluginType of PLUGIN_CARD_TYPES) {
-          const apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
-          const same = apiChecksums && apiChecksums[apiEntity] !== undefined
-            && stored[apiEntity] === apiChecksums[apiEntity];
-          const needHydrate = !flexiEntityCacheLoaded.has(apiEntity);
-          if (same && !needHydrate) continue;
-
-          const { records } = await fetchCollection(apiEntity);
-          updatedFetchTs[apiEntity] = now;
-          if (apiChecksums && apiChecksums[apiEntity] !== undefined) {
-            updatedChecksums[apiEntity] = apiChecksums[apiEntity];
-          }
-
-          if (projectId) {
-            const filtered = filterByProject(records.map(normalizeApiRecord), projectId);
-            for (const entity of filtered) {
-              var pendKey = pluginType + ':' + String(entity.id);
-              if (pendingSaveIds.has(pendKey)) {
-                continue;
-              }
-              parent.postMessage({
-                pluginMessage: {
-                  type: 'applyRemoteEntity',
-                  entityType: pluginType,
-                  entity,
-                },
-              }, '*');
-            }
-          }
-        }
-
-        saveLocalChecksums(updatedChecksums);
-        saveLocalFetchTs(updatedFetchTs);
-        setSyncIndicator(pendingSaveIds.size ? 'pending' : 'idle',
-          pendingSaveIds.size ? 'Čeká na uložení' : 'Synchronizováno');
-        if (apiProjectSel.value) {
-          refreshEntityTypeCountsForProject(apiProjectSel.value);
-        }
-      } catch (e) {
-        const msg = String(e.message || e);
-        if (/autentizace/i.test(msg)) {
-          setSyncIndicator('error', 'Chyba autentizace: ' + msg);
-        } else {
-          setSyncIndicator('error', 'Chyba čtení: ' + msg);
-        }
-      }
+    function formatTs(ts) {
+      if (!ts) return '—';
+      var d = new Date(ts);
+      return d.toLocaleString('cs-CZ', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
     }
 
     /**
-     * Spustí nebo zastaví interval pollingu.
-     * @param {boolean} on
+     * Zobrazí časy posledního pull/push pro vybraný projekt.
+     * @param {string} projectId
      */
-    function setPolling(on) {
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
-      if (on && pluginConfig && pluginConfig.connected) {
-        pollTimer = setInterval(pollTick, POLL_INTERVAL_MS);
-        pollTick();
-      }
+    function displaySyncTimestamps(projectId) {
+      var data = syncTimestamps[projectId] || {};
+      lastPullTsEl.textContent = formatTs(data.lastPullTs);
+      lastPushTsEl.textContent = formatTs(data.lastPushTs);
     }
 
     /**
-     * Uloží entitu z Figmy do API (PUT).
-     * @param {string} entityType
-     * @param {Object} entity
+     * Spočítá změny v API od posledního pullu.
+     * @param {string} projectId
+     * @returns {Promise<number|null>}
      */
-    async function saveEntityToApi(entityType, entity) {
-      if (!pluginConfig || !pluginConfig.url || !pluginConfig.connected) return;
-      const apiEntity = PLUGIN_TO_API_ENTITY[entityType];
-      if (!apiEntity || !entity || !entity.id) return;
-      const putId = entity._apiId != null ? entity._apiId : entity.id;
-      const ts = Date.now();
-      const body = { ...entity, _uxlog_id: entity.id, _ts: ts };
-      setSyncIndicator('writing', 'Ukládám…');
+    async function countApiChanges(projectId) {
+      var data = syncTimestamps[projectId] || {};
+      var lastPull = data.lastPullTs || 0;
+      var storedChecksums = data.checksums || {};
+
+      var apiChecksums = null;
       try {
-        await flexiFetch('PUT', `/api/uxlog_${apiEntity}/${encodeURIComponent(putId)}`, body);
-        pendingSaveIds.delete(entityType + ':' + String(entity.id));
-        parent.postMessage({
-          pluginMessage: {
-            type: 'applyRemoteEntity',
-            entityType,
-            entity: { ...entity, _ts: ts },
-            isSaveResponse: true,
-          },
-        }, '*');
-        setSyncIndicator(
-          pendingSaveIds.size ? 'pending' : 'idle',
-          pendingSaveIds.size ? 'Čeká na uložení' : 'Synchronizováno',
-        );
-      } catch (e) {
-        pendingSaveIds.delete(entityType + ':' + String(entity.id));
-        const msg = String(e.message || e);
-        if (/autentizace/i.test(msg)) {
-          setSyncIndicator('error', 'Chyba autentizace (zápis): ' + msg);
+        apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum');
+      } catch (_) { return null; }
+
+      console.log('[countApiChanges] lastPull=' + lastPull + ', storedChecksums=', storedChecksums, 'apiChecksums=', apiChecksums);
+
+      var totalChanges = 0;
+      for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
+        var pluginType = PLUGIN_CARD_TYPES[i];
+        var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+        var storedVal = storedChecksums[apiEntity];
+        var apiVal = apiChecksums ? apiChecksums[apiEntity] : undefined;
+        var same = apiVal !== undefined && storedVal === apiVal;
+        console.log('[countApiChanges] ' + apiEntity + ': stored=' + storedVal + ' api=' + apiVal + ' same=' + same);
+        if (same) continue;
+
+        if (lastPull > 0) {
+          try {
+            var resp = await flexiFetch('GET', '/api/uxlog_' + apiEntity + '?since=' + lastPull);
+            var parsed = parseUxlogCollectionBody(resp);
+            var filtered = filterByProject(parsed.records.map(normalizeApiRecord), projectId);
+            console.log('[countApiChanges] ' + apiEntity + ' since=' + lastPull + ': records=' + parsed.records.length + ' filtered=' + filtered.length + ' deleted=' + (parsed.deleted || []).length);
+            totalChanges += filtered.length + (parsed.deleted || []).length;
+          } catch (e) {
+            console.warn('[countApiChanges] ' + apiEntity + ' fetch error:', e);
+            totalChanges += 1;
+          }
         } else {
-          setSyncIndicator('error', 'Chyba zápisu: ' + msg);
+          await hydrateEntityCacheIfNeeded();
+          var arr = flexiEntityCache[apiEntity] || [];
+          totalChanges += filterByProject(arr, projectId).length;
         }
       }
+      console.log('[countApiChanges] totalChanges=' + totalChanges);
+      return totalChanges;
+    }
+
+    /**
+     * Požádá code.js o počet lokálních změn ve Figmě.
+     * @param {string} projectId
+     */
+    function requestFigmaChangeCount(projectId) {
+      parent.postMessage({
+        pluginMessage: { type: 'countLocalChanges', projectId: projectId },
+      }, '*');
+    }
+
+    /**
+     * Požádá code.js o detailní výpis lokálních změn.
+     */
+    function requestFigmaChangesDetail(projectId) {
+      parent.postMessage({
+        pluginMessage: { type: 'getLocalChangesDetail', projectId: projectId },
+      }, '*');
+    }
+
+    /** Zkrátí text pro zobrazení v detailu. */
+    function truncate(s, max) {
+      if (!s) return '(prázdné)';
+      s = s.replace(/\n/g, ' ↵ ');
+      return s.length > max ? s.slice(0, max) + '…' : s;
+    }
+
+    /** Vykreslí detail změn do panelu. */
+    function renderChangesDetail(details) {
+      if (!details || details.length === 0) {
+        changesDetailEl.innerHTML = '<div class="changes-detail-title">Žádné konkrétní textové změny</div>';
+        changesDetailEl.style.display = 'block';
+        return;
+      }
+      var html = '<div class="changes-detail-title">Detail změn ve Figmě</div>';
+      for (var i = 0; i < details.length; i++) {
+        var d = details[i];
+        html += '<div class="changes-detail-card">';
+        html += '<div class="changes-detail-card-name">' + escHtml(d.entityType) + ': ' + escHtml(d.name) + '</div>';
+        for (var j = 0; j < d.changes.length; j++) {
+          var c = d.changes[j];
+          html += '<div class="changes-detail-field">';
+          html += '<span class="changes-detail-field-name">' + escHtml(c.field) + '</span> ';
+          html += '<span class="changes-detail-old">' + escHtml(truncate(c.old, 60)) + '</span>';
+          html += '<span class="changes-detail-arrow"> → </span>';
+          html += '<span class="changes-detail-new">' + escHtml(truncate(c.new, 60)) + '</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      changesDetailEl.innerHTML = html;
+      changesDetailEl.style.display = 'block';
+    }
+
+    // Klik na počítadlo Figma změn — toggle detailu
+    figmaChangeCounter.addEventListener('click', function () {
+      if (changesDetailEl.style.display === 'block') {
+        changesDetailEl.style.display = 'none';
+        return;
+      }
+      var pid = apiProjectSel.value;
+      if (pid && pluginConfig && pluginConfig.connected) {
+        changesDetailEl.innerHTML = '<div class="changes-detail-title">Načítám…</div>';
+        changesDetailEl.style.display = 'block';
+        requestFigmaChangesDetail(pid);
+      }
+    });
+
+    /**
+     * Aktualizuje počítadla změn a stav tlačítek. Volá se při otevření tabu, změně projektu, po pull/push.
+     */
+    /**
+     * Aktualizuje počítadla změn a stav tlačítek.
+     * @param {boolean} [silent] – true = periodický check, nezavírá detail panel
+     */
+    async function refreshChangeCounters(silent) {
+      if (!silent) changesDetailEl.style.display = 'none';
+      var projectId = apiProjectSel.value;
+      if (!projectId || !pluginConfig || !pluginConfig.connected) {
+        apiChangeCountEl.textContent = '—';
+        figmaChangeCountEl.textContent = '—';
+        btnPull.disabled = true;
+        btnPush.disabled = true;
+        btnGenerate.disabled = true;
+        return;
+      }
+      btnGenerate.disabled = false;
+
+      displaySyncTimestamps(projectId);
+
+      // API změny (async)
+      if (!silent) apiChangeCountEl.textContent = '…';
+      try {
+        var apiCount = await countApiChanges(projectId);
+        apiChangeCountEl.textContent = apiCount != null ? String(apiCount) : '?';
+        btnPull.disabled = false;
+      } catch (_) {
+        apiChangeCountEl.textContent = '?';
+        btnPull.disabled = false;
+      }
+
+      // Figma změny (přes message do code.js)
+      if (!silent) figmaChangeCountEl.textContent = '…';
+      requestFigmaChangeCount(projectId);
     }
 
     function setSettingsStatus(msg, type = 'info') {
@@ -1262,8 +1287,8 @@ personas:
         await refreshProjectList();
         parent.postMessage({ pluginMessage: { type: 'savePluginConfig', config: pluginConfig } }, '*');
         setSettingsStatus('Připojení uloženo.', 'ok');
-        setApiStatus('Připraveno k importu z API.', 'ok');
-        setPolling(true);
+        setApiStatus('Připraveno k synchronizaci.', 'ok');
+        startCheckTimer();
       } catch (e) {
         pluginConfig.connected = false;
         setSettingsStatus(String(e.message || e), 'err');
@@ -1274,89 +1299,175 @@ personas:
     });
 
     btnDisconnect.addEventListener('click', () => {
+      stopCheckTimer();
       clearFlexiEntityCache();
       pluginConfig = { url: flexiUrlInput.value.trim(), apiKey: '', connected: false };
       flexiKeyInput.value = '';
       parent.postMessage({ pluginMessage: { type: 'savePluginConfig', config: pluginConfig } }, '*');
-      setPolling(false);
       setSettingsStatus('Odpojeno (klíč vymazán).', 'info');
       setSyncIndicator('offline', 'Nepřipojeno');
-      apiImportBtn.disabled = true;
+      apiChangeCountEl.textContent = '—';
+      figmaChangeCountEl.textContent = '—';
+      lastPullTsEl.textContent = '—';
+      lastPushTsEl.textContent = '—';
+      btnPull.disabled = true;
+      btnPush.disabled = true;
+      btnGenerate.disabled = true;
       updateConnectButtonsVisibility();
-      setEntityTypeLoading(false);
-      rebuildApiEntityTypeSelect(null);
     });
 
     apiProjectSel.addEventListener('change', async () => {
-      const pid = apiProjectSel.value;
-      if (pid && pluginConfig && pluginConfig.connected) {
-        await hydrateEntityCacheIfNeeded();
-        refreshEntityTypeCountsForProject(pid);
-      } else {
-        setEntityTypeLoading(false);
-        rebuildApiEntityTypeSelect(null);
+      refreshChangeCounters();
+    });
+
+    // -----------------------------------------------------------------------
+    // Pull: Aktualizovat Figmu (stáhne entity z API → propíše do karet)
+    // -----------------------------------------------------------------------
+
+    btnPull.addEventListener('click', async () => {
+      var projectId = apiProjectSel.value;
+      if (!projectId || !pluginConfig || !pluginConfig.connected) return;
+
+      btnPull.disabled = true;
+      btnPush.disabled = true;
+      setApiStatus('Stahuji data z API…', 'info');
+      setSyncIndicator('reading', 'Načítám…');
+
+      try {
+        var totalApplied = 0;
+        var now = Date.now();
+        var newChecksums = {};
+
+        var apiChecksums = null;
+        try { apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum'); } catch (_) {}
+
+        for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
+          var pluginType = PLUGIN_CARD_TYPES[i];
+          var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          var result = await fetchCollection(apiEntity);
+          var filtered = filterByProject(result.records.map(normalizeApiRecord), projectId);
+
+          for (var j = 0; j < filtered.length; j++) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'applyRemoteEntity',
+                entityType: pluginType,
+                entity: filtered[j],
+              },
+            }, '*');
+            totalApplied++;
+          }
+
+          if (apiChecksums && apiChecksums[apiEntity] !== undefined) {
+            newChecksums[apiEntity] = apiChecksums[apiEntity];
+          }
+
+          // Krátká pauza mezi typy entit
+          await new Promise(function (r) { setTimeout(r, 200); });
+        }
+
+        // Uložit timestamp a checksums
+        if (!syncTimestamps[projectId]) syncTimestamps[projectId] = {};
+        syncTimestamps[projectId].lastPullTs = now;
+        syncTimestamps[projectId].checksums = newChecksums;
+        parent.postMessage({
+          pluginMessage: { type: 'saveSyncTimestamps', data: syncTimestamps },
+        }, '*');
+
+        setSyncIndicator('idle', 'Připojeno');
+        setApiStatus('Aktualizováno: ' + totalApplied + ' entit z API.', 'ok');
+        displaySyncTimestamps(projectId);
+        await refreshChangeCounters();
+      } catch (e) {
+        setSyncIndicator('error', 'Chyba');
+        setApiStatus('Chyba: ' + (e.message || e), 'err');
+      } finally {
+        btnPull.disabled = false;
+        btnPush.disabled = false;
       }
     });
 
-    apiImportBtn.addEventListener('click', async () => {
-      if (!pluginConfig || !pluginConfig.connected) {
-        setApiStatus('Nejprve se připojte v Nastavení.', 'err');
-        return;
-      }
-      const projectId = apiProjectSel.value;
-      const mode = apiEntityTypeSel.value;
-      if (!projectId) {
-        setApiStatus('Vyberte projekt.', 'err');
-        return;
-      }
-      setApiStatus('Stahuji data…', 'info');
-      apiImportBtn.disabled = true;
+    // -----------------------------------------------------------------------
+    // Push: Uložit změny (sebere dirty entity z Figmy → uloží do API)
+    // -----------------------------------------------------------------------
+
+    btnPush.addEventListener('click', async () => {
+      var projectId = apiProjectSel.value;
+      if (!projectId || !pluginConfig || !pluginConfig.connected) return;
+
+      btnPull.disabled = true;
+      btnPush.disabled = true;
+      setApiStatus('Sbírám změny z Figmy…', 'info');
+      setSyncIndicator('writing', 'Ukládám…');
+
+      // Požádáme code.js o dirty entity — výsledek zpracujeme v message handleru
+      parent.postMessage({
+        pluginMessage: { type: 'collectDirtyEntities', projectId: projectId },
+      }, '*');
+    });
+
+    // -----------------------------------------------------------------------
+    // Generování karet z API (vytvoří nové karty pro všechny entity projektu)
+    // -----------------------------------------------------------------------
+
+    btnGenerate.addEventListener('click', async () => {
+      var projectId = apiProjectSel.value;
+      if (!projectId || !pluginConfig || !pluginConfig.connected) return;
+
+      btnGenerate.disabled = true;
+      setApiStatus('Stahuji data z API…', 'info');
+      setSyncIndicator('reading', 'Načítám…');
+
       try {
-        const types = mode === 'all' ? PLUGIN_CARD_TYPES : [mode];
-        const importSessionId = mode === 'all'
-          ? 'flexi-import-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
-          : null;
-        const batches = [];
-        for (const pluginType of types) {
-          const apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
-          const { records } = await fetchCollection(apiEntity);
-          const filtered = filterByProject(records.map(normalizeApiRecord), projectId);
+        await hydrateEntityCacheIfNeeded();
+
+        var importSessionId = 'flexi-import-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+        var batches = [];
+        for (var i = 0; i < PLUGIN_CARD_TYPES.length; i++) {
+          var pluginType = PLUGIN_CARD_TYPES[i];
+          var apiEntity = PLUGIN_TO_API_ENTITY[pluginType];
+          var arr = flexiEntityCache[apiEntity] || [];
+          var filtered = filterByProject(arr.map(normalizeApiRecord), projectId);
           if (filtered.length === 0) continue;
           batches.push({ pluginType: pluginType, filtered: filtered });
         }
-        let total = 0;
+
+        var total = 0;
         for (var bi = 0; bi < batches.length; bi++) {
-          const b = batches[bi];
-          const projects = [{ id: projectId }];
-          var layout = importSessionId
-            ? {
-                mode: 'flexi-import',
-                sessionId: importSessionId,
-                gapX: 300,
-                gapY: 300,
-                endSession: bi === batches.length - 1,
-              }
-            : undefined;
+          var b = batches[bi];
+          var layout = {
+            mode: 'flexi-import',
+            sessionId: importSessionId,
+            gapX: 300,
+            gapY: 300,
+            endSession: bi === batches.length - 1,
+          };
           parent.postMessage({
             pluginMessage: {
               type: 'generate',
               entityType: b.pluginType,
               entities: b.filtered,
-              projects,
+              projects: [{ id: projectId }],
               cardSource: 'flexi',
               silent: true,
               layout: layout,
             },
           }, '*');
           total += b.filtered.length;
-          await new Promise((r) => setTimeout(r, 450));
+          await new Promise(function (r) { setTimeout(r, 450); });
         }
-        if (total === 0) setApiStatus('Pro tento projekt nejsou žádné záznamy.', 'err');
-        else setApiStatus('Odesláno do Figmy: ' + total + ' entit.', 'ok');
+
+        setSyncIndicator('idle', 'Připojeno');
+        if (total === 0) {
+          setApiStatus('Pro tento projekt nejsou žádné záznamy.', 'err');
+        } else {
+          setApiStatus('Vytvořeno ' + total + ' karet ve Figmě.', 'ok');
+        }
       } catch (e) {
+        setSyncIndicator('error', 'Chyba');
         setApiStatus('Chyba: ' + (e.message || e), 'err');
       } finally {
-        apiImportBtn.disabled = false;
+        btnGenerate.disabled = false;
       }
     });
 
@@ -1644,14 +1755,13 @@ personas:
           verifyConnection()
             .then(() => refreshProjectList())
             .then(() => {
-              setPolling(true);
-              setApiStatus('Připraveno k importu z API.', 'ok');
+              setApiStatus('Připraveno k synchronizaci.', 'ok');
+              startCheckTimer();
             })
             .catch((e) => {
               setSyncIndicator('offline', 'Nepřipojeno');
               setSettingsStatus(String(e.message || e), 'err');
-              setEntityTypeLoading(false);
-              rebuildApiEntityTypeSelect(null);
+              stopCheckTimer();
             })
             .finally(() => {
               updateConnectButtonsVisibility();
@@ -1659,14 +1769,110 @@ personas:
         } else {
           setSyncIndicator('notConfigured', 'Není nastaveno');
           updateConnectButtonsVisibility();
-          setEntityTypeLoading(false);
-          rebuildApiEntityTypeSelect(null);
         }
-      } else if (msg.type === 'entityDirty') {
-        saveEntityToApi(msg.entityType, msg.entity);
-      } else if (msg.type === 'entitySyncPending') {
-        pendingSaveIds.add(msg.entityType + ':' + String(msg.entityId));
-        setSyncIndicator('pending', 'Čeká na uložení');
+
+      } else if (msg.type === 'syncTimestampsLoaded') {
+        syncTimestamps = msg.data || {};
+        if (apiProjectSel.value) {
+          displaySyncTimestamps(apiProjectSel.value);
+        }
+
+      } else if (msg.type === 'localChangesCount') {
+        figmaChangeCountEl.textContent = String(msg.total);
+        btnPush.disabled = msg.total === 0 || !pluginConfig || !pluginConfig.connected;
+
+      } else if (msg.type === 'dirtyEntitiesCollected') {
+        // Zpracování push: uložit dirty entity do API
+        (async function () {
+          var entities = msg.entities || [];
+          var projectId = apiProjectSel.value;
+
+          if (entities.length === 0) {
+            setApiStatus('Žádné změny k uložení.', 'info');
+            setSyncIndicator('idle', 'Připojeno');
+            btnPull.disabled = false;
+            btnPush.disabled = false;
+            return;
+          }
+
+          setApiStatus('Ukládám ' + entities.length + ' změn…', 'info');
+          var saved = 0;
+          var errors = 0;
+          var savedEntities = [];
+          var touchedApiEntities = new Set();
+          for (var i = 0; i < entities.length; i++) {
+            var item = entities[i];
+            try {
+              var apiEntity = PLUGIN_TO_API_ENTITY[item.entityType];
+              var putId = item.entity._apiId != null ? item.entity._apiId : item.entity.id;
+              var ts = Date.now();
+              var body = Object.assign({}, item.entity, { _uxlog_id: item.entity.id, _ts: ts });
+              console.log('[push] PUT /api/uxlog_' + apiEntity + '/' + putId, JSON.stringify(body).slice(0, 500));
+              await flexiFetch('PUT', '/api/uxlog_' + apiEntity + '/' + encodeURIComponent(putId), body);
+              saved++;
+              savedEntities.push({ entityType: item.entityType, entityId: item.entityId });
+              touchedApiEntities.add(apiEntity);
+            } catch (e) {
+              errors++;
+              console.error('[push] error saving', item.entityType, item.entityId, e);
+            }
+          }
+
+          // Uložit push timestamp
+          var now = Date.now();
+          if (!syncTimestamps[projectId]) syncTimestamps[projectId] = {};
+          syncTimestamps[projectId].lastPushTs = now;
+          if (savedEntities.length > 0) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'markSavedEntitiesClean',
+                projectId: projectId,
+                entities: savedEntities,
+              },
+            }, '*');
+            bumpLocalFetchTs(Array.from(touchedApiEntities), now);
+            try {
+              var apiChecksums = await flexiFetch('GET', '/api/uxlog_checksum');
+              if (apiChecksums && typeof apiChecksums === 'object') {
+                syncTimestamps[projectId].checksums = Object.assign(
+                  {},
+                  syncTimestamps[projectId].checksums || {},
+                  apiChecksums,
+                );
+              }
+            } catch (_) {}
+          }
+          parent.postMessage({
+            pluginMessage: { type: 'saveSyncTimestamps', data: syncTimestamps },
+          }, '*');
+
+          setSyncIndicator('idle', 'Připojeno');
+          var statusMsg = errors > 0
+            ? 'Uloženo ' + saved + ' změn, ' + errors + ' chyb.'
+            : 'Uloženo ' + saved + ' změn do API.';
+          setApiStatus(statusMsg, errors > 0 ? 'err' : 'ok');
+          displaySyncTimestamps(projectId);
+          await refreshChangeCounters();
+          btnPull.disabled = false;
+          btnPush.disabled = false;
+        })();
+
+      } else if (msg.type === 'cardsMarkedClean') {
+        // Karty označeny jako čisté — žádná další akce
+
+      } else if (msg.type === 'localChangeDetected') {
+        // Uživatel upravil text na UXLog kartě — aktualizovat počítadlo Figma změn
+        var pid = apiProjectSel.value;
+        if (pid && pluginConfig && pluginConfig.connected) {
+          requestFigmaChangeCount(pid);
+        }
+        // Pokud je detail otevřený, aktualizovat i jej
+        if (changesDetailEl.style.display === 'block' && pid) {
+          requestFigmaChangesDetail(pid);
+        }
+
+      } else if (msg.type === 'localChangesDetail') {
+        renderChangesDetail(msg.details);
       }
     };
 
@@ -1678,9 +1884,8 @@ personas:
     entityTypeSel.addEventListener('change', parseJSON);
     projectSel.addEventListener('change',   updatePreview);
 
-    setEntityTypeLoading(false);
-    rebuildApiEntityTypeSelect(null);
     parent.postMessage({ pluginMessage: { type: 'loadPluginConfig' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'loadSyncTimestamps' } }, '*');
 
   </script>
 

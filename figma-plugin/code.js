@@ -362,17 +362,11 @@ const PLUGIN_TO_API_ENTITY = {
   requirement: 'requirements',
 };
 
-/**
- * Debounce zápisu Figma → API (ms). Musí být kratší než interval pollingu z UI,
- * jinak stahování z API přepíše text dřív, než se stihne odeslat PUT.
- */
-const SYNC_DEBOUNCE_MS = 2000;
-
 /** Klíč pro persistenci nastavení pluginu (Flexi URL, klíč) v clientStorage. */
 const PLUGIN_CONFIG_STORAGE_KEY = 'uxlog_figma_plugin_config';
 
-/** Časovače debounce per entita (klíč = entityType:entityId). */
-const entitySyncTimers = new Map();
+/** Klíč pro persistenci sync timestampů (lastPullTs, lastPushTs) v clientStorage. */
+const SYNC_TIMESTAMPS_STORAGE_KEY = 'uxlog_figma_sync_timestamps';
 
 /** ID textových uzlů, u kterých právě aplikujeme změnu z API (ochrana před smyčkou). */
 const suppressTextChangeIds = new Set();
@@ -788,15 +782,20 @@ async function setTextSafeAsync(node, chars) {
  * @param {FrameNode} card
  * @param {string} entityType
  * @param {Object} entity
+ * @param {Set<string>|null} [changedFields]
  */
-async function applyGenericEntityText(card, entityType, entity) {
+async function applyGenericEntityText(card, entityType, entity, changedFields) {
   const config = ENTITY_CONFIGS[entityType];
   if (!config) return;
 
   async function walk(node) {
     if (node.type === 'TEXT') {
       const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
-      if (fk && fk !== NODE_URL && Object.prototype.hasOwnProperty.call(entity, fk)) {
+      if (
+        fk && fk !== NODE_URL &&
+        Object.prototype.hasOwnProperty.call(entity, fk) &&
+        (!changedFields || changedFields.has(fk))
+      ) {
         let val = entity[fk];
         const badgeConf = (config.badges || []).find((b) => b.field === fk);
         if (badgeConf && badgeConf.map && typeof val === 'string') {
@@ -818,12 +817,17 @@ async function applyGenericEntityText(card, entityType, entity) {
  * Aktualizuje textové vrstvy karty persony podle entity.
  * @param {FrameNode} card
  * @param {Object} entity
+ * @param {Set<string>|null} [changedFields]
  */
-async function applyPersonaEntityText(card, entity) {
+async function applyPersonaEntityText(card, entity, changedFields) {
   async function walk(node) {
     if (node.type === 'TEXT') {
       const fk = node.getPluginData('uxlogField') || (node.name && node.name !== NODE_URL ? node.name : null);
-      if (fk && fk !== NODE_URL && Object.prototype.hasOwnProperty.call(entity, fk)) {
+      if (
+        fk && fk !== NODE_URL &&
+        Object.prototype.hasOwnProperty.call(entity, fk) &&
+        (!changedFields || changedFields.has(fk))
+      ) {
         let val = entity[fk];
         if (fk === 'status') {
           val = entity.status === 'protopersona' ? BADGE_PROTOPERSONA : BADGE_PERSONA;
@@ -861,6 +865,53 @@ function isUserEditingTextInsideUxlogCard(card) {
 }
 
 /**
+ * Vrátí seznam textových polí, která plugin pro daný typ entity synchronizuje.
+ * @param {string} entityType
+ * @returns {string[]}
+ */
+function getTrackedFieldsForEntityType(entityType) {
+  const config = ENTITY_CONFIGS[entityType];
+  if (entityType === 'persona') {
+    return ['name', 'code', 'status', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'];
+  } else if (config) {
+    const fields = ['name', 'code', ...config.blocks.map(function(b) { return b.field; })];
+    for (var bi = 0; bi < (config.badges || []).length; bi++) {
+      fields.push(config.badges[bi].field);
+    }
+    if (config.stats) {
+      for (var si = 0; si < config.stats.length; si++) {
+        fields.push(config.stats[si].fieldA, config.stats[si].fieldB);
+      }
+    }
+    return fields;
+  }
+  return [];
+}
+
+/**
+ * Vrátí množinu polí, která se v API skutečně změnila oproti poslednímu sync stavu karty.
+ * Pokud metadata chybí, vrací prázdnou sadu nebo všechny změněné syncované atributy.
+ * @param {Object} stored
+ * @param {Object} incoming
+ * @param {string} entityType
+ * @returns {Set<string>}
+ */
+function getChangedRemoteFields(stored, incoming, entityType) {
+  const fields = getTrackedFieldsForEntityType(entityType);
+  if (!stored || Object.keys(stored).length === 0) {
+    return new Set(fields);
+  }
+  const changed = new Set();
+  for (var fi = 0; fi < fields.length; fi++) {
+    var f = fields[fi];
+    var sv = stored && stored[f] != null ? String(stored[f]) : '';
+    var iv = incoming && incoming[f] != null ? String(incoming[f]) : '';
+    if (sv !== iv) changed.add(f);
+  }
+  return changed;
+}
+
+/**
  * Porovná naposledy synchronizovaná data entity s aktuálním textem karty.
  * Vrátí true, pokud karta obsahuje lokální změny, které ještě nebyly odeslány do API.
  * @param {Object} stored - poslední synchronizovaná data (z pluginData uxlogEntity)
@@ -869,27 +920,7 @@ function isUserEditingTextInsideUxlogCard(card) {
  * @returns {boolean}
  */
 function isCardDirty(stored, current, entityType) {
-  const config = ENTITY_CONFIGS[entityType];
-  let fields;
-  if (entityType === 'persona') {
-    fields = ['name', 'code', 'description', 'motivation', 'needs', 'problems', 'targetGroupSize', 'targetGroupValue'];
-  } else if (config) {
-    fields = ['name', 'code', ...config.blocks.map(function(b) { return b.field; })];
-    if (config.stats) {
-      for (var si = 0; si < config.stats.length; si++) {
-        fields.push(config.stats[si].fieldA, config.stats[si].fieldB);
-      }
-    }
-  } else {
-    return false;
-  }
-  for (var fi = 0; fi < fields.length; fi++) {
-    var f = fields[fi];
-    var sv = stored[f] != null ? String(stored[f]) : '';
-    var cv = current[f] != null ? String(current[f]) : '';
-    if (sv !== cv) return true;
-  }
-  return false;
+  return getChangedRemoteFields(stored, current, entityType).size > 0;
 }
 
 /**
@@ -898,98 +929,46 @@ function isCardDirty(stored, current, entityType) {
  * Vícevrstvá ochrana proti přepsání lokálních změn:
  *   1) Timestamp uxlogLocalEditTs > uxlogLastDbSyncTs — jen pro poll (ne save response,
  *      protože timestamp nebyl resetován a vždy by blokoval aktualizaci)
- *   2) Per-node uxlogAppliedValue ≠ aktuální text (funguje i po restartu pluginu)
- *   3) Porovnání uxlogEntity vs extrahovaný text (fallback pro starší karty bez uxlogAppliedValue)
+ * Při manuálním pullu vždy přepíše kartu daty z API (bez detekce konfliktů).
  *
  * @param {string}  entityType
  * @param {Object}  entity
- * @param {boolean} [isSaveResponse] – true = odpověď na PUT z Figmy
  */
-async function applyEntityToAllMatchingCards(entityType, entity, isSaveResponse) {
+async function applyEntityToAllMatchingCards(entityType, entity) {
   const id = entity && entity.id;
   if (!id) return;
   const cards = findCardsForEntityOnPage(entityType, id);
   for (const card of cards) {
-    var cardHasLocalChanges = false;
-
-    var localEditTs  = parseInt(card.getPluginData('uxlogLocalEditTs')  || '0', 10) || 0;
-    var lastDbSyncTs = parseInt(card.getPluginData('uxlogLastDbSyncTs') || '0', 10) || 0;
-    if (!isSaveResponse && localEditTs > lastDbSyncTs) {
-      cardHasLocalChanges = true;
-    }
-
-    if (!cardHasLocalChanges) {
-      var perNodeResult = hasAnyLocalTextChange(card);
-      if (perNodeResult === true) {
-        cardHasLocalChanges = true;
-      } else if (perNodeResult === null) {
-        var stored = {};
-        try { stored = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
-        var extracted = extractEntityFromCard(card);
-        if (extracted && isCardDirty(stored, extracted.entity, entityType)) {
-          cardHasLocalChanges = true;
-        }
-      }
-    }
-
-    if (cardHasLocalChanges) {
-      queueEntitySyncFromCard(card);
-      continue;
-    }
-
+    let storedEntity = {};
+    try { storedEntity = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
+    const changedFields = getChangedRemoteFields(storedEntity, entity, entityType);
     try {
       card.setPluginData('uxlogEntity', JSON.stringify(entity));
       if (entity._ts != null)    card.setPluginData('uxlogLastSyncTs', String(entity._ts));
       if (entity._apiId != null) card.setPluginData('uxlogApiId', String(entity._apiId));
       card.setPluginData('uxlogLastDbSyncTs', String(Date.now()));
-      if (isSaveResponse) {
-        card.setPluginData('uxlogLocalEditTs', '0');
-      }
+      card.setPluginData('uxlogLocalEditTs', '0');
     } catch (_) {}
 
     if (isUserEditingTextInsideUxlogCard(card)) {
       continue;
     }
 
+    if (changedFields.size === 0) {
+      continue;
+    }
+
     if (entityType === 'persona') {
-      await applyPersonaEntityText(card, entity);
+      await applyPersonaEntityText(card, entity, changedFields);
     } else {
-      await applyGenericEntityText(card, entityType, entity);
+      await applyGenericEntityText(card, entityType, entity, changedFields);
     }
   }
 }
 
-/**
- * Zařadí debounced odeslání změněné entity do UI (zápis do API).
- * Používá globální setTimeout/clearTimeout (na figma objektu nejsou v api 1.0.0).
- * @param {FrameNode} card
- */
-function queueEntitySyncFromCard(card) {
-  const entityType = card.getPluginData('uxlogEntityType') ||
-    (card.getPluginData('uxlogPersona') ? 'persona' : null);
-  const entityId = card.getPluginData('uxlogEntityId');
-  if (!entityType || !entityId) return;
-  const key = `${entityType}:${entityId}`;
-  const prev = entitySyncTimers.get(key);
-  if (prev !== undefined) clearTimeout(prev);
-  const t = setTimeout(function () {
-    entitySyncTimers.delete(key);
-    const cards = findCardsForEntityOnPage(entityType, entityId);
-    const c0 = cards[0];
-    if (!c0) return;
-    const merged = mergeEntityForPayload(c0);
-    if (!merged || !merged.id) return;
-    updateAppliedValuesFromCard(c0);
-    figma.ui.postMessage({
-      type: 'entityDirty',
-      entityType,
-      entityId,
-      entity: merged,
-    });
-  }, SYNC_DEBOUNCE_MS);
-  entitySyncTimers.set(key, t);
-  figma.ui.postMessage({ type: 'entitySyncPending', entityType, entityId });
-}
+/** Debounce timer pro notifikaci UI o lokálních změnách. */
+let localChangeNotifyTimer = null;
+const LOCAL_CHANGE_NOTIFY_DEBOUNCE_MS = 1500;
 
 /**
  * Při documentAccess: dynamic-page je nutné nejdřív načíst všechny stránky,
@@ -1001,6 +980,7 @@ function registerDocumentChangeHandler() {
       figma.on('documentchange', function (event) {
         const changes = event && event.documentChanges;
         if (!changes) return;
+        let anyDirty = false;
         for (let i = 0; i < changes.length; i++) {
           const ch = changes[i];
           if (ch.type !== undefined && ch.type !== 'PROPERTY_CHANGE') continue;
@@ -1014,14 +994,21 @@ function registerDocumentChangeHandler() {
                 (p.getPluginData('uxlogPersona') ? 'persona' : null);
               const eid = p.getPluginData('uxlogEntityId');
               if (et && eid) {
-                // Označíme kartu jako lokálně upravenou (plugin běží → dokumentchange funguje)
                 try { p.setPluginData('uxlogLocalEditTs', String(Date.now())); } catch (_) {}
-                queueEntitySyncFromCard(p);
+                anyDirty = true;
                 break;
               }
             }
             p = p.parent;
           }
+        }
+        // Debounced notifikace UI, aby aktualizovalo počítadlo Figma změn
+        if (anyDirty) {
+          if (localChangeNotifyTimer) clearTimeout(localChangeNotifyTimer);
+          localChangeNotifyTimer = setTimeout(function () {
+            localChangeNotifyTimer = null;
+            figma.ui.postMessage({ type: 'localChangeDetected' });
+          }, LOCAL_CHANGE_NOTIFY_DEBOUNCE_MS);
         }
       });
     })
@@ -1045,7 +1032,7 @@ figma.ui.onmessage = async (msg) => {
     figma.ui.postMessage({ type: 'pluginConfigSaved', ok: true });
   } else if (msg.type === 'applyRemoteEntity') {
     try {
-      await applyEntityToAllMatchingCards(msg.entityType, msg.entity, !!msg.isSaveResponse);
+      await applyEntityToAllMatchingCards(msg.entityType, msg.entity);
       figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: true });
     } catch (err) {
       figma.ui.postMessage({ type: 'applyRemoteEntityDone', ok: false, message: String(err) });
@@ -1086,6 +1073,202 @@ figma.ui.onmessage = async (msg) => {
       } catch (_) {}
     }
     figma.ui.postMessage({ type: 'selectionData', byType, projects: Object.values(projectsMap) });
+
+  } else if (msg.type === 'countLocalChanges') {
+    // Spočítá změněné atributy (fields) na UXLog kartách na aktuální stránce
+    const projectId = msg.projectId;
+    let total = 0;
+    function countFieldChanges(card) {
+      let storedEntity = {};
+      try { storedEntity = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
+      let fieldCount = 0;
+      function walkFields(n) {
+        if (n.type === 'TEXT') {
+          const field = n.getPluginData('uxlogField');
+          if (field) {
+            const raw = n.getPluginData('uxlogAppliedValue');
+            const oldVal = (raw && raw.indexOf('v:') === 0) ? raw.slice(2) : (storedEntity[field] != null ? String(storedEntity[field]) : '');
+            if (n.characters !== oldVal) fieldCount++;
+          }
+        }
+        for (let ci = 0; ci < (n.children || []).length; ci++) walkFields(n.children[ci]);
+      }
+      walkFields(card);
+      return fieldCount;
+    }
+    function walkCount(node) {
+      if (node.type === 'FRAME') {
+        const et = node.getPluginData('uxlogEntityType') ||
+          (node.getPluginData('uxlogPersona') ? 'persona' : null);
+        const eid = node.getPluginData('uxlogEntityId');
+        if (et && eid) {
+          if (projectId) {
+            const cardPid = node.getPluginData('uxlogProjectId');
+            if (cardPid && cardPid !== String(projectId)) return;
+          }
+          total += countFieldChanges(node);
+          return;
+        }
+      }
+      if ('children' in node) {
+        for (const c of node.children) walkCount(c);
+      }
+    }
+    for (const c of figma.currentPage.children) walkCount(c);
+    figma.ui.postMessage({ type: 'localChangesCount', total });
+
+  } else if (msg.type === 'collectDirtyEntities') {
+    // Extrahuje entity se změněnými field-level atributy z aktuální stránky
+    const projectId = msg.projectId;
+    const results = [];
+    const seen = new Set();
+    function hasFieldLevelChange(card) {
+      let storedEntity = {};
+      try { storedEntity = JSON.parse(card.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
+      let found = false;
+      function wf(n) {
+        if (found) return;
+        if (n.type === 'TEXT') {
+          const field = n.getPluginData('uxlogField');
+          if (field) {
+            const raw = n.getPluginData('uxlogAppliedValue');
+            const oldVal = (raw && raw.indexOf('v:') === 0) ? raw.slice(2) : (storedEntity[field] != null ? String(storedEntity[field]) : '');
+            if (n.characters !== oldVal) found = true;
+          }
+        }
+        for (let ci = 0; ci < (n.children || []).length; ci++) wf(n.children[ci]);
+      }
+      wf(card);
+      return found;
+    }
+    function walkCollect(node) {
+      if (node.type === 'FRAME') {
+        const et = node.getPluginData('uxlogEntityType') ||
+          (node.getPluginData('uxlogPersona') ? 'persona' : null);
+        const eid = node.getPluginData('uxlogEntityId');
+        if (et && eid) {
+          const key = et + ':' + eid;
+          if (seen.has(key)) return;
+          if (projectId) {
+            const cardPid = node.getPluginData('uxlogProjectId');
+            if (cardPid && cardPid !== String(projectId)) return;
+          }
+          if (hasFieldLevelChange(node)) {
+            seen.add(key);
+            const merged = mergeEntityForPayload(node);
+            if (merged && merged.id) {
+              results.push({ entityType: et, entityId: eid, entity: merged });
+            }
+          }
+          return;
+        }
+      }
+      if ('children' in node) {
+        for (const c of node.children) walkCollect(c);
+      }
+    }
+    for (const c of figma.currentPage.children) walkCollect(c);
+    figma.ui.postMessage({ type: 'dirtyEntitiesCollected', entities: results });
+
+  } else if (msg.type === 'markSavedEntitiesClean' || msg.type === 'markAllCardsClean') {
+    // Označí jen úspěšně uložené entity jako čisté a posune jejich applied values.
+    const projectId = msg.projectId;
+    const entityKeys = new Set((msg.entities || []).map(function (e) {
+      return String(e.entityType || '') + ':' + String(e.entityId || '');
+    }));
+    const hasEntityFilter = entityKeys.size > 0;
+    const now = String(Date.now());
+    function walkClean(node) {
+      if (node.type === 'FRAME') {
+        const et = node.getPluginData('uxlogEntityType') ||
+          (node.getPluginData('uxlogPersona') ? 'persona' : null);
+        const eid = node.getPluginData('uxlogEntityId');
+        if (et) {
+          if (projectId) {
+            const cardPid = node.getPluginData('uxlogProjectId');
+            if (cardPid && cardPid !== String(projectId)) return;
+          }
+          if (hasEntityFilter && !entityKeys.has(String(et) + ':' + String(eid || ''))) return;
+          try {
+            updateAppliedValuesFromCard(node);
+            node.setPluginData('uxlogLastDbSyncTs', now);
+            node.setPluginData('uxlogLocalEditTs', '0');
+          } catch (_) {}
+          return;
+        }
+      }
+      if ('children' in node) {
+        for (const c of node.children) walkClean(c);
+      }
+    }
+    for (const c of figma.currentPage.children) walkClean(c);
+    figma.ui.postMessage({ type: 'cardsMarkedClean', ok: true });
+
+  } else if (msg.type === 'getLocalChangesDetail') {
+    // Vrátí seznam konkrétních změn (pole → staré vs nové) pro dirty karty
+    const projectId = msg.projectId;
+    const details = [];
+    function walkDetail(node) {
+      if (node.type === 'FRAME') {
+        const et = node.getPluginData('uxlogEntityType') ||
+          (node.getPluginData('uxlogPersona') ? 'persona' : null);
+        const eid = node.getPluginData('uxlogEntityId');
+        if (et && eid) {
+          if (projectId) {
+            const cardPid = node.getPluginData('uxlogProjectId');
+            if (cardPid && cardPid !== String(projectId)) return;
+          }
+          // Zjistit, jestli je karta dirty
+          const localEditTs = parseInt(node.getPluginData('uxlogLocalEditTs') || '0', 10) || 0;
+          const lastDbSyncTs = parseInt(node.getPluginData('uxlogLastDbSyncTs') || '0', 10) || 0;
+          let isDirty = localEditTs > lastDbSyncTs;
+          if (!isDirty) {
+            const perNode = hasAnyLocalTextChange(node);
+            isDirty = perNode === true;
+          }
+          if (!isDirty) return;
+
+          // Extrahovat per-field změny
+          let storedEntity = {};
+          try { storedEntity = JSON.parse(node.getPluginData('uxlogEntity') || '{}'); } catch (_) {}
+          const cardName = storedEntity.code
+            ? (storedEntity.code + ' ' + (storedEntity.name || ''))
+            : (storedEntity.name || eid);
+          const fieldChanges = [];
+          function walkFields(n) {
+            if (n.type === 'TEXT') {
+              const field = n.getPluginData('uxlogField');
+              if (field) {
+                const raw = n.getPluginData('uxlogAppliedValue');
+                const oldVal = (raw && raw.indexOf('v:') === 0) ? raw.slice(2) : (storedEntity[field] != null ? String(storedEntity[field]) : '');
+                const newVal = n.characters || '';
+                if (oldVal !== newVal) {
+                  fieldChanges.push({ field: field, old: oldVal, new: newVal });
+                }
+              }
+            }
+            for (let ci = 0; ci < (n.children || []).length; ci++) walkFields(n.children[ci]);
+          }
+          walkFields(node);
+          if (fieldChanges.length > 0) {
+            details.push({ entityType: et, name: cardName.trim(), changes: fieldChanges });
+          }
+          return;
+        }
+      }
+      if ('children' in node) {
+        for (const c of node.children) walkDetail(c);
+      }
+    }
+    for (const c of figma.currentPage.children) walkDetail(c);
+    figma.ui.postMessage({ type: 'localChangesDetail', details: details });
+
+  } else if (msg.type === 'loadSyncTimestamps') {
+    const raw = await figma.clientStorage.getAsync(SYNC_TIMESTAMPS_STORAGE_KEY);
+    figma.ui.postMessage({ type: 'syncTimestampsLoaded', data: raw || {} });
+
+  } else if (msg.type === 'saveSyncTimestamps') {
+    await figma.clientStorage.setAsync(SYNC_TIMESTAMPS_STORAGE_KEY, msg.data);
 
   } else if (msg.type === 'resize') {
     const w = Math.max(280, Math.min(800, Math.round(msg.width)));

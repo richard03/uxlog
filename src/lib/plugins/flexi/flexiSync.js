@@ -261,6 +261,14 @@ export function setFlexiSnapshot(state) {
  *
  * @param {Object} newState  Raw (ne-reaktivní) stav aplikace
  */
+/** Porovná dva záznamy a ignoruje automatické metadata (updatedAt). */
+function diffIgnoringMeta(a, b) {
+  if (!a || !b) return a !== b
+  const { updatedAt: _a, ...restA } = a
+  const { updatedAt: _b, ...restB } = b
+  return JSON.stringify(restA) !== JSON.stringify(restB)
+}
+
 export function diffAndSync(newState) {
   if (!isFlexiEnabled()) return
 
@@ -300,8 +308,8 @@ export function diffAndSync(newState) {
             _emitSyncWrite()
           },
         })
-      } else if (JSON.stringify(oldMap.get(id)) !== JSON.stringify(record)) {
-        // Změněný záznam
+      } else if (diffIgnoringMeta(oldMap.get(id), record)) {
+        // Změněný záznam (ignoruje updatedAt – nastavuje persist() automaticky)
         syncTs[entityType][id] = now
         tsChanged = true
         const apiPathId = resolveApiId(entityType, id)

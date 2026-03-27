@@ -25,14 +25,37 @@ import AppHeader from './components/AppHeader.vue'
 import StatusBar from './components/StatusBar.vue'
 import { useI18n } from './composables/useI18n.js'
 import { state, getData, persist } from './lib/stores/index.js'
+import { replaceStateFromStorage } from './lib/stores/state.js'
 import { hasCapability, callCapability } from './lib/plugins/registry.js'
+import {
+  isTauri,
+  listenToTauriStorageUpdates,
+  pullUxlogDataFromDiskIntoApp,
+} from './lib/tauriBridge.js'
 
 const { t } = useI18n()
 
 /** Interval automatického syncu (každých 60 s). */
 const SYNC_INTERVAL_MS = 60_000
+/** Tauri: periodická kontrola souboru uxlog_data (zápis z Figma HTTP API mimo WebView). */
+const DISK_STORAGE_POLL_MS = 2_500
 let syncTimer = null
+let diskPollTimer = null
 let syncing = false
+let stopStorageListener = null
+
+/**
+ * Pokud se na disku změnilo uxlog_data (např. PUT z Figmy), přepíše localStorage a Vue state.
+ */
+async function applyUxlogDataFromDiskIfChanged() {
+  if (!isTauri) return
+  const changed = await pullUxlogDataFromDiskIntoApp()
+  if (!changed) return
+  replaceStateFromStorage()
+  if (hasCapability('sync:set-snapshot')) {
+    callCapability('sync:set-snapshot', toRaw(getData()))
+  }
+}
 
 async function runSync() {
   if (syncing || !hasCapability('sync:run')) return
@@ -44,6 +67,10 @@ async function runSync() {
     await callCapability('sync:run', toRaw(getData()), (updates) => {
       Object.assign(state, updates)
       persist()
+      // Po persist aktualizuj snapshot, aby diffAndSync neviděl updatedAt jako změnu
+      if (hasCapability('sync:set-snapshot')) {
+        callCapability('sync:set-snapshot', toRaw(getData()))
+      }
     })
   } finally {
     syncing = false
@@ -54,25 +81,54 @@ function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
     // Záložka se stala viditelnou: okamžitý sync + obnov interval
     runSync()
+    applyUxlogDataFromDiskIfChanged()
     if (!syncTimer) syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
+    if (isTauri && !diskPollTimer) {
+      diskPollTimer = setInterval(applyUxlogDataFromDiskIfChanged, DISK_STORAGE_POLL_MS)
+    }
   } else {
     // Záložka na pozadí: zastav periodický sync
     clearInterval(syncTimer)
     syncTimer = null
+    if (diskPollTimer) {
+      clearInterval(diskPollTimer)
+      diskPollTimer = null
+    }
   }
 }
 
 onMounted(() => {
   // Počáteční sync hned po startu
   runSync()
+  applyUxlogDataFromDiskIfChanged()
   // Opakovaný sync pro zachycení změn z jiných prohlížečů
   syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
+  if (isTauri) {
+    diskPollTimer = setInterval(applyUxlogDataFromDiskIfChanged, DISK_STORAGE_POLL_MS)
+  }
   document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  if (isTauri) {
+    listenToTauriStorageUpdates(async (payload) => {
+      if (payload?.key !== 'uxlog_data') return
+      await applyUxlogDataFromDiskIfChanged()
+    }).then((unlisten) => {
+      stopStorageListener = unlisten
+    })
+  }
 })
 
 onUnmounted(() => {
   clearInterval(syncTimer)
+  if (diskPollTimer) {
+    clearInterval(diskPollTimer)
+    diskPollTimer = null
+  }
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  if (stopStorageListener) {
+    stopStorageListener()
+    stopStorageListener = null
+  }
 })
 </script>
 

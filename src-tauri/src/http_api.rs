@@ -13,14 +13,25 @@
 //! Server je dostupný pouze z localhost.
 
 use crate::storage;
+use chrono::DateTime;
+use serde::Serialize;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::thread;
+use tauri::{AppHandle, Emitter};
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
 const LISTEN_ADDR: &str = "127.0.0.1:17842";
 
+/// Payload události oznamující změnu zrcadleného storage klíče.
+#[derive(Clone, Serialize)]
+struct StorageUpdatedEvent<'a> {
+    key: &'a str,
+}
+
 /// Spustí HTTP server na pozadí. Vrací JoinHandle (volající ho nemusí joinovat).
-pub fn start_server() -> thread::JoinHandle<()> {
-    thread::spawn(|| {
+pub fn start_server(app_handle: AppHandle) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
         let server = match Server::http(LISTEN_ADDR) {
             Ok(s) => {
                 println!("[UXLog HTTP] Server naslouchá na http://{LISTEN_ADDR}");
@@ -33,7 +44,7 @@ pub fn start_server() -> thread::JoinHandle<()> {
         };
 
         for mut request in server.incoming_requests() {
-            let response = handle_request(&mut request);
+            let response = handle_request(&mut request, &app_handle);
             let _ = request.respond(response);
         }
     })
@@ -57,7 +68,10 @@ const ENTITY_COLLECTIONS: &[&str] = &[
 ];
 
 /// Zpracuje HTTP požadavek a vrátí odpověď.
-fn handle_request(request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
+fn handle_request(
+    request: &mut Request,
+    app_handle: &AppHandle,
+) -> Response<std::io::Cursor<Vec<u8>>> {
     if request.method() == &Method::Options {
         return cors_response(StatusCode(204), "");
     }
@@ -69,15 +83,17 @@ fn handle_request(request: &mut Request) -> Response<std::io::Cursor<Vec<u8>>> {
 
     match (&method, path) {
         (Method::Get, "/api/uxlog_checksum") => handle_checksum(),
-        (Method::Get, p) if p.starts_with("/api/uxlog_") => handle_get_collection(p),
-        (Method::Put, p) if p.starts_with("/api/uxlog_") => handle_put_entity(request, p),
+        (Method::Get, p) if p.starts_with("/api/uxlog_") => handle_get_collection(&url),
+        (Method::Put, p) if p.starts_with("/api/uxlog_") => handle_put_entity(request, p, app_handle),
         _ => cors_response(StatusCode(404), r#"{"error":"Not found"}"#),
     }
 }
 
 /// GET /api/uxlog_{entityType} – vrátí pole entit pro danou kolekci.
-fn handle_get_collection(path: &str) -> Response<std::io::Cursor<Vec<u8>>> {
+fn handle_get_collection(url: &str) -> Response<std::io::Cursor<Vec<u8>>> {
+    let path = url.split('?').next().unwrap_or(url);
     let collection_name = path.trim_start_matches("/api/uxlog_");
+    let since = parse_since_param(url).unwrap_or(0);
 
     if collection_name.contains('/') {
         let base = collection_name.split('/').next().unwrap_or("");
@@ -94,7 +110,25 @@ fn handle_get_collection(path: &str) -> Response<std::io::Cursor<Vec<u8>>> {
         .cloned()
         .unwrap_or_else(|| serde_json::Value::Array(vec![]));
 
-    let body = serde_json::to_string(&entities).unwrap_or_else(|_| "[]".to_string());
+    let body = if since > 0 {
+        let filtered = entities
+            .as_array()
+            .map(|records| {
+                records
+                    .iter()
+                    .filter(|record| record_change_ts(record) > since)
+                    .cloned()
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        serde_json::to_string(&serde_json::json!({
+            "records": filtered,
+            "deleted": [],
+        }))
+        .unwrap_or_else(|_| r#"{"records":[],"deleted":[]}"#.to_string())
+    } else {
+        serde_json::to_string(&entities).unwrap_or_else(|_| "[]".to_string())
+    };
     cors_response(StatusCode(200), &body)
 }
 
@@ -138,6 +172,7 @@ fn handle_get_single_entity(
 fn handle_put_entity(
     request: &mut Request,
     path: &str,
+    app_handle: &AppHandle,
 ) -> Response<std::io::Cursor<Vec<u8>>> {
     let trimmed = path.trim_start_matches("/api/uxlog_");
     let parts: Vec<&str> = trimmed.splitn(2, '/').collect();
@@ -192,22 +227,24 @@ fn handle_put_entity(
     }
 
     save_app_data(&data);
+    emit_storage_updated(app_handle, "uxlog_data");
     cors_response(StatusCode(200), r#"{"ok":true}"#)
 }
 
-/// GET /api/uxlog_checksum – jednoduchý checksum per kolekce (počet záznamů).
+/// GET /api/uxlog_checksum – checksum per kolekce podle skutečného obsahu.
 fn handle_checksum() -> Response<std::io::Cursor<Vec<u8>>> {
     let data = load_app_data();
     let mut checksums = serde_json::Map::new();
     for col in ENTITY_COLLECTIONS {
-        let count = data
+        let records = data
             .get(*col)
             .and_then(|v| v.as_array())
-            .map(|a| a.len())
-            .unwrap_or(0);
+            .cloned()
+            .unwrap_or_default();
+        let checksum = checksum_records(&records);
         checksums.insert(
             col.to_string(),
-            serde_json::Value::String(format!("count:{count}")),
+            serde_json::Value::String(checksum),
         );
     }
     let body = serde_json::to_string(&checksums).unwrap_or_else(|_| "{}".to_string());
@@ -231,6 +268,71 @@ fn save_app_data(data: &serde_json::Map<String, serde_json::Value>) {
     let json = serde_json::to_string(&serde_json::Value::Object(data.clone()))
         .unwrap_or_else(|_| "{}".to_string());
     let _ = storage::save("uxlog_data", &json);
+}
+
+/// Načte číselný query parametr since z URL, pokud je přítomen.
+fn parse_since_param(url: &str) -> Option<i64> {
+    let query = url.split_once('?')?.1;
+    for pair in query.split('&') {
+        let (key, value) = pair.split_once('=')?;
+        if key == "since" {
+            return value.parse::<i64>().ok();
+        }
+    }
+    None
+}
+
+/// Vrátí čas poslední změny záznamu v ms epoch.
+/// Použije maximum z _ts a ISO timestampů, aby zachytil změny z obou směrů.
+fn record_change_ts(record: &serde_json::Value) -> i64 {
+    let mut best = 0_i64;
+    if let Some(ts) = record.get("_ts").and_then(|v| v.as_i64()) {
+        best = best.max(ts);
+    }
+    if let Some(ts) = record.get("_ts").and_then(|v| v.as_u64()) {
+        best = best.max(ts as i64);
+    }
+    if let Some(ts) = record
+        .get("updatedAt")
+        .or_else(|| record.get("lastWorkedAt"))
+        .or_else(|| record.get("createdAt"))
+        .and_then(|v| v.as_str())
+        .and_then(parse_iso_timestamp_ms)
+    {
+        best = best.max(ts);
+    }
+    best
+}
+
+/// Převede ISO timestamp na ms epoch. Vrací None pro neplatné hodnoty.
+fn parse_iso_timestamp_ms(value: &str) -> Option<i64> {
+    DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.timestamp_millis())
+}
+
+/// Spočítá deterministický checksum seznamu záznamů.
+fn checksum_records(records: &[serde_json::Value]) -> String {
+    let mut ordered = records.to_vec();
+    ordered.sort_by_key(|record| {
+        record
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    });
+    let serialized = serde_json::to_string(&ordered).unwrap_or_else(|_| "[]".to_string());
+    let mut hasher = DefaultHasher::new();
+    serialized.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
+/// Pošle do Tauri WebView událost o externí změně storage.
+fn emit_storage_updated(app_handle: &AppHandle, key: &str) {
+    let payload = StorageUpdatedEvent { key };
+    if let Err(err) = app_handle.emit("uxlog-storage-updated", payload) {
+        eprintln!("[UXLog HTTP] Nelze emitovat uxlog-storage-updated: {err}");
+    }
 }
 
 /// Vytvoří HTTP odpověď s CORS hlavičkami (Figma plugin potřebuje Access-Control-Allow-Origin).

@@ -40,7 +40,7 @@ pub fn run() {
                 .expect("Nelze zjistit app_data_dir");
 
             storage::init_storage_dir(data_dir);
-            http_api::start_server();
+            http_api::start_server(app.handle().clone());
 
             Ok(())
         })

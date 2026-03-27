@@ -26,6 +26,17 @@ export function initStore() {
   console.log('[UXLog] initStore, projektů:', state.projects?.length ?? 0)
 }
 
+/**
+ * Obnoví reaktivní state ze storage po externí změně (např. lokální HTTP API).
+ * Neemituje data:persisted, protože nejde o lokální editaci v UI.
+ */
+export function replaceStateFromStorage() {
+  const loaded = loadData()
+  Object.assign(state, loaded)
+  persistedSnapshot = JSON.parse(JSON.stringify(loaded))
+  console.log('[UXLog] replaceStateFromStorage, projektů:', state.projects?.length ?? 0)
+}
+
 export function getData() {
   return state
 }
