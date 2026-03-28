@@ -147,14 +147,9 @@ select { appearance: auto; }
   text-align: left; color: var(--text); font-size: 12px;
 }
 .sync-action-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
-.sync-action-btn { position: relative; }
 .sync-action-btn .action-title { font-weight: 600; }
 .sync-action-btn .action-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-.sync-action-btn .action-badge {
-  position: absolute; top: 8px; right: 8px;
-  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
-  padding: 1px 6px; border-radius: 10px;
-}
+.sync-action-btn .badge-inline { color: var(--accent); font-weight: 600; }
 .yaml-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .yaml-section h3 { font-size: 13px; margin-bottom: 8px; font-weight: 600; }
 .hidden { display: none !important; }
@@ -257,14 +252,12 @@ select { appearance: auto; }
         <div class="action-desc">Vygeneruje nové karty z dat projektu v API</div>
       </button>
       <button class="sync-action-btn" data-action="pull">
-        <div class="action-title">API → Figma</div>
+        <div class="action-title">API → Figma <span id="badgePullInline"></span></div>
         <div class="action-desc">Stáhne změny z API a aktualizuje existující karty</div>
-        <div class="action-badge hidden" id="badgePull"></div>
       </button>
       <button class="sync-action-btn" data-action="push">
-        <div class="action-title">Figma → API</div>
+        <div class="action-title">Figma → API <span id="badgePushInline"></span></div>
         <div class="action-desc">Odešle lokální změny z karet do API</div>
-        <div class="action-badge hidden" id="badgePush"></div>
       </button>
     </div>
     <div id="syncActionSummary" class="collapsed-choice hidden" data-step="action"></div>
@@ -1012,19 +1005,20 @@ function resetSyncPanel() {
 }
 
 function clearSyncBadges() {
-  var bp = document.getElementById('badgePull');
-  var bs = document.getElementById('badgePush');
-  bp.classList.add('hidden'); bp.textContent = '';
-  bs.classList.add('hidden'); bs.textContent = '';
+  document.getElementById('badgePullInline').textContent = '';
+  document.getElementById('badgePullInline').className = '';
+  document.getElementById('badgePushInline').textContent = '';
+  document.getElementById('badgePushInline').className = '';
 }
 
 function showSyncBadge(id, count) {
   var el = document.getElementById(id);
   if (count > 0) {
-    el.textContent = count;
-    el.classList.remove('hidden');
+    el.textContent = '(' + count + ')';
+    el.className = 'badge-inline';
   } else {
-    el.classList.add('hidden');
+    el.textContent = '(0)';
+    el.className = '';
   }
 }
 
@@ -1110,6 +1104,12 @@ document.querySelectorAll('.sync-action-btn').forEach(function(btn) {
     updateSyncButtons();
     hideEl('syncResult');
 
+    // For pull/push with remembered project, skip project selection
+    if ((currentSyncAction === 'pull' || currentSyncAction === 'push') && getSavedProjectId()) {
+      await loadSyncProjectAndDiff(getSavedProjectId());
+      return;
+    }
+
     // Show project step
     document.getElementById('syncProjectWrap').classList.remove('hidden');
     document.getElementById('syncProjectSelect').classList.remove('hidden');
@@ -1134,6 +1134,47 @@ document.querySelectorAll('.sync-action-btn').forEach(function(btn) {
     resizeUI();
   });
 });
+
+/** For pull/push: load project data and go straight to diff */
+async function loadSyncProjectAndDiff(projectId) {
+  try {
+    // Fetch projects to get name
+    await fetchProjects();
+    var projectName = '';
+    for (var i = 0; i < projectsCache.length; i++) {
+      if (String(projectsCache[i].id) === String(projectId)) {
+        projectName = projectsCache[i].name || '(bez názvu)';
+        break;
+      }
+    }
+
+    // Show collapsed project
+    document.getElementById('syncProjectWrap').classList.remove('hidden');
+    document.getElementById('syncProjectSelect').classList.add('hidden');
+    collapseChoice('syncProjectSummary', 'Projekt', projectName, function() {
+      document.getElementById('syncProjectSelect').classList.remove('hidden');
+      document.getElementById('syncProjectSummary').classList.add('hidden');
+      document.getElementById('syncPreview').classList.add('hidden');
+      document.getElementById('btnSyncExecute').classList.add('hidden');
+      hideEl('syncResult');
+      // Rebuild dropdown so user can re-select
+      renderProjectDropdown();
+      document.getElementById('syncProject').value = projectId;
+    });
+
+    // Fetch entities and trigger diff
+    apiDataCache = await fetchAllEntities(projectId);
+    // Set dropdown value in background for execute handler
+    renderProjectDropdown();
+    document.getElementById('syncProject').value = projectId;
+
+    // Trigger diff directly (no entity filter for pull/push)
+    triggerSyncPreview();
+  } catch (e) {
+    showInfo('syncResult', 'Chyba: ' + e.message, 'error');
+  }
+  resizeUI();
+}
 
 function renderProjectDropdown() {
   var sel = document.getElementById('syncProject');
@@ -1164,23 +1205,30 @@ document.getElementById('syncProject').addEventListener('change', async function
   collapseChoice('syncProjectSummary', 'Projekt', projectName, function() {
     document.getElementById('syncProjectSelect').classList.remove('hidden');
     document.getElementById('syncProjectSummary').classList.add('hidden');
-    // Reset entity step
     document.getElementById('syncEntityFilter').classList.add('hidden');
     document.getElementById('syncEntityRadios').classList.remove('hidden');
     document.getElementById('syncEntitySummary').classList.add('hidden');
     document.getElementById('syncPreview').classList.add('hidden');
     document.getElementById('btnSyncExecute').classList.add('hidden');
+    document.getElementById('syncCreateButton').classList.add('hidden');
     hideEl('syncResult');
   });
 
   try {
     apiDataCache = await fetchAllEntities(projectId);
-    renderEntityFilter(apiDataCache);
-    document.getElementById('syncEntityFilter').classList.remove('hidden');
-    document.getElementById('syncEntityRadios').classList.remove('hidden');
-    document.getElementById('syncEntitySummary').classList.add('hidden');
-    document.getElementById('syncPreview').classList.add('hidden');
-    document.getElementById('btnSyncExecute').classList.add('hidden');
+
+    if (currentSyncAction === 'pull' || currentSyncAction === 'push') {
+      // Go straight to diff — no entity filter step
+      triggerSyncPreview();
+    } else {
+      // "create" — show entity filter
+      renderEntityFilter(apiDataCache);
+      document.getElementById('syncEntityFilter').classList.remove('hidden');
+      document.getElementById('syncEntityRadios').classList.remove('hidden');
+      document.getElementById('syncEntitySummary').classList.add('hidden');
+      document.getElementById('syncPreview').classList.add('hidden');
+      document.getElementById('btnSyncExecute').classList.add('hidden');
+    }
   } catch (e) {
     showInfo('syncResult', 'Chyba: ' + e.message, 'error');
   }
@@ -1241,15 +1289,12 @@ function onEntityTypeSelected() {
 function triggerSyncPreview() {
   var projectId = document.getElementById('syncProject').value;
   if (!projectId) return;
-  var selectedType = (document.querySelector('input[name="syncEntityType"]:checked') || {}).value || '';
 
   if (currentSyncAction === 'pull') {
-    var filtered = selectedType ? {} : apiDataCache;
-    if (selectedType) filtered[selectedType] = apiDataCache[selectedType] || [];
-    parent.postMessage({ pluginMessage: { type: 'diff-remote-changes', apiEntities: filtered } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'diff-remote-changes', apiEntities: apiDataCache } }, '*');
     showInfo('syncPreview', '<span class="spinner"></span> Porovnávám změny...', '');
   } else if (currentSyncAction === 'push') {
-    parent.postMessage({ pluginMessage: { type: 'diff-local-changes', entityTypeFilter: selectedType } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'diff-local-changes', entityTypeFilter: '' } }, '*');
     showInfo('syncPreview', '<span class="spinner"></span> Hledám lokální změny...', '');
   }
   document.getElementById('syncPreview').classList.remove('hidden');
@@ -1258,45 +1303,74 @@ function triggerSyncPreview() {
 
 
 function renderDiffPreview(diffs, direction) {
-  const preview = document.getElementById('syncPreview');
+  var preview = document.getElementById('syncPreview');
   preview.classList.remove('hidden');
   pendingSyncDiffs = diffs;
 
   if (diffs.length === 0) {
-    const msg = direction === 'pull' ? 'Žádné změny v API oproti kartám.' : 'Žádné lokální změny v kartách.';
-    preview.innerHTML = `<div class="info-box">${msg}</div>`;
+    var msg = direction === 'pull' ? 'Žádné změny v API oproti kartám.' : 'Žádné lokální změny v kartách.';
+    preview.innerHTML = '<div class="info-box">' + escapeHtml(msg) + '</div>';
     document.getElementById('btnSyncExecute').classList.add('hidden');
     resizeUI();
     return;
   }
 
-  let html = `<div class="info-box success">${diffs.length} entit se změní:</div>`;
-  html += '<div class="change-list">';
+  // Build summary by entity type
+  var typeCounts = {};
+  for (var ti = 0; ti < diffs.length; ti++) {
+    var dt = diffs[ti].entityType;
+    typeCounts[dt] = (typeCounts[dt] || 0) + 1;
+  }
+  var summaryParts = [];
+  var typeKeys = Object.keys(typeCounts);
+  for (var si = 0; si < typeKeys.length; si++) {
+    var tLabel = ENTITY_TYPES[typeKeys[si]] ? ENTITY_TYPES[typeKeys[si]].label : typeKeys[si];
+    summaryParts.push(tLabel + ': ' + typeCounts[typeKeys[si]]);
+  }
 
-  for (let i = 0; i < diffs.length; i++) {
-    const d = diffs[i];
-    const label = ENTITY_TYPES[d.entityType]?.singular || d.entityType;
-    const name = d.entity?.name || d.entity?.code || d.entityId;
-    html += `<div class="change-item" onclick="toggleChangeDetail(${i})">
-      <strong>${label}</strong>: ${escapeHtml(name)} (${d.changes.length} polí)
-    </div>`;
-    html += `<div class="change-detail" id="change-detail-${i}">`;
-    for (const ch of d.changes) {
-      const fieldLabel = getFieldLabel(d.entityType, ch.field);
-      html += `<div class="change-field">
-        <strong>${fieldLabel}:</strong>
-        <span class="change-old">${escapeHtml(truncate(ch.oldValue, 60))}</span>
-        → <span class="change-new">${escapeHtml(truncate(ch.newValue, 60))}</span>
-      </div>`;
+  var html = '<div class="collapsed-choice" onclick="toggleSyncDetail()" style="cursor:pointer">';
+  html += '<span class="cc-label">Všechny změny:</span> ';
+  html += '<span class="cc-value">' + diffs.length + ' (' + summaryParts.join(', ') + ')</span>';
+  html += '<span class="cc-change" id="syncDetailToggle">zobrazit</span>';
+  html += '</div>';
+
+  html += '<div id="syncChangeList" class="change-list hidden">';
+  for (var i = 0; i < diffs.length; i++) {
+    var d = diffs[i];
+    var label = ENTITY_TYPES[d.entityType] ? ENTITY_TYPES[d.entityType].singular : d.entityType;
+    var name = (d.entity && d.entity.name) || (d.entity && d.entity.code) || d.entityId;
+    html += '<div class="change-item" onclick="event.stopPropagation();toggleChangeDetail(' + i + ')">';
+    html += '<strong>' + escapeHtml(label) + '</strong>: ' + escapeHtml(name) + ' (' + d.changes.length + ' polí)';
+    html += '</div>';
+    html += '<div class="change-detail" id="change-detail-' + i + '">';
+    for (var ci = 0; ci < d.changes.length; ci++) {
+      var ch = d.changes[ci];
+      var fieldLabel = getFieldLabel(d.entityType, ch.field);
+      html += '<div class="change-field">';
+      html += '<strong>' + escapeHtml(fieldLabel) + ':</strong> ';
+      html += '<span class="change-old">' + escapeHtml(truncate(ch.oldValue, 60)) + '</span>';
+      html += ' → <span class="change-new">' + escapeHtml(truncate(ch.newValue, 60)) + '</span>';
+      html += '</div>';
     }
     html += '</div>';
   }
-
   html += '</div>';
+
   preview.innerHTML = html;
   document.getElementById('btnSyncExecute').classList.remove('hidden');
   resizeUI();
 }
+
+window.toggleSyncDetail = function() {
+  var list = document.getElementById('syncChangeList');
+  var toggle = document.getElementById('syncDetailToggle');
+  if (list) {
+    var isHidden = list.classList.contains('hidden');
+    list.classList.toggle('hidden');
+    if (toggle) toggle.textContent = isHidden ? 'skrýt' : 'zobrazit';
+    resizeUI();
+  }
+};
 
 // Create cards – direct insert
 document.getElementById('btnCreateInsert').addEventListener('click', function() {
@@ -1322,9 +1396,6 @@ document.getElementById('btnCreateInsert').addEventListener('click', function() 
 
 // Execute sync
 document.getElementById('btnSyncExecute').addEventListener('click', async function() {
-  const projectId = document.getElementById('syncProject').value;
-  const selectedType = document.querySelector('input[name="syncEntityType"]:checked')?.value || '';
-
   document.getElementById('btnSyncExecute').disabled = true;
 
   try {
@@ -1475,7 +1546,7 @@ window.onmessage = function(event) {
     case 'local-changes':
       if (_awaitingCountOnly.push) {
         _awaitingCountOnly.push = false;
-        showSyncBadge('badgePush', (msg.diffs || []).length);
+        showSyncBadge('badgePushInline', (msg.diffs || []).length);
       } else {
         renderDiffPreview(msg.diffs || [], 'push');
       }
@@ -1484,7 +1555,7 @@ window.onmessage = function(event) {
     case 'remote-changes':
       if (_awaitingCountOnly.pull) {
         _awaitingCountOnly.pull = false;
-        showSyncBadge('badgePull', (msg.diffs || []).length);
+        showSyncBadge('badgePullInline', (msg.diffs || []).length);
       } else {
         renderDiffPreview(msg.diffs || [], 'pull');
       }
