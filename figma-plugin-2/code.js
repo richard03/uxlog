@@ -144,6 +144,7 @@ var ENTITY_CONFIGS = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 var REVERSE_DISPLAY_MAP = {};
+var FORWARD_DISPLAY_MAP = {};
 
 // Build from all entity configs
 (function() {
@@ -155,23 +156,27 @@ var REVERSE_DISPLAY_MAP = {};
       var b = badges[bi];
       var field = b.field;
       if (!REVERSE_DISPLAY_MAP[field]) REVERSE_DISPLAY_MAP[field] = {};
+      if (!FORWARD_DISPLAY_MAP[field]) FORWARD_DISPLAY_MAP[field] = {};
       if (b.map) {
         var apiVals = Object.keys(b.map);
         for (var mi = 0; mi < apiVals.length; mi++) {
           var displayVal = b.map[apiVals[mi]];
           REVERSE_DISPLAY_MAP[field][displayVal] = apiVals[mi];
-          // Also map lowercase version
           REVERSE_DISPLAY_MAP[field][displayVal.toLowerCase()] = apiVals[mi];
+          FORWARD_DISPLAY_MAP[field][apiVals[mi]] = displayVal;
         }
       }
     }
   }
   // Persona status (not in ENTITY_CONFIGS)
   if (!REVERSE_DISPLAY_MAP['status']) REVERSE_DISPLAY_MAP['status'] = {};
+  if (!FORWARD_DISPLAY_MAP['status']) FORWARD_DISPLAY_MAP['status'] = {};
   REVERSE_DISPLAY_MAP['status']['Persona'] = 'persona';
   REVERSE_DISPLAY_MAP['status']['persona'] = 'persona';
   REVERSE_DISPLAY_MAP['status']['Protopersona'] = 'protopersona';
   REVERSE_DISPLAY_MAP['status']['protopersona'] = 'protopersona';
+  FORWARD_DISPLAY_MAP['status']['persona'] = 'Persona';
+  FORWARD_DISPLAY_MAP['status']['protopersona'] = 'Protopersona';
 })();
 
 /** Convert display text back to API value if a mapping exists */
@@ -179,6 +184,13 @@ function reverseMapValue(field, displayText) {
   var map = REVERSE_DISPLAY_MAP[field];
   if (map && map[displayText] !== undefined) return map[displayText];
   return displayText;
+}
+
+/** Convert API value to display text for badge fields */
+function forwardMapValue(field, apiValue) {
+  var map = FORWARD_DISPLAY_MAP[field];
+  if (map && map[apiValue] !== undefined) return map[apiValue];
+  return apiValue;
 }
 
 // Persona-specific constants
@@ -884,10 +896,17 @@ function isUxlogCard(node) {
 
 function findAllUxlogCards() {
   var cards = [];
-  var children = figma.currentPage.children;
-  for (var i = 0; i < children.length; i++) {
-    if (isUxlogCard(children[i])) cards.push(children[i]);
+  function search(nodes) {
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (isUxlogCard(node)) {
+        cards.push(node);
+      } else if ('children' in node) {
+        search(node.children);
+      }
+    }
   }
+  search(figma.currentPage.children);
   return cards;
 }
 
@@ -904,8 +923,19 @@ function readCardFields(card) {
       var field = node.getPluginData('uxlogField');
       if (field) {
         var text = node.characters.trim();
-        // Check if the text is unchanged from the applied value (hint detection)
+        // Check for repaired-empty marker (user deleted the text node, hint was placed)
         var applied = node.getPluginData('uxlogAppliedValue');
+        if (applied && applied.indexOf('empty:') === 0) {
+          var emptyHint = applied.slice(6);
+          if (text === emptyHint || text === '') {
+            // Hint unchanged or empty — field is still empty
+            result[field] = '';
+            return;
+          }
+          // User typed something new — clear marker and treat as real value
+          try { node.setPluginData('uxlogAppliedValue', 'v:' + text); } catch (e) {}
+        }
+        // Check if the text is unchanged from the applied value (hint detection)
         if (applied && applied.indexOf('v:') === 0) {
           var appliedText = applied.slice(2);
           // If text matches applied value, check if entity had empty value
@@ -986,7 +1016,9 @@ async function updateCardFromEntity(card, entity) {
       if (field && entity[field] !== undefined) {
         var rawVal = entity[field];
         var isEmpty = !rawVal || !String(rawVal).trim();
-        var newVal = isEmpty ? (hints[field] || FALLBACK_EMPTY) : String(rawVal).trim();
+        // For badge/mapped fields, convert API value to display text
+        var displayVal = isEmpty ? '' : forwardMapValue(field, String(rawVal).trim());
+        var newVal = isEmpty ? (hints[field] || FALLBACK_EMPTY) : displayVal;
         if (node.characters !== newVal) {
           suppressTextChangeIds[node.id] = true;
           node.characters = newVal;
@@ -1047,12 +1079,97 @@ function diffEntities(oldEntity, newEntity, fields) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Repair missing text nodes (after user deletes text in Figma)
+// ─────────────────────────────────────────────────────────────────────────────
+
+var PERSONA_BLOCKS = [
+  { name: 'POPIS',    field: 'description', hint: 'Kdo to je, čím se liší od ostatních?' },
+  { name: 'MOTIVACE', field: 'motivation',  hint: 'O co jí jde?' },
+  { name: 'POTŘEBY',  field: 'needs',       hint: 'Co potřebuje a co chce?' },
+  { name: 'PROBLÉMY', field: 'problems',    hint: 'Jaké má problémy a co ji frustruje?' },
+];
+
+/** Find which uxlogField text nodes exist on a card */
+function collectExistingFields(card) {
+  var existing = {};
+  function walk(node) {
+    if (node.type === 'TEXT') {
+      var f = node.getPluginData('uxlogField');
+      if (f) existing[f] = true;
+    }
+    var ch = node.children || [];
+    for (var i = 0; i < ch.length; i++) walk(ch[i]);
+  }
+  walk(card);
+  return existing;
+}
+
+/** Find a frame by name recursively */
+function findFrameByName(root, name) {
+  if (root.type === 'FRAME' && root.name === name) return root;
+  if ('children' in root) {
+    var ch = root.children;
+    for (var i = 0; i < ch.length; i++) {
+      var found = findFrameByName(ch[i], name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Recreate a missing text node inside a block frame */
+function recreateBlockTextField(blockFrame, fieldName, hint) {
+  var textNode = figma.createText();
+  textNode.name = fieldName;
+  textNode.fontName = { family: FONTS.family, style: FONTS.regular };
+  textNode.characters = hint;
+  textNode.fontSize = 28;
+  textNode.fills = [solid(COLOR_TEXT)];
+  textNode.lineHeight = { value: 155, unit: 'PERCENT' };
+  setTextUxlogField(textNode, fieldName);
+  fl(blockFrame, textNode, 'FILL', 'FILL', 1);
+  // Mark as repaired-empty so readCardFields returns '' instead of hint text
+  try { textNode.setPluginData('uxlogAppliedValue', 'empty:' + hint); } catch (e) {}
+  return textNode;
+}
+
+/** Detect and repair missing text nodes on a card. Returns list of missing field names. */
+function repairMissingTextNodes(card) {
+  var entityType = card.getPluginData('uxlogEntityType');
+  var existing = collectExistingFields(card);
+  var missing = [];
+
+  // Get block definitions for this entity type
+  var blocks = [];
+  if (entityType === 'persona') {
+    blocks = PERSONA_BLOCKS;
+  } else {
+    var cfg = ENTITY_CONFIGS[entityType];
+    if (cfg) blocks = cfg.blocks || [];
+  }
+
+  // Repair missing block text fields
+  for (var bi = 0; bi < blocks.length; bi++) {
+    var b = blocks[bi];
+    if (!existing[b.field]) {
+      var parentFrame = findFrameByName(card, b.name);
+      if (parentFrame) {
+        recreateBlockTextField(parentFrame, b.field, b.hint);
+        missing.push(b.field);
+      }
+    }
+  }
+
+  return missing;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Layout helper for generated cards
 // ─────────────────────────────────────────────────────────────────────────────
 
 function layoutCardsGrid(cards, startX, startY, cardW) {
-  var spacing = 40;
-  var cols = Math.max(1, Math.floor(4000 / (cardW + spacing)));
+  var spacing = 300;
+  var cols = 5;
   var maxRowH = 0;
   var cx = startX;
   var cy = startY;
@@ -1125,10 +1242,6 @@ figma.ui.onmessage = async function(msg) {
           }
         }
 
-        if (allCreated.length > 0) {
-          figma.viewport.scrollAndZoomIntoView(allCreated);
-        }
-
         figma.ui.postMessage({ type: 'generate-cards-done', count: allCreated.length });
         break;
       }
@@ -1142,16 +1255,6 @@ figma.ui.onmessage = async function(msg) {
           }
         }
         figma.ui.postMessage({ type: 'selection-data', cards: results });
-        break;
-      }
-
-      case 'read-all-cards': {
-        var allCards = findAllUxlogCards();
-        var allResults = [];
-        for (var ai = 0; ai < allCards.length; ai++) {
-          allResults.push(readCardEntity(allCards[ai]));
-        }
-        figma.ui.postMessage({ type: 'all-cards-data', cards: allResults });
         break;
       }
 
@@ -1172,6 +1275,8 @@ figma.ui.onmessage = async function(msg) {
       }
 
       case 'diff-local-changes': {
+        var dlFilterType = msg.entityTypeFilter || '';
+        await loadFonts();
         var dlCards = findAllUxlogCards();
         var localDiffs = [];
         for (var di = 0; di < dlCards.length; di++) {
@@ -1179,11 +1284,20 @@ figma.ui.onmessage = async function(msg) {
           var dlType = dlCard.getPluginData('uxlogEntityType');
           var dlId = dlCard.getPluginData('uxlogEntityId');
           if (!dlId) continue;
+          if (dlFilterType && dlType !== dlFilterType) continue;
           var dlFields = DIFF_FIELDS[dlType];
           if (!dlFields) continue;
+          // Repair missing text nodes (deleted by user) before reading
+          repairMissingTextNodes(dlCard);
           var dlStored = {};
           try { dlStored = JSON.parse(dlCard.getPluginData('uxlogEntity') || '{}'); } catch (e) {}
           var dlCurrent = readCardFields(dlCard);
+          // Any DIFF_FIELDS field not found on card = deleted = empty
+          for (var dfi = 0; dfi < dlFields.length; dfi++) {
+            if (dlCurrent[dlFields[dfi]] === undefined) {
+              dlCurrent[dlFields[dfi]] = '';
+            }
+          }
           // Merge card fields into entity format
           var dlCurrentEntity = Object.assign({}, dlStored, dlCurrent);
           var dlChanges = diffEntities(dlStored, dlCurrentEntity, dlFields);
@@ -1234,6 +1348,19 @@ figma.ui.onmessage = async function(msg) {
           }
         }
         figma.ui.postMessage({ type: 'remote-changes', diffs: remoteDiffs });
+        break;
+      }
+
+      case 'update-stored-entities': {
+        var useUpdates = msg.updates;
+        for (var usei = 0; usei < useUpdates.length; usei++) {
+          var useUpd = useUpdates[usei];
+          var useCards = findCardsByEntityId(useUpd.entityId);
+          for (var useci = 0; useci < useCards.length; useci++) {
+            useCards[useci].setPluginData('uxlogEntity', JSON.stringify(useUpd.entity));
+            useCards[useci].setPluginData('uxlogLastSyncTs', String(Date.now()));
+          }
+        }
         break;
       }
 

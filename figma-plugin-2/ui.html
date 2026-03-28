@@ -147,8 +147,16 @@ select { appearance: auto; }
   text-align: left; color: var(--text); font-size: 12px;
 }
 .sync-action-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+.sync-action-btn { position: relative; }
 .sync-action-btn .action-title { font-weight: 600; }
 .sync-action-btn .action-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.sync-action-btn .action-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+}
+.yaml-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.yaml-section h3 { font-size: 13px; margin-bottom: 8px; font-weight: 600; }
 .hidden { display: none !important; }
 .spinner {
   display: inline-block; width: 14px; height: 14px;
@@ -160,6 +168,16 @@ select { appearance: auto; }
 .mt-12 { margin-top: 12px; }
 .text-center { text-align: center; }
 .text-muted { color: var(--text-muted); }
+.collapsed-choice {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; margin: 4px 0;
+  background: var(--bg-surface); border-radius: var(--radius);
+  font-size: 11px; cursor: pointer; border: 1px solid var(--border);
+}
+.collapsed-choice:hover { background: var(--bg-hover); border-color: var(--accent); }
+.collapsed-choice .cc-label { color: var(--text-muted); }
+.collapsed-choice .cc-value { color: var(--text); font-weight: 600; }
+.collapsed-choice .cc-change { color: var(--accent); font-size: 10px; margin-left: auto; }
 </style>
 </head>
 <body>
@@ -172,92 +190,118 @@ select { appearance: auto; }
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab active" data-tab="import">Import</button>
-  <button class="tab" data-tab="export">Export</button>
+  <button class="tab" data-tab="yaml">YAML</button>
   <button class="tab" data-tab="sync">Synchronizace</button>
   <button class="tab" data-tab="settings">Nastavení</button>
 </div>
 
-<!-- ════════════════════ IMPORT PANEL ════════════════════ -->
-<div class="panel active" id="panel-import">
-  <h3>Import YAML → Figma</h3>
-  <div class="form-group">
-    <label for="yamlInput">Vložte YAML exportovaný z UXLogu:</label>
-    <textarea id="yamlInput" rows="10" placeholder="Vložte YAML sem..."></textarea>
-  </div>
-  <div id="importPreview" class="hidden"></div>
-  <div class="btn-group">
-    <button class="btn-primary btn-sm" id="btnParseYaml">Načíst</button>
-    <button class="btn-primary btn-sm hidden" id="btnGenerate">Generovat</button>
-  </div>
-  <div id="importResult" class="hidden"></div>
-</div>
+<!-- Global result (visible outside panels) -->
+<div id="globalResult" class="hidden" style="padding: 12px;"></div>
 
-<!-- ════════════════════ EXPORT PANEL ════════════════════ -->
-<div class="panel" id="panel-export">
-  <h3>Export Figma → YAML</h3>
-  <div id="exportSelectionInfo" class="info-box">
-    Vyberte UXLog karty na plátně a klikněte "Načíst výběr".
+<!-- ════════════════════ YAML PANEL ════════════════════ -->
+<div class="panel" id="panel-yaml">
+  <!-- Action picker -->
+  <div id="yamlActionPicker">
+    <button class="sync-action-btn" data-yaml-action="import">
+      <div class="action-title">YAML → Figma</div>
+      <div class="action-desc">Vloží entity z YAML textu jako karty do Figmy</div>
+    </button>
+    <button class="sync-action-btn" data-yaml-action="export">
+      <div class="action-title">Figma → YAML</div>
+      <div class="action-desc">Přečte vybrané karty a vygeneruje YAML</div>
+    </button>
   </div>
-  <button class="btn-secondary btn-sm" id="btnReadSelection">Načíst výběr</button>
-  <div id="exportPreview" class="hidden mt-8"></div>
-  <div id="exportYamlOutput" class="hidden mt-8">
+  <div id="yamlActionSummary" class="collapsed-choice hidden"></div>
+
+  <!-- Import section -->
+  <div id="yamlImportSection" class="hidden">
     <div class="form-group">
-      <label>Vygenerovaný YAML:</label>
-      <textarea id="yamlOutput" rows="10" readonly></textarea>
+      <label for="yamlInput">Vložte YAML exportovaný z UXLogu:</label>
+      <textarea id="yamlInput" rows="8" placeholder="Vložte YAML sem..."></textarea>
     </div>
-    <button class="btn-primary btn-sm" id="btnCopyYaml">Kopírovat do schránky</button>
+    <div id="importPreview" class="hidden"></div>
+    <div class="btn-group">
+      <button class="btn-primary btn-sm" id="btnParseYaml">Načíst</button>
+      <button class="btn-primary btn-sm hidden" id="btnGenerate">Generovat</button>
+    </div>
+    <div id="importResult" class="hidden"></div>
+  </div>
+
+  <!-- Export section -->
+  <div id="yamlExportSection" class="hidden">
+    <div id="exportSelectionInfo" class="info-box">
+      Vyberte UXLog karty na plátně a klikněte "Načíst výběr".
+    </div>
+    <button class="btn-secondary btn-sm" id="btnReadSelection">Načíst výběr</button>
+    <div id="exportPreview" class="hidden mt-8"></div>
+    <div id="exportYamlOutput" class="hidden mt-8">
+      <div class="form-group">
+        <label>Vygenerovaný YAML:</label>
+        <textarea id="yamlOutput" rows="8" readonly></textarea>
+      </div>
+      <button class="btn-primary btn-sm" id="btnCopyYaml">Kopírovat do schránky</button>
+    </div>
   </div>
 </div>
 
 <!-- ════════════════════ SYNC PANEL ═════════════════════ -->
 <div class="panel" id="panel-sync">
-  <h3>Synchronizace</h3>
   <div id="syncNotConnected" class="info-box warning">
     Nejprve nastavte připojení v záložce Nastavení.
   </div>
   <div id="syncActions" class="hidden">
+    <!-- Step 1: Action picker (or collapsed summary) -->
     <div id="syncActionPicker">
-      <button class="sync-action-btn" data-action="pull">
-        <div class="action-title">API → Figma</div>
-        <div class="action-desc">Stáhne změny z API a aktualizuje existující karty</div>
-      </button>
-      <button class="sync-action-btn" data-action="push">
-        <div class="action-title">Figma → API</div>
-        <div class="action-desc">Odešle lokální změny z karet do API</div>
-      </button>
       <button class="sync-action-btn" data-action="create">
         <div class="action-title">Vytvořit karty</div>
         <div class="action-desc">Vygeneruje nové karty z dat projektu v API</div>
       </button>
+      <button class="sync-action-btn" data-action="pull">
+        <div class="action-title">API → Figma</div>
+        <div class="action-desc">Stáhne změny z API a aktualizuje existující karty</div>
+        <div class="action-badge hidden" id="badgePull"></div>
+      </button>
+      <button class="sync-action-btn" data-action="push">
+        <div class="action-title">Figma → API</div>
+        <div class="action-desc">Odešle lokální změny z karet do API</div>
+        <div class="action-badge hidden" id="badgePush"></div>
+      </button>
     </div>
+    <div id="syncActionSummary" class="collapsed-choice hidden" data-step="action"></div>
 
-    <div id="syncConfig" class="hidden">
-      <button class="btn-secondary btn-sm mt-8" id="btnBackToActions">&larr; Zpět</button>
-      <div class="form-group mt-8">
+    <!-- Step 2: Project (select or collapsed summary) -->
+    <div id="syncProjectWrap" class="hidden">
+      <div id="syncProjectSelect" class="form-group mt-8">
         <label for="syncProject">Projekt:</label>
         <select id="syncProject"><option value="">Načítání...</option></select>
       </div>
-      <div id="syncEntityFilter" class="hidden">
-        <label class="text-muted" style="font-size:11px;">Typ entity (volitelné – omezí akci na vybraný typ):</label>
-        <div id="syncEntityOptions"></div>
-        <div class="entity-selector mt-8">
+      <div id="syncProjectSummary" class="collapsed-choice hidden" data-step="project"></div>
+    </div>
+
+    <!-- Step 3: Entity filter (radios or collapsed summary) -->
+    <div id="syncEntityFilter" class="hidden">
+      <div id="syncEntityRadios">
+        <label class="text-muted" style="font-size:11px;">Typ entity:</label>
+        <div class="entity-selector">
           <label class="entity-option">
             <input type="radio" name="syncEntityType" value="" checked>
             <span>Všechny typy</span>
           </label>
         </div>
+        <div id="syncEntityOptions"></div>
       </div>
-      <div id="syncPreview" class="hidden mt-8"></div>
-      <div class="btn-group mt-8" id="syncDiffButtons">
-        <button class="btn-secondary btn-sm" id="btnSyncPreview">Zobrazit změny</button>
-        <button class="btn-primary btn-sm hidden" id="btnSyncExecute">Provést</button>
-      </div>
-      <div class="mt-8 hidden" id="syncCreateButton">
-        <button class="btn-primary btn-block" id="btnCreateInsert">Vložit do Figmy</button>
-      </div>
-      <div id="syncResult" class="hidden mt-8"></div>
+      <div id="syncEntitySummary" class="collapsed-choice hidden" data-step="entity"></div>
     </div>
+
+    <!-- Preview + buttons -->
+    <div id="syncPreview" class="hidden mt-8"></div>
+    <div class="btn-group mt-8" id="syncDiffButtons">
+      <button class="btn-primary btn-sm hidden" id="btnSyncExecute">Provést synchronizaci</button>
+    </div>
+    <div class="mt-8 hidden" id="syncCreateButton">
+      <button class="btn-primary btn-block" id="btnCreateInsert">Vložit do Figmy</button>
+    </div>
+    <div id="syncResult" class="hidden mt-8"></div>
   </div>
 </div>
 
@@ -322,6 +366,7 @@ let currentSyncAction = null;
 let projectsCache = [];
 let apiDataCache = {}; // { entityType: [entities] }
 let pendingSyncDiffs = [];
+let _awaitingCountOnly = { pull: false, push: false };
 
 // ─────────────────── Logging ──────────────────────────────────────────────
 const LOG_MAX = 200;
@@ -388,12 +433,22 @@ function saveConfig() {
 }
 
 // ─────────────────── Tab navigation ───────────────────────────────────────
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+function deactivateAllTabs() {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+}
+
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var wasActive = tab.classList.contains('active');
+    deactivateAllTabs();
+    if (!wasActive) {
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      hideEl('globalResult');
+      if (tab.dataset.tab === 'sync') resetSyncPanel();
+      if (tab.dataset.tab === 'yaml') resetYamlPanel();
+    }
     resizeUI();
   });
 });
@@ -406,11 +461,13 @@ function resizeUI() {
     var tabs = document.querySelector('.tabs');
     var activePanel = document.querySelector('.panel.active');
     var h = 0;
+    var globalResult = document.getElementById('globalResult');
     if (statusBar) h += statusBar.offsetHeight;
     if (tabs) h += tabs.offsetHeight;
+    if (globalResult && !globalResult.classList.contains('hidden')) h += globalResult.scrollHeight;
     if (activePanel) h += activePanel.scrollHeight;
-    h += 16; // padding
-    h = Math.min(Math.max(h, 160), 800);
+    h += 8; // padding
+    h = Math.min(Math.max(h, 80), 800);
     if (h !== _lastH) {
       _lastH = h;
       parent.postMessage({ pluginMessage: { type: 'resize-ui', width: 380, height: h } }, '*');
@@ -657,12 +714,12 @@ async function apiRequest(method, path, body) {
   const response = await fetch(url, opts);
   if (!response.ok) {
     let detail = '';
-    try { detail = await response.text(); } catch {}
+    try { detail = await response.text(); } catch (e) {}
     throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
   }
   const text = await response.text();
   if (!text) return null;
-  try { return JSON.parse(text); } catch { return text; }
+  try { return JSON.parse(text); } catch (e) { return text; }
 }
 
 async function testConnection() {
@@ -730,10 +787,12 @@ async function updateEntity(entityType, entityId, data) {
   const typeDef = ENTITY_TYPES[entityType];
   if (!typeDef) throw new Error('Neznámý typ entity: ' + entityType);
 
-  setStatus('writing', `Zapisuji ${typeDef.singular}...`);
+  setStatus('writing', 'Zapisuji ' + typeDef.singular + '...');
   try {
-    const body = { ...data, _uxlog_id: entityId, _ts: Date.now() };
-    await apiRequest('PUT', `/api/${typeDef.apiPath}/${entityId}`, body);
+    var body = Object.assign({}, data);
+    body._uxlog_id = entityId;
+    body._ts = Date.now();
+    await apiRequest('PUT', '/api/' + typeDef.apiPath + '/' + entityId, body);
     setStatus('connected', 'Připojeno');
     log('info', 'sync', `Aktualizováno: ${typeDef.singular} ${entityId}`);
   } catch (e) {
@@ -746,6 +805,35 @@ async function updateEntity(entityType, entityId, data) {
 // ═══════════════════════════════════════════════════════════════════════════
 // IMPORT tab logic
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ─────────────────── YAML action picker ──────────────────────────────────
+document.querySelectorAll('[data-yaml-action]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var action = btn.dataset.yamlAction;
+    var label = action === 'import' ? 'YAML → Figma' : 'Figma → YAML';
+    document.getElementById('yamlActionPicker').classList.add('hidden');
+    collapseChoice('yamlActionSummary', 'YAML', label, function() {
+      document.getElementById('yamlActionPicker').classList.remove('hidden');
+      document.getElementById('yamlActionSummary').classList.add('hidden');
+      document.getElementById('yamlImportSection').classList.add('hidden');
+      document.getElementById('yamlExportSection').classList.add('hidden');
+      resizeUI();
+    });
+    if (action === 'import') {
+      document.getElementById('yamlImportSection').classList.remove('hidden');
+    } else {
+      document.getElementById('yamlExportSection').classList.remove('hidden');
+    }
+    resizeUI();
+  });
+});
+
+function resetYamlPanel() {
+  document.getElementById('yamlActionPicker').classList.remove('hidden');
+  document.getElementById('yamlActionSummary').classList.add('hidden');
+  document.getElementById('yamlImportSection').classList.add('hidden');
+  document.getElementById('yamlExportSection').classList.add('hidden');
+}
 
 let parsedImportData = null;
 
@@ -911,26 +999,121 @@ storageGet('uxlog_figma_project').then(function(val) {
   if (val) _savedProjectId = val;
 });
 
+var ACTION_LABELS = { pull: 'API → Figma', push: 'Figma → API', create: 'Vytvořit karty' };
+
+function resetSyncPanel() {
+  currentSyncAction = null;
+  apiDataCache = {};
+  pendingSyncDiffs = [];
+  resetSyncFromStep(0);
+  updateSyncPanel();
+  clearSyncBadges();
+  prefetchSyncCounts();
+}
+
+function clearSyncBadges() {
+  var bp = document.getElementById('badgePull');
+  var bs = document.getElementById('badgePush');
+  bp.classList.add('hidden'); bp.textContent = '';
+  bs.classList.add('hidden'); bs.textContent = '';
+}
+
+function showSyncBadge(id, count) {
+  var el = document.getElementById(id);
+  if (count > 0) {
+    el.textContent = count;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+var _prefetchAborted = false;
+async function prefetchSyncCounts() {
+  _prefetchAborted = false;
+  var savedPid = getSavedProjectId();
+  if (!savedPid || !isConnected) return;
+
+  try {
+    // Fetch API data for the saved project
+    var data = await fetchAllEntities(savedPid);
+    if (_prefetchAborted) return;
+
+    // Count pull changes (API → Figma)
+    _awaitingCountOnly.pull = true;
+    parent.postMessage({ pluginMessage: { type: 'diff-remote-changes', apiEntities: data } }, '*');
+    // Count push changes (Figma → API)
+    _awaitingCountOnly.push = true;
+    parent.postMessage({ pluginMessage: { type: 'diff-local-changes', entityTypeFilter: '' } }, '*');
+  } catch (e) {
+    // Silently ignore — badges just won't show
+  }
+}
+
 function updateSyncButtons() {
   if (currentSyncAction === 'create') {
     document.getElementById('syncDiffButtons').classList.add('hidden');
-    document.getElementById('syncCreateButton').classList.remove('hidden');
+    // syncCreateButton shown only after entity type is selected
+    document.getElementById('syncCreateButton').classList.add('hidden');
   } else {
     document.getElementById('syncDiffButtons').classList.remove('hidden');
     document.getElementById('syncCreateButton').classList.add('hidden');
   }
 }
 
+function collapseChoice(summaryId, label, value, expandFn) {
+  var el = document.getElementById(summaryId);
+  el.innerHTML = '<span class="cc-label">' + escapeHtml(label) + ':</span> <span class="cc-value">' + escapeHtml(value) + '</span><span class="cc-change">změnit</span>';
+  el.classList.remove('hidden');
+  el.onclick = expandFn;
+}
+
+function resetSyncFromStep(step) {
+  // Reset everything from a given step onwards
+  if (step <= 0) {
+    // Reset action
+    document.getElementById('syncActionPicker').classList.remove('hidden');
+    document.getElementById('syncActionSummary').classList.add('hidden');
+    currentSyncAction = null;
+  }
+  if (step <= 1) {
+    // Reset project
+    document.getElementById('syncProjectWrap').classList.add('hidden');
+    document.getElementById('syncProjectSelect').classList.remove('hidden');
+    document.getElementById('syncProjectSummary').classList.add('hidden');
+  }
+  if (step <= 2) {
+    // Reset entity
+    document.getElementById('syncEntityFilter').classList.add('hidden');
+    document.getElementById('syncEntityRadios').classList.remove('hidden');
+    document.getElementById('syncEntitySummary').classList.add('hidden');
+  }
+  document.getElementById('syncPreview').classList.add('hidden');
+  document.getElementById('btnSyncExecute').classList.add('hidden');
+  document.getElementById('syncCreateButton').classList.add('hidden');
+  hideEl('syncResult');
+  apiDataCache = {};
+  pendingSyncDiffs = [];
+}
+
 // Sync action buttons
 document.querySelectorAll('.sync-action-btn').forEach(function(btn) {
   btn.addEventListener('click', async function() {
+    _prefetchAborted = true;
+    _awaitingCountOnly = { pull: false, push: false };
     currentSyncAction = btn.dataset.action;
+    // Collapse action picker into summary
     document.getElementById('syncActionPicker').classList.add('hidden');
-    document.getElementById('syncConfig').classList.remove('hidden');
-    document.getElementById('syncPreview').classList.add('hidden');
-    document.getElementById('btnSyncExecute').classList.add('hidden');
-    hideEl('syncResult');
+    collapseChoice('syncActionSummary', 'Akce', ACTION_LABELS[currentSyncAction] || currentSyncAction, function() {
+      resetSyncFromStep(0);
+    });
     updateSyncButtons();
+    hideEl('syncResult');
+
+    // Show project step
+    document.getElementById('syncProjectWrap').classList.remove('hidden');
+    document.getElementById('syncProjectSelect').classList.remove('hidden');
+    document.getElementById('syncProjectSummary').classList.add('hidden');
 
     // Load projects
     try {
@@ -952,20 +1135,12 @@ document.querySelectorAll('.sync-action-btn').forEach(function(btn) {
   });
 });
 
-document.getElementById('btnBackToActions').addEventListener('click', () => {
-  document.getElementById('syncActionPicker').classList.remove('hidden');
-  document.getElementById('syncConfig').classList.add('hidden');
-  currentSyncAction = null;
-  apiDataCache = {};
-  pendingSyncDiffs = [];
-  resizeUI();
-});
-
 function renderProjectDropdown() {
-  const sel = document.getElementById('syncProject');
+  var sel = document.getElementById('syncProject');
   sel.innerHTML = '<option value="">— Vyberte projekt —</option>';
-  for (const p of projectsCache) {
-    const opt = document.createElement('option');
+  for (var i = 0; i < projectsCache.length; i++) {
+    var p = projectsCache[i];
+    var opt = document.createElement('option');
     opt.value = p.id;
     opt.textContent = p.name || '(bez názvu)';
     sel.appendChild(opt);
@@ -983,10 +1158,27 @@ document.getElementById('syncProject').addEventListener('change', async function
     return;
   }
 
+  // Collapse project dropdown into summary
+  var projectName = document.getElementById('syncProject').selectedOptions[0].textContent;
+  document.getElementById('syncProjectSelect').classList.add('hidden');
+  collapseChoice('syncProjectSummary', 'Projekt', projectName, function() {
+    document.getElementById('syncProjectSelect').classList.remove('hidden');
+    document.getElementById('syncProjectSummary').classList.add('hidden');
+    // Reset entity step
+    document.getElementById('syncEntityFilter').classList.add('hidden');
+    document.getElementById('syncEntityRadios').classList.remove('hidden');
+    document.getElementById('syncEntitySummary').classList.add('hidden');
+    document.getElementById('syncPreview').classList.add('hidden');
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+    hideEl('syncResult');
+  });
+
   try {
     apiDataCache = await fetchAllEntities(projectId);
     renderEntityFilter(apiDataCache);
     document.getElementById('syncEntityFilter').classList.remove('hidden');
+    document.getElementById('syncEntityRadios').classList.remove('hidden');
+    document.getElementById('syncEntitySummary').classList.add('hidden');
     document.getElementById('syncPreview').classList.add('hidden');
     document.getElementById('btnSyncExecute').classList.add('hidden');
   } catch (e) {
@@ -996,44 +1188,73 @@ document.getElementById('syncProject').addEventListener('change', async function
 });
 
 function renderEntityFilter(data) {
-  const container = document.getElementById('syncEntityOptions');
+  var container = document.getElementById('syncEntityOptions');
   container.innerHTML = '';
 
-  // Radio: all types
-  let html = '';
-  for (const [type, def] of Object.entries(ENTITY_TYPES)) {
-    const count = (data[type] || []).length;
-    html += `<label class="entity-option">
-      <input type="radio" name="syncEntityType" value="${type}">
-      <span>${def.label} (${count})</span>
-    </label>`;
+  var html = '';
+  var types = Object.keys(ENTITY_TYPES);
+  for (var i = 0; i < types.length; i++) {
+    var type = types[i];
+    var def = ENTITY_TYPES[type];
+    var count = (data[type] || []).length;
+    html += '<label class="entity-option">' +
+      '<input type="radio" name="syncEntityType" value="' + type + '">' +
+      '<span>' + def.label + ' (' + count + ')</span>' +
+    '</label>';
   }
   container.innerHTML = html;
+
+  // Listen for radio change to collapse
+  var radios = document.querySelectorAll('input[name="syncEntityType"]');
+  for (var ri = 0; ri < radios.length; ri++) {
+    radios[ri].addEventListener('change', onEntityTypeSelected);
+  }
   resizeUI();
 }
 
-// Preview sync changes
-document.getElementById('btnSyncPreview').addEventListener('click', async () => {
-  const projectId = document.getElementById('syncProject').value;
-  if (!projectId) {
-    showInfo('syncResult', 'Vyberte projekt.', 'warning');
-    return;
-  }
+function onEntityTypeSelected() {
+  var selected = document.querySelector('input[name="syncEntityType"]:checked');
+  if (!selected) return;
+  var val = selected.value;
+  var label = val ? (ENTITY_TYPES[val] ? ENTITY_TYPES[val].label + ' (' + (apiDataCache[val] || []).length + ')' : val) : 'Všechny typy';
 
-  const selectedType = document.querySelector('input[name="syncEntityType"]:checked')?.value || '';
+  // Collapse radios into summary
+  document.getElementById('syncEntityRadios').classList.add('hidden');
+  collapseChoice('syncEntitySummary', 'Entity', label, function() {
+    document.getElementById('syncEntityRadios').classList.remove('hidden');
+    document.getElementById('syncEntitySummary').classList.add('hidden');
+    document.getElementById('syncPreview').classList.add('hidden');
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+    document.getElementById('syncCreateButton').classList.add('hidden');
+    hideEl('syncResult');
+  });
+
+  // Auto-trigger preview or show create button
+  if (currentSyncAction === 'create') {
+    document.getElementById('syncCreateButton').classList.remove('hidden');
+  } else {
+    triggerSyncPreview();
+  }
+  resizeUI();
+}
+
+function triggerSyncPreview() {
+  var projectId = document.getElementById('syncProject').value;
+  if (!projectId) return;
+  var selectedType = (document.querySelector('input[name="syncEntityType"]:checked') || {}).value || '';
 
   if (currentSyncAction === 'pull') {
-    // API → Figma: compare API data with stored data on cards
-    const filtered = selectedType ? { [selectedType]: apiDataCache[selectedType] || [] } : apiDataCache;
+    var filtered = selectedType ? {} : apiDataCache;
+    if (selectedType) filtered[selectedType] = apiDataCache[selectedType] || [];
     parent.postMessage({ pluginMessage: { type: 'diff-remote-changes', apiEntities: filtered } }, '*');
     showInfo('syncPreview', '<span class="spinner"></span> Porovnávám změny...', '');
   } else if (currentSyncAction === 'push') {
-    // Figma → API: compare card text with stored entity
-    parent.postMessage({ pluginMessage: { type: 'diff-local-changes' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'diff-local-changes', entityTypeFilter: selectedType } }, '*');
     showInfo('syncPreview', '<span class="spinner"></span> Hledám lokální změny...', '');
   }
+  document.getElementById('syncPreview').classList.remove('hidden');
   resizeUI();
-});
+}
 
 
 function renderDiffPreview(diffs, direction) {
@@ -1119,33 +1340,40 @@ document.getElementById('btnSyncExecute').addEventListener('click', async functi
       log('info', 'sync', `API → Figma: ${updates.length} entit`);
     } else if (currentSyncAction === 'push') {
       // Push local changes to API
-      let successCount = 0;
-      let errorCount = 0;
-      for (const d of pendingSyncDiffs) {
+      var successCount = 0;
+      var errorCount = 0;
+      var succeededDiffs = [];
+      for (var pdi = 0; pdi < pendingSyncDiffs.length; pdi++) {
+        var d = pendingSyncDiffs[pdi];
         try {
           await updateEntity(d.entityType, d.entityId, d.entity);
           successCount++;
+          succeededDiffs.push(d);
         } catch (e) {
           errorCount++;
-          log('error', 'sync', `Chyba zápisu ${d.entityId}`, e.message);
+          log('error', 'sync', 'Chyba zápisu ' + d.entityId, e.message);
         }
       }
-      const msg = `Zapsáno: ${successCount}` + (errorCount > 0 ? `, chyby: ${errorCount}` : '');
-      showInfo('syncResult', msg, errorCount > 0 ? 'warning' : 'success');
-      log('info', 'sync', `Figma → API: ${successCount} ok, ${errorCount} chyb`);
+      var pushMsg = 'Zapsáno: ' + successCount + (errorCount > 0 ? ', chyby: ' + errorCount : '');
+      showGlobalResult(pushMsg, errorCount > 0 ? 'warning' : 'success');
+      log('info', 'sync', 'Figma → API: ' + successCount + ' ok, ' + errorCount + ' chyb');
 
-      // Update stored entities on cards after successful push
-      if (successCount > 0) {
-        parent.postMessage({ pluginMessage: { type: 'read-all-cards' } }, '*');
+      // Update stored entities only for successfully written cards
+      if (succeededDiffs.length > 0) {
+        var storeUpdates = [];
+        for (var psi = 0; psi < succeededDiffs.length; psi++) {
+          var sd = succeededDiffs[psi];
+          storeUpdates.push({ entityId: sd.entityId, entity: sd.entity });
+        }
+        parent.postMessage({ pluginMessage: { type: 'update-stored-entities', updates: storeUpdates } }, '*');
       }
     }
   } catch (e) {
-    showInfo('syncResult', 'Chyba: ' + e.message, 'error');
+    showGlobalResult('Chyba: ' + e.message, 'error');
     log('error', 'sync', 'Chyba synchronizace', e.message);
   }
 
   document.getElementById('btnSyncExecute').disabled = false;
-  resizeUI();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1232,9 +1460,7 @@ window.onmessage = function(event) {
       break;
 
     case 'generate-cards-done':
-      showInfo('importResult', `Vytvořeno ${msg.count} karet.`, 'success');
-      showInfo('syncResult', `Vytvořeno ${msg.count} karet.`, 'success');
-      resizeUI();
+      showGlobalResult('Vytvořeno ' + msg.count + ' karet.', 'success');
       break;
 
     case 'selection-data':
@@ -1246,21 +1472,26 @@ window.onmessage = function(event) {
       updateExportInfo();
       break;
 
-    case 'all-cards-data':
-      // After push sync, cards were re-read - nothing to display
-      break;
-
     case 'local-changes':
-      renderDiffPreview(msg.diffs || [], 'push');
+      if (_awaitingCountOnly.push) {
+        _awaitingCountOnly.push = false;
+        showSyncBadge('badgePush', (msg.diffs || []).length);
+      } else {
+        renderDiffPreview(msg.diffs || [], 'push');
+      }
       break;
 
     case 'remote-changes':
-      renderDiffPreview(msg.diffs || [], 'pull');
+      if (_awaitingCountOnly.pull) {
+        _awaitingCountOnly.pull = false;
+        showSyncBadge('badgePull', (msg.diffs || []).length);
+      } else {
+        renderDiffPreview(msg.diffs || [], 'pull');
+      }
       break;
 
     case 'update-cards-done':
-      showInfo('syncResult', `Aktualizováno ${msg.count} karet.`, 'success');
-      resizeUI();
+      showGlobalResult('Aktualizováno ' + msg.count + ' karet.', 'success');
       break;
 
     case 'error':
@@ -1292,10 +1523,19 @@ function updateExportInfo() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function showInfo(elId, html, type) {
-  const el = document.getElementById(elId);
+  var el = document.getElementById(elId);
   el.classList.remove('hidden');
   el.className = 'info-box' + (type ? ' ' + type : '');
   el.innerHTML = html;
+}
+
+function showGlobalResult(html, type) {
+  deactivateAllTabs();
+  var el = document.getElementById('globalResult');
+  el.classList.remove('hidden');
+  el.className = 'info-box' + (type ? ' ' + type : '');
+  el.innerHTML = html;
+  resizeUI();
 }
 
 function hideEl(elId) {
@@ -1314,14 +1554,14 @@ function truncate(str, len) {
 }
 
 function getFieldLabel(entityType, field) {
-  const labels = {
+  var labels = {
     persona: { code:'Kód', name:'Název', status:'Status', description:'Popis', motivation:'Motivace', needs:'Potřeby', problems:'Problémy', targetGroupSize:'Velikost cíl. skupiny', targetGroupValue:'Hodnota cíl. skupiny' },
     hypothesis: { code:'Kód', name:'Název', description:'Popis', status:'Status', explanation:'Vysvětlení' },
-    scenario: { code:'Kód', name:'Název', description:'Popis', frequency:'Frekvence', value:'Hodnota', moscow:'MoSCoW' },
+    scenario: { code:'Kód', name:'Název', description:'Popis', type:'Typ', priority:'Priorita', frequencyValue:'Frekvence', frequencyUnit:'Jedn. frekvence', valueAmount:'Hodnota', valueUnit:'Jedn. hodnoty', userCount:'Počet uživatelů', userCountUnit:'Jedn. uživatelů' },
     stakeholder: { name:'Název', description:'Popis', influenceLevel:'Úroveň vlivu', interestLevel:'Úroveň zájmu' },
     goal: { code:'Kód', name:'Název', description:'Popis', metrics:'Metriky' },
     competition: { name:'Název', description:'Popis', strengths:'Silné stránky', weaknesses:'Slabé stránky', inspiration:'Inspirace' },
-    requirement: { code:'Kód', name:'Název', description:'Popis', motivation:'Motivace', moscow:'MoSCoW', explanation:'Vysvětlení' }
+    requirement: { code:'Kód', name:'Název', description:'Popis', motivation:'Motivace', priority:'Priorita', wontHaveExplanation:'Proč ne' }
   };
   return labels[entityType]?.[field] || field;
 }
