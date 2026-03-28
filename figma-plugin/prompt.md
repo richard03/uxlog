@@ -1,15 +1,34 @@
 # UXLog Figma Plugin
 
-Figma plugin pro propojení s aplikací UXLog. Aplikace UXLog je nástroj pro správu UX výzkumného a designového procesu. Figma plugin umožňuje vizualizovat výzkumná data jako karty ve Figmě a synchronizovat je s UXLog API.
+Figma plugin pro propojení s aplikací UXLog. Aplikace UXLog je nástroj pro správu UX výzkumného a designového procesu. 
 
 Celé rozhraní pluginu je v češtině.
 
-## Co plugin dělá
+## Cíl
 
-1. **Import z YAML** — uživatel vloží YAML exportovaný z UXLog a plugin z něj vygeneruje vizuální karty na plátno.
-2. **Export do YAML** — uživatel vybere karty na plátně a plugin z nich vytvoří YAML, který lze importovat zpět do UXLog.
-3. **Synchronizace s API** — obousměrná synchronizace s UXLog REST API. Aplikace UXLog komunikovat s okolím pomocí vlastního REST API, které vytváří na localhostu. Plugin umí tato data číst (pull), odesílat lokální úpravy z Figmy do API (push) a detekovat změny na obou stranách.
-4. **Nastavení** — konfigurace připojení k API (URL + API klíč).
+Plugin má uživateli umožnit:
+1. **Import dat z YAML do Figmy** - Uživatel vloží YAML exportovaný z UXLogu a plugin z něj vygeneruje vizuální karty na plátno.
+2. **Export z vybraných karet z Figmy do YAML** - Uživatel vybere karty na plátně a plugin z nich vytvoří YAML, který lze importovat zpět do UXLogu.
+3. **Načtení změn z API a jejich zapsání do Figmy** - plugin přepíše změněná pole aniž by se dotkl nezměněných
+4. **Odesílání změn provedených ve Figmě do API** - plugin zjistí co se ve Figmě změnilo a to zapíše do API, aniž by se dotkl nezměněných atributů. 
+5. **Nastavení připojení**
+   Plugin umožňuje nastavit URL API a API klíč.
+
+Uživatel vždy pracuje jen s daty vybraného projektu. 
+Při synchronizaci si může vybrat, které typy entit bude synchronizovat a které ne, ještě před potvrzením akce.
+
+
+## Co není cílem
+
+Plugin nesmí dělat následující:
+- automatickou průběžnou synchronizaci bez zásahu uživatele,
+- mazání dat v API,
+- vytváření zcela nových entit v API pouze z Figmy, pokud pro ně neexistuje odpovídající záznam nebo jednoznačný sync mechanismus,
+- práci mimo aktuální kontext vybraného projektu.
+
+Není nutné, aby první verze pluginu uměla
+- řešení konfliktů formou merge editoru,
+
 
 ## Typy entit
 Plugin pracuje se 7 typy entit:
@@ -46,40 +65,110 @@ V případě akcí "API → Figma" a "Figma → API" plugin zobrazí, kolik změ
 
 Teprve pak uživatel akci potvrdí a ta se provede.
 
-
 ### Nastavení
 Formulář pro URL a API klíč (Bearer token). Tlačítko "Připojit" ověří údaje a uloží je. Po připojení se zobrazí tlačítko "Odpojit".
 
+
 ## Vizuální podoba karet
-Entity z UXLogu se ve Figmě zobrazují v podobě "karet". Každý typ entity má vlastní barevnou paletu a rozložení:
+Entity z UXLogu se ve Figmě zobrazují jako karty.
 
-barevnými bloky pro jednotlivé atributy a statistikami
-Tmavá hlavička se světlým písmem, obsahuje kód a název instance a štítky (badges pro stav, priorita apod.). Pod ní obsahové bloky v pastelových barvách s tmavým písmem.
-Persona navíc obsahuje v hlavičce placeholder na fotografii (obsahuje iniciály persony).
+Požadavky na karty:
+- každý typ entity má vlastní vizuálně odlišitelnou podobu,
+- karta má jasnou hierarchii informací,
+- důležité identifikační údaje jsou dobře viditelné,
+- text má být přímo editovatelný ve Figmě,
+- karta má být čitelná i při delším obsahu,
+- prázdné nebo chybějící hodnoty mají být řešeny kultivovaně, ne rozbitím layoutu,
+- textové vrstvy nesmí chybět ani pro prázdné hodnoty, aby do nich uživatel mohl zapisovat
+- layout má být vhodný pro práci ve Figmě, ne jen pro statické zobrazení.
 
-Karty používají auto-layout, font Inter a jsou navrženy tak, aby text šel přímo editovat ve Figmě. Prázdné atributy mají placeholder text.
+Doporučený vizuální směr:
+- tmavší hlavička se světlým textem,
+- světlejší obsahové bloky,
+- barevné odlišení podle typu entity,
+- štítky nebo jiné vizuální akcenty pro stavové hodnoty,
+- u person placeholder pro fotografii nebo avatar.
 
-## Detekce změn
-Plugin si u každé karty pamatuje, jaký text v ní byl v okamžiku posledního importu nebo pullu. Pokud došlo ke změně (ať už za běhu pluginu nebo bez něj), plugin tuto změnu detekuje. Tyto změny pak lze pushnout na API.
+Přesná vizuální interpretace je na vývojáři, pokud zůstane zachována přehlednost a editovatelnost.
 
+## Zásady synchronizace
 
-## API
+Synchronizace má být co nejméně invazivní.
+To znamená:
+- nemají se přepisovat hodnoty, které se nezměnily,
+- plugin má umět rozpoznat lokální změny ve Figmě,
+- plugin má umět rozpoznat změny načtené z API,
+- před provedením zápisu má být uživateli zřejmé, co se stane.
 
-Plugin komunikuje s REST API přes Bearer token:
+Pokud dojde ke konfliktu mezi lokální a vzdálenou změnou, plugin musí zvolit předvídatelné chování a toto chování musí být zřejmé uživateli. Není nutné implementovat složitý merge mechanismus, ale konflikt nesmí proběhnout tiše a nepředvídatelně.
 
-- **GET** endpointy pro každý typ entity (personas, hypotheses, scenarios, stakeholders, goals, competitions, requirements) + endpoint pro projekty a kontrolní součty (checksums)
-- **PUT** endpoint pro aktualizaci jedné entity
-- Podporuje inkrementální stahování pomocí parametru `?since=` (jen entity změněné od posledního pullu)
-- Checksums slouží k rychlé detekci, zda se něco změnilo, bez stahování všech dat
+Pokud se stejná entita ve Figmě vyskytuje vícekrát, plugin se s tím musí vyrovnat konzistentně. Konkrétní strategie je na implementaci, ale její výsledek musí být předvídatelný. I více výskytů se považuje stále za obraz jedné entity v aplikaci UXLog, pokud odpovídá kód entity.
 
-Plugin musí co nejvíce věcí dělat asynchronně, aby nebrzdil uživatele při práci ve Figmě.
+## Odolnost vůči změnám dat
+Plugin musí počítat s tím, že se datový model bude v čase vyvíjet.
 
-Rozměry pluginu musí být co nejmenší, aby uživateli neclonil výhled na stránku ve Figmě. Rozměry se průběžně přizpůsobují obsahu - když uživatel klikne na akci a je potřeba zobrazit detaily, okno pluginu se zvětší a poté co to už nebude potřeba, zase se zmenší. Šířka pluginu ale zůstává stále stejná.
+Proto platí:
+- chybějící pole nesmí rozbít import ani synchronizaci,
+- neznámá pole nesmí způsobit pád pluginu,
+- neúplná data musí být zpracována co nejbezpečněji,
+- plugin má být tolerantní k menším změnám struktury dat.
 
-Plugin musí počítat s tím, že software se vyvíjí a data nemusí zůstat stále stejná, některé položky nemusí být v budoucnu k dispozici a naopak se mohou objevit položky navíc, a to jak v API tak i ve Figmě.
+Není nutné garantovat plnou podporu libovolných budoucích změn, ale implementace má být rozumně robustní.
 
-Plugin nesmí přepisovat položky, které se nezměnily.
+## Chování při chybách
+Plugin musí řešit chyby srozumitelně a prakticky.
+To zahrnuje:
+- validaci neplatného YAML,
+- chybějící nebo neplatné přihlašovací údaje,
+- nedostupné API,
+- neautorizovaný přístup,
+- nečekanou odpověď API,
+- data, která nelze bezpečně synchronizovat.
 
-Plugin musí do logu zaznamenávat veškeré chyby, ke kterým dojde, tak aby se daly debuggovat.
+Uživatel má dostat krátkou a srozumitelnou informaci o problému.
+Technické detaily musí být k dispozici pro debugging v logu.
 
-Syntaxe pluginu musí dodržovat omezení Figmy.
+## Výkon a použitelnost
+Plugin nesmí zbytečně brzdit uživatele při práci ve Figmě.
+Požadavky:
+- běžné operace mají působit svižně,
+- delší operace mají poskytovat průběžnou zpětnou vazbu,
+- UI se má přizpůsobovat obsahu tak, aby zbytečně nepřekáželo,
+- plugin má respektovat omezení prostředí Figma pluginů.
+- Co nejvíce operací by mělo probíhat asynchronně
+- Všechny operace se dějí jen nad aktuální stránkou Figmy, ne nad celým Figma souborem.
+Velikost pluginu - šířka musí být fixní, výška se může měnit podle situace aby plugin měl vždy co nejmenší velikost a zároveň ukázal vše potřebné, pokud možno bez scrollování.
+
+## Logování a debugování
+Plugin musí zaznamenávat chyby a důležité synchronizační události tak, aby bylo možné dohledat:
+- co se uživatel pokusil provést,
+- zda šlo o import, export nebo sync,
+- zda operace uspěla nebo selhala,
+- proč případně selhala.
+
+Cílem není zahlcení logu, ale praktická diagnostika problémů.
+
+## Zásady implementace
+Vývojář má volnost v technickém řešení, ale výsledná implementace musí splnit tyto zásady:
+- být spolehlivá,
+- být srozumitelná pro uživatele,
+- být odolná vůči neúplným nebo mírně změněným datům,
+- respektovat omezení Figma plugin prostředí,
+- neprovádět zbytečně destruktivní změny,
+- dát uživateli kontrolu před důležitými synchronizačními akcemi.
+
+## Hotovo znamená
+
+Plugin je považován za hotový, pokud:
+- uživatel dokáže vložit validní YAML a vytvořit z něj karty na plátně,
+- uživatel dokáže vybrané karty exportovat zpět do YAML,
+- uživatel dokáže vybrat projekt a načíst jeho data z API,
+- uživatel dokáže synchronizovat změny z API do Figmy,
+- uživatel dokáže synchronizovat změny z Figmy do API,
+- plugin před potvrzením synchronizace ukáže přehled zamýšlených změn,
+- plugin se chová předvídatelně i při nevalidních datech nebo chybě spojení,
+- plugin neblokuje zbytečně práci ve Figmě,
+- plugin poskytuje dost informací pro debugging problémů.
+
+## Poznámka k implementaci
+Tento dokument popisuje požadované chování a očekávaný výsledek. Není to závazný technický návrh architektury. Konkrétní implementační rozhodnutí jsou na vývojáři.
