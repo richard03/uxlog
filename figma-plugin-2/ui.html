@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ─────────────────────── Base ─────────────────────── */
+:root {
+  --bg: #2c2c2c;
+  --bg-surface: #3a3a3a;
+  --bg-hover: #444;
+  --text: #e8e8e8;
+  --text-muted: #999;
+  --text-label: #bbb;
+  --border: #555;
+  --accent: #5C6BC0;
+  --accent-hover: #7986CB;
+  --success: #4CAF50;
+  --warning: #FF9800;
+  --error: #EF5353;
+  --radius: 6px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  overflow-x: hidden;
+}
+button {
+  font-family: var(--font);
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  transition: background 0.15s;
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+textarea, input, select {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  width: 100%;
+  outline: none;
+}
+textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+select { appearance: auto; }
+
+/* ─────────────────── Status indicator ─────────────── */
+.status-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; color: var(--text-muted);
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.status-dot.disconnected { background: var(--text-muted); }
+.status-dot.connecting { background: var(--warning); animation: pulse 1s infinite; }
+.status-dot.connected { background: var(--success); }
+.status-dot.reading { background: #42A5F5; animation: pulse 0.8s infinite; }
+.status-dot.writing { background: #AB47BC; animation: pulse 0.8s infinite; }
+.status-dot.error { background: var(--error); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ──────────────────── Tabs ────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  flex: 1; padding: 10px 4px; text-align: center;
+  background: transparent; color: var(--text-muted);
+  border-radius: 0; font-size: 11px; font-weight: 500;
+}
+.tab:hover { color: var(--text); background: var(--bg-hover); }
+.tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: -1px;
+}
+
+/* ──────────────────── Panels ──────────────────────── */
+.panel { display: none; padding: 12px; }
+.panel.active { display: block; }
+.panel h3 { font-size: 13px; margin-bottom: 8px; font-weight: 600; }
+.form-group { margin-bottom: 10px; }
+.form-group label { display: block; font-size: 11px; color: var(--text-label); margin-bottom: 4px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-secondary { background: var(--bg-surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg-hover); }
+.btn-danger { background: var(--error); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #d32f2f; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-block { width: 100%; }
+.btn-group { display: flex; gap: 8px; margin-top: 8px; }
+
+/* ──────────────────── Helpers ─────────────────────── */
+.info-box {
+  background: var(--bg-surface); border-radius: var(--radius);
+  padding: 10px; margin: 8px 0; font-size: 11px;
+}
+.info-box.success { border-left: 3px solid var(--success); }
+.info-box.warning { border-left: 3px solid var(--warning); }
+.info-box.error { border-left: 3px solid var(--error); }
+.entity-selector { margin: 8px 0; }
+.entity-option {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0; font-size: 11px;
+}
+.entity-option input[type="checkbox"],
+.entity-option input[type="radio"] { width: auto; }
+.badge {
+  display: inline-block; padding: 2px 6px;
+  border-radius: 3px; font-size: 10px; font-weight: 600;
+}
+.change-list { max-height: 200px; overflow-y: auto; margin: 8px 0; }
+.change-item {
+  padding: 6px 8px; margin: 2px 0;
+  background: var(--bg-surface); border-radius: var(--radius);
+  font-size: 11px; cursor: pointer;
+}
+.change-item:hover { background: var(--bg-hover); }
+.change-detail { padding: 4px 8px; font-size: 10px; color: var(--text-muted); display: none; }
+.change-detail.open { display: block; }
+.change-field { margin: 2px 0; }
+.change-old { color: var(--error); text-decoration: line-through; }
+.change-new { color: var(--success); }
+.sync-action-btn {
+  display: block; width: 100%; padding: 12px;
+  margin: 6px 0; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  text-align: left; color: var(--text); font-size: 12px;
+}
+.sync-action-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+.sync-action-btn .action-title { font-weight: 600; }
+.sync-action-btn .action-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.hidden { display: none !important; }
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <div class="status-dot disconnected" id="statusDot"></div>
+  <span id="statusText">Nepřipojeno</span>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" data-tab="import">Import</button>
+  <button class="tab" data-tab="export">Export</button>
+  <button class="tab" data-tab="sync">Synchronizace</button>
+  <button class="tab" data-tab="settings">Nastavení</button>
+</div>
+
+<!-- ════════════════════ IMPORT PANEL ════════════════════ -->
+<div class="panel active" id="panel-import">
+  <h3>Import YAML → Figma</h3>
+  <div class="form-group">
+    <label for="yamlInput">Vložte YAML exportovaný z UXLogu:</label>
+    <textarea id="yamlInput" rows="10" placeholder="Vložte YAML sem..."></textarea>
+  </div>
+  <div id="importPreview" class="hidden"></div>
+  <div class="btn-group">
+    <button class="btn-primary btn-sm" id="btnParseYaml">Načíst</button>
+    <button class="btn-primary btn-sm hidden" id="btnGenerate">Generovat</button>
+  </div>
+  <div id="importResult" class="hidden"></div>
+</div>
+
+<!-- ════════════════════ EXPORT PANEL ════════════════════ -->
+<div class="panel" id="panel-export">
+  <h3>Export Figma → YAML</h3>
+  <div id="exportSelectionInfo" class="info-box">
+    Vyberte UXLog karty na plátně a klikněte "Načíst výběr".
+  </div>
+  <button class="btn-secondary btn-sm" id="btnReadSelection">Načíst výběr</button>
+  <div id="exportPreview" class="hidden mt-8"></div>
+  <div id="exportYamlOutput" class="hidden mt-8">
+    <div class="form-group">
+      <label>Vygenerovaný YAML:</label>
+      <textarea id="yamlOutput" rows="10" readonly></textarea>
+    </div>
+    <button class="btn-primary btn-sm" id="btnCopyYaml">Kopírovat do schránky</button>
+  </div>
+</div>
+
+<!-- ════════════════════ SYNC PANEL ═════════════════════ -->
+<div class="panel" id="panel-sync">
+  <h3>Synchronizace</h3>
+  <div id="syncNotConnected" class="info-box warning">
+    Nejprve nastavte připojení v záložce Nastavení.
+  </div>
+  <div id="syncActions" class="hidden">
+    <div id="syncActionPicker">
+      <button class="sync-action-btn" data-action="pull">
+        <div class="action-title">API → Figma</div>
+        <div class="action-desc">Stáhne změny z API a aktualizuje existující karty</div>
+      </button>
+      <button class="sync-action-btn" data-action="push">
+        <div class="action-title">Figma → API</div>
+        <div class="action-desc">Odešle lokální změny z karet do API</div>
+      </button>
+      <button class="sync-action-btn" data-action="create">
+        <div class="action-title">Vytvořit karty</div>
+        <div class="action-desc">Vygeneruje nové karty z dat projektu v API</div>
+      </button>
+    </div>
+
+    <div id="syncConfig" class="hidden">
+      <button class="btn-secondary btn-sm mt-8" id="btnBackToActions">&larr; Zpět</button>
+      <div class="form-group mt-8">
+        <label for="syncProject">Projekt:</label>
+        <select id="syncProject"><option value="">Načítání...</option></select>
+      </div>
+      <div id="syncEntityFilter" class="hidden">
+        <label class="text-muted" style="font-size:11px;">Typ entity (volitelné – omezí akci na vybraný typ):</label>
+        <div id="syncEntityOptions"></div>
+        <div class="entity-selector mt-8">
+          <label class="entity-option">
+            <input type="radio" name="syncEntityType" value="" checked>
+            <span>Všechny typy</span>
+          </label>
+        </div>
+      </div>
+      <div id="syncPreview" class="hidden mt-8"></div>
+      <div class="btn-group mt-8" id="syncDiffButtons">
+        <button class="btn-secondary btn-sm" id="btnSyncPreview">Zobrazit změny</button>
+        <button class="btn-primary btn-sm hidden" id="btnSyncExecute">Provést</button>
+      </div>
+      <div class="mt-8 hidden" id="syncCreateButton">
+        <button class="btn-primary btn-block" id="btnCreateInsert">Vložit do Figmy</button>
+      </div>
+      <div id="syncResult" class="hidden mt-8"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ SETTINGS PANEL ═════════════════ -->
+<div class="panel" id="panel-settings">
+  <h3>Nastavení připojení</h3>
+  <div class="form-group">
+    <label for="apiUrl">URL API:</label>
+    <input type="text" id="apiUrl" placeholder="https://example.com/api">
+  </div>
+  <div class="form-group">
+    <label for="apiKey">API klíč (Bearer token):</label>
+    <input type="password" id="apiKey" placeholder="Váš API klíč">
+  </div>
+  <div id="settingsStatus" class="hidden"></div>
+  <div class="btn-group">
+    <button class="btn-primary btn-sm" id="btnConnect">Připojit</button>
+    <button class="btn-danger btn-sm hidden" id="btnDisconnect">Odpojit</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// UXLog Figma Plugin – UI Layer
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─────────────────── Entity type definitions ──────────────────────────────
+const ENTITY_TYPES = {
+  persona: { label: 'Persony', singular: 'Persona', apiPath: 'uxlog_personas' },
+  hypothesis: { label: 'Hypotézy', singular: 'Hypotéza', apiPath: 'uxlog_hypotheses' },
+  scenario: { label: 'Scénáře', singular: 'Scénář', apiPath: 'uxlog_scenarios' },
+  stakeholder: { label: 'Stakeholdeři', singular: 'Stakeholder', apiPath: 'uxlog_stakeholders' },
+  goal: { label: 'Cíle', singular: 'Cíl', apiPath: 'uxlog_goals' },
+  competition: { label: 'Konkurence', singular: 'Konkurence', apiPath: 'uxlog_competitions' },
+  requirement: { label: 'Požadavky', singular: 'Požadavek', apiPath: 'uxlog_requirements' }
+};
+
+const YAML_ENTITY_KEYS = {
+  personas: 'persona',
+  hypotheses: 'hypothesis',
+  scenarios: 'scenario',
+  stakeholders: 'stakeholder',
+  goals: 'goal',
+  competitions: 'competition',
+  requirements: 'requirement'
+};
+
+const ENTITY_TO_YAML_KEY = {
+  persona: 'personas',
+  hypothesis: 'hypotheses',
+  scenario: 'scenarios',
+  stakeholder: 'stakeholders',
+  goal: 'goals',
+  competition: 'competitions',
+  requirement: 'requirements'
+};
+
+// ─────────────────── State ────────────────────────────────────────────────
+let config = { url: '', apiKey: '' };
+let isConnected = false;
+let currentSyncAction = null;
+let projectsCache = [];
+let apiDataCache = {}; // { entityType: [entities] }
+let pendingSyncDiffs = [];
+
+// ─────────────────── Logging ──────────────────────────────────────────────
+const LOG_MAX = 200;
+const logEntries = [];
+
+function log(level, context, message, data) {
+  const entry = { ts: new Date().toISOString(), level, context, message };
+  if (data) entry.data = data;
+  logEntries.push(entry);
+  if (logEntries.length > LOG_MAX) logEntries.shift();
+  const fn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+  fn(`[UXLog:${context}] ${message}`, data || '');
+}
+
+// ─────────────────── Status indicator ─────────────────────────────────────
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+function setStatus(state, text) {
+  statusDot.className = 'status-dot ' + state;
+  statusText.textContent = text || state;
+}
+
+// ─────────────────── Storage (figma.clientStorage via code.js) ─────────────
+var _storageCallbacks = {};
+var _storageReqId = 0;
+
+function storageGet(key) {
+  return new Promise(function(resolve) {
+    var reqId = ++_storageReqId;
+    _storageCallbacks[reqId] = resolve;
+    parent.postMessage({ pluginMessage: { type: 'storage-get', key: key, reqId: reqId } }, '*');
+    // Timeout fallback – resolve with undefined after 2s
+    setTimeout(function() {
+      if (_storageCallbacks[reqId]) {
+        delete _storageCallbacks[reqId];
+        resolve(undefined);
+      }
+    }, 2000);
+  });
+}
+
+function storageSet(key, value) {
+  parent.postMessage({ pluginMessage: { type: 'storage-set', key: key, value: value } }, '*');
+}
+
+async function loadConfig() {
+  try {
+    var saved = await storageGet('uxlog_figma_config');
+    if (saved && saved.url) {
+      config = saved;
+      if (config.url && config.apiKey) {
+        isConnected = true;
+        setStatus('connected', 'Připojeno');
+        updateSyncPanel();
+        updateSettingsUI();
+      }
+    }
+  } catch (e) {}
+}
+
+function saveConfig() {
+  storageSet('uxlog_figma_config', config);
+}
+
+// ─────────────────── Tab navigation ───────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    resizeUI();
+  });
+});
+
+var _lastH = 0;
+function resizeUI() {
+  requestAnimationFrame(function() {
+    // Measure the active panel + status bar + tabs
+    var statusBar = document.querySelector('.status-bar');
+    var tabs = document.querySelector('.tabs');
+    var activePanel = document.querySelector('.panel.active');
+    var h = 0;
+    if (statusBar) h += statusBar.offsetHeight;
+    if (tabs) h += tabs.offsetHeight;
+    if (activePanel) h += activePanel.scrollHeight;
+    h += 16; // padding
+    h = Math.min(Math.max(h, 160), 800);
+    if (h !== _lastH) {
+      _lastH = h;
+      parent.postMessage({ pluginMessage: { type: 'resize-ui', width: 380, height: h } }, '*');
+    }
+  });
+}
+
+// Auto-resize: observe DOM mutations and element size changes
+var _resizeTimer = null;
+function scheduleResize() {
+  if (_resizeTimer) return;
+  _resizeTimer = setTimeout(function() {
+    _resizeTimer = null;
+    resizeUI();
+  }, 50);
+}
+new MutationObserver(scheduleResize).observe(document.body, {
+  childList: true, subtree: true, attributes: true, characterData: true
+});
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(scheduleResize).observe(document.body);
+}
+
+// ─────────────────── YAML Parser (simplified) ─────────────────────────────
+function parseYaml(text) {
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n');
+  let pos = 0;
+
+  function skipBlank() { while (pos < lines.length && lines[pos].trim() === '') pos++; }
+  function currentIndent() {
+    if (pos >= lines.length) return -1;
+    return lines[pos].search(/\S/);
+  }
+
+  function parseScalar(raw) {
+    if (raw === 'null') return null;
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
+    if (raw === "''") return '';
+    if (raw.startsWith('"') && raw.endsWith('"')) {
+      return raw.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    return raw;
+  }
+
+  function parseValue() {
+    skipBlank();
+    if (pos >= lines.length) return null;
+    const indent = currentIndent();
+    if (indent < 0) return null;
+    const stripped = lines[pos].slice(indent);
+    if (stripped.startsWith('- ') || stripped === '-') return parseSequence(indent);
+    return parseMapping(indent);
+  }
+
+  function parseMapping(indent) {
+    const result = {};
+    while (pos < lines.length) {
+      skipBlank();
+      if (pos >= lines.length) break;
+      const ci = currentIndent();
+      if (ci < 0 || ci < indent || ci > indent) break;
+      const match = lines[pos].slice(indent).match(/^(\w+):\s*([\s\S]*)/);
+      if (!match) break;
+      const key = match[1]; const rest = match[2].trim();
+      pos++;
+      if (rest === '') {
+        skipBlank();
+        if (currentIndent() > indent) result[key] = parseValue();
+        else result[key] = null;
+      } else if (rest === '[]') { result[key] = [];
+      } else if (rest === '{}') { result[key] = {};
+      } else { result[key] = parseScalar(rest); }
+    }
+    return result;
+  }
+
+  function parseSequence(indent) {
+    const result = [];
+    while (pos < lines.length) {
+      skipBlank();
+      if (pos >= lines.length) break;
+      const ci = currentIndent();
+      if (ci < 0 || ci < indent || ci > indent) break;
+      const stripped = lines[pos].slice(indent);
+      if (!stripped.startsWith('- ')) break;
+      const afterDash = stripped.slice(2);
+      if (/^\w+:/.test(afterDash)) {
+        result.push(parseArrayItem(indent));
+      } else if (afterDash.trim() === '' || afterDash.trim() === 'null') {
+        pos++; result.push(null);
+      } else {
+        result.push(parseScalar(afterDash.trim())); pos++;
+      }
+    }
+    return result;
+  }
+
+  function parseArrayItem(arrayIndent) {
+    const itemIndent = arrayIndent + 2;
+    const line = lines[pos];
+    const afterDash = line.slice(arrayIndent + 2);
+    const result = {};
+    let lastKey = null;
+    const firstMatch = afterDash.match(/^(\w+):\s*([\s\S]*)/);
+    if (firstMatch) {
+      const key = firstMatch[1]; const rest = firstMatch[2].trim();
+      pos++; lastKey = key;
+      if (rest === '') {
+        skipBlank();
+        if (currentIndent() > itemIndent) result[key] = parseValue();
+        else result[key] = null;
+      } else if (rest === '[]') { result[key] = [];
+      } else if (rest === '{}') { result[key] = {};
+      } else { result[key] = parseScalar(rest); }
+    } else { pos++; }
+    while (pos < lines.length) {
+      skipBlank();
+      if (pos >= lines.length) break;
+      if (currentIndent() !== itemIndent) break;
+      const curMatch = lines[pos].slice(itemIndent).match(/^(\w+):\s*([\s\S]*)/);
+      if (!curMatch) {
+        if (lastKey != null && typeof result[lastKey] === 'string') {
+          result[lastKey] += '\n' + lines[pos].slice(itemIndent).trim();
+          pos++;
+        } else break;
+      } else {
+        const key = curMatch[1]; const rest = curMatch[2].trim();
+        pos++; lastKey = key;
+        if (rest === '') {
+          skipBlank();
+          if (currentIndent() > itemIndent) result[key] = parseValue();
+          else result[key] = null;
+        } else if (rest === '[]') { result[key] = [];
+        } else if (rest === '{}') { result[key] = {};
+        } else { result[key] = parseScalar(rest); }
+      }
+    }
+    return result;
+  }
+
+  return parseValue();
+}
+
+// ─────────────────── YAML Serializer ──────────────────────────────────────
+function yamlEscape(str) {
+  if (str === '') return "''";
+  if (str.includes('\n')) {
+    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"';
+  }
+  const specialStart = /^[\-?:,\[\]{}#&*!|>'"%@`~]/.test(str);
+  const hasSpecial = /[:#,\[\]{}]/.test(str);
+  const isReserved = ['true','false','null','yes','no','on','off'].includes(str.toLowerCase());
+  if (specialStart || hasSpecial || isReserved) {
+    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+  return str;
+}
+
+function toYaml(value, depth = 0) {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value === 'boolean') return String(value);
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return yamlEscape(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    return value.map(item => serializeArrayItem(item, depth)).join('\n');
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return '{}';
+  return entries.map(([k, v]) => serializeKV(k, v, depth)).join('\n');
+}
+
+function serializeKV(key, value, depth) {
+  const indent = '  '.repeat(depth);
+  if (value === null || value === undefined) return `${indent}${key}: null`;
+  if (typeof value === 'boolean' || typeof value === 'number') return `${indent}${key}: ${value}`;
+  if (typeof value === 'string') return `${indent}${key}: ${yamlEscape(value)}`;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return `${indent}${key}: []`;
+    return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return `${indent}${key}: {}`;
+  return `${indent}${key}:\n${toYaml(value, depth + 1)}`;
+}
+
+function serializeArrayItem(item, depth) {
+  const indent = '  '.repeat(depth);
+  if (item === null || item === undefined) return `${indent}- null`;
+  if (typeof item === 'boolean' || typeof item === 'number') return `${indent}- ${item}`;
+  if (typeof item === 'string') return `${indent}- ${yamlEscape(item)}`;
+  if (Array.isArray(item)) {
+    if (item.length === 0) return `${indent}- []`;
+    return `${indent}-\n${toYaml(item, depth + 1)}`;
+  }
+  const entries = Object.entries(item);
+  if (entries.length === 0) return `${indent}- {}`;
+  const out = [];
+  entries.forEach(([k, v], i) => {
+    const prefix = i === 0 ? `${indent}- ` : `${indent}  `;
+    if (v === null || v === undefined) { out.push(`${prefix}${k}: null`);
+    } else if (typeof v === 'boolean' || typeof v === 'number') { out.push(`${prefix}${k}: ${v}`);
+    } else if (typeof v === 'string') { out.push(`${prefix}${k}: ${yamlEscape(v)}`);
+    } else if (Array.isArray(v)) {
+      if (v.length === 0) { out.push(`${prefix}${k}: []`); }
+      else { out.push(`${prefix}${k}:`); out.push(toYaml(v, depth + 2)); }
+    } else {
+      const se = Object.entries(v);
+      if (se.length === 0) { out.push(`${prefix}${k}: {}`); }
+      else { out.push(`${prefix}${k}:`); out.push(toYaml(v, depth + 2)); }
+    }
+  });
+  return out.join('\n');
+}
+
+// ─────────────────── API communication ────────────────────────────────────
+async function apiRequest(method, path, body) {
+  if (!config.url || !config.apiKey) {
+    throw new Error('API není nakonfigurováno');
+  }
+  const base = config.url.replace(/\/$/, '');
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${config.apiKey}`
+  };
+  const opts = { method, headers };
+  if (body !== undefined && body !== null) opts.body = JSON.stringify(body);
+
+  let url;
+  // Support flexi-proxy style URLs
+  if (/flexi-proxy[^?&]*\.php/i.test(base)) {
+    const qIdx = path.indexOf('?');
+    const apiPath = qIdx >= 0 ? path.slice(0, qIdx) : path;
+    const qs = qIdx >= 0 ? path.slice(qIdx + 1) : '';
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    url = base + sep + 'path=' + encodeURIComponent(apiPath) + (qs ? '&' + qs : '');
+  } else {
+    url = base + path;
+  }
+
+  const response = await fetch(url, opts);
+  if (!response.ok) {
+    let detail = '';
+    try { detail = await response.text(); } catch {}
+    throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
+  }
+  const text = await response.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+async function testConnection() {
+  setStatus('connecting', 'Připojování...');
+  try {
+    // Try to fetch projects as a connection test
+    const result = await apiRequest('GET', '/api/uxlog_projects');
+    setStatus('connected', 'Připojeno');
+    return Array.isArray(result) ? result : [];
+  } catch (e) {
+    setStatus('error', 'Chyba: ' + e.message);
+    throw e;
+  }
+}
+
+async function fetchProjects() {
+  setStatus('reading', 'Načítání projektů...');
+  try {
+    const result = await apiRequest('GET', '/api/uxlog_projects');
+    projectsCache = Array.isArray(result) ? result : [];
+    setStatus('connected', 'Připojeno');
+    return projectsCache;
+  } catch (e) {
+    log('error', 'api', 'Chyba načítání projektů', e.message);
+    setStatus('error', 'Chyba načítání');
+    throw e;
+  }
+}
+
+async function fetchEntities(entityType, projectId) {
+  const typeDef = ENTITY_TYPES[entityType];
+  if (!typeDef) throw new Error('Neznámý typ entity: ' + entityType);
+
+  setStatus('reading', `Načítání ${typeDef.label}...`);
+  try {
+    const result = await apiRequest('GET', `/api/${typeDef.apiPath}`);
+    let items = Array.isArray(result) ? result : (result?.records || []);
+    // Filter by project
+    if (projectId) {
+      items = items.filter(e => e.projectId === projectId);
+    }
+    setStatus('connected', 'Připojeno');
+    return items;
+  } catch (e) {
+    log('error', 'api', `Chyba načítání ${typeDef.label}`, e.message);
+    setStatus('error', 'Chyba načítání');
+    throw e;
+  }
+}
+
+async function fetchAllEntities(projectId) {
+  const result = {};
+  for (const [type, def] of Object.entries(ENTITY_TYPES)) {
+    try {
+      result[type] = await fetchEntities(type, projectId);
+    } catch (e) {
+      log('warn', 'api', `Nelze načíst ${def.label}`, e.message);
+      result[type] = [];
+    }
+  }
+  return result;
+}
+
+async function updateEntity(entityType, entityId, data) {
+  const typeDef = ENTITY_TYPES[entityType];
+  if (!typeDef) throw new Error('Neznámý typ entity: ' + entityType);
+
+  setStatus('writing', `Zapisuji ${typeDef.singular}...`);
+  try {
+    const body = { ...data, _uxlog_id: entityId, _ts: Date.now() };
+    await apiRequest('PUT', `/api/${typeDef.apiPath}/${entityId}`, body);
+    setStatus('connected', 'Připojeno');
+    log('info', 'sync', `Aktualizováno: ${typeDef.singular} ${entityId}`);
+  } catch (e) {
+    log('error', 'sync', `Chyba zápisu ${typeDef.singular} ${entityId}`, e.message);
+    setStatus('error', 'Chyba zápisu');
+    throw e;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IMPORT tab logic
+// ═══════════════════════════════════════════════════════════════════════════
+
+let parsedImportData = null;
+
+document.getElementById('btnParseYaml').addEventListener('click', () => {
+  const raw = document.getElementById('yamlInput').value.trim();
+  if (!raw) {
+    showInfo('importResult', 'Vložte YAML data.', 'warning');
+    return;
+  }
+
+  try {
+    parsedImportData = parseYaml(raw);
+  } catch (e) {
+    showInfo('importResult', 'Neplatný YAML: ' + e.message, 'error');
+    log('error', 'import', 'YAML parse error', e.message);
+    return;
+  }
+
+  if (!parsedImportData || typeof parsedImportData !== 'object') {
+    showInfo('importResult', 'YAML neobsahuje platná data.', 'error');
+    return;
+  }
+
+  renderImportPreview(parsedImportData);
+  document.getElementById('btnGenerate').classList.remove('hidden');
+  hideEl('importResult');
+  resizeUI();
+});
+
+function renderImportPreview(data) {
+  const preview = document.getElementById('importPreview');
+  preview.classList.remove('hidden');
+
+  // Detect projects: if data has 'project' key, single project. If multiple project keys...
+  // Count entities by type
+  let html = '<div class="info-box success">Nalezeno v YAML:</div>';
+  html += '<div class="entity-selector">';
+
+  let hasEntities = false;
+  for (const [yamlKey, entityType] of Object.entries(YAML_ENTITY_KEYS)) {
+    const items = data[yamlKey];
+    if (!items || !Array.isArray(items) || items.length === 0) continue;
+    hasEntities = true;
+    const label = ENTITY_TYPES[entityType]?.label || yamlKey;
+    html += `<label class="entity-option">
+      <input type="checkbox" checked data-import-type="${entityType}" data-yaml-key="${yamlKey}">
+      <span>${label} (${items.length})</span>
+    </label>`;
+  }
+
+  if (!hasEntities) {
+    html = '<div class="info-box warning">YAML neobsahuje žádné rozpoznané entity.</div>';
+  }
+
+  html += '</div>';
+  preview.innerHTML = html;
+  resizeUI();
+}
+
+document.getElementById('btnGenerate').addEventListener('click', () => {
+  if (!parsedImportData) return;
+
+  const entities = {};
+  document.querySelectorAll('[data-import-type]').forEach(cb => {
+    if (cb.checked) {
+      const yamlKey = cb.dataset.yamlKey;
+      const entityType = cb.dataset.importType;
+      const items = parsedImportData[yamlKey];
+      if (items && items.length > 0) {
+        entities[entityType] = items;
+      }
+    }
+  });
+
+  if (Object.keys(entities).length === 0) {
+    showInfo('importResult', 'Nebyl vybrán žádný typ entity.', 'warning');
+    return;
+  }
+
+  const totalCount = Object.values(entities).reduce((s, a) => s + a.length, 0);
+  log('info', 'import', `Generuji ${totalCount} karet`, Object.keys(entities));
+
+  parent.postMessage({ pluginMessage: { type: 'generate-cards', entities } }, '*');
+  showInfo('importResult', '<span class="spinner"></span> Generuji karty...', 'info');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORT tab logic
+// ═══════════════════════════════════════════════════════════════════════════
+
+let selectionInfo = { uxlogSelected: 0, typeCounts: {} };
+
+document.getElementById('btnReadSelection').addEventListener('click', () => {
+  parent.postMessage({ pluginMessage: { type: 'read-selection' } }, '*');
+});
+
+document.getElementById('btnCopyYaml').addEventListener('click', () => {
+  const text = document.getElementById('yamlOutput').value;
+  navigator.clipboard.writeText(text).then(() => {
+    parent.postMessage({ pluginMessage: { type: 'notify', message: 'YAML zkopírován do schránky' } }, '*');
+  });
+});
+
+function renderExportPreview(cards) {
+  if (cards.length === 0) {
+    showInfo('exportPreview', 'Ve výběru nejsou žádné UXLog karty.', 'warning');
+    hideEl('exportYamlOutput');
+    resizeUI();
+    return;
+  }
+
+  // Group by entity type
+  const grouped = {};
+  for (const card of cards) {
+    if (!grouped[card.entityType]) grouped[card.entityType] = [];
+    grouped[card.entityType].push(card.entity);
+  }
+
+  // Show summary
+  let html = `<div class="info-box success">Nalezeno ${cards.length} karet:</div>`;
+  for (const [type, items] of Object.entries(grouped)) {
+    const label = ENTITY_TYPES[type]?.label || type;
+    html += `<div class="text-muted" style="font-size:11px; padding:2px 0;">${label}: ${items.length}</div>`;
+  }
+  showInfo('exportPreview', html, '');
+
+  // Generate YAML
+  const yamlObj = {};
+  for (const [type, items] of Object.entries(grouped)) {
+    const yamlKey = ENTITY_TO_YAML_KEY[type] || type;
+    yamlObj[yamlKey] = items;
+  }
+  const yaml = toYaml(yamlObj);
+  document.getElementById('yamlOutput').value = yaml;
+  document.getElementById('exportYamlOutput').classList.remove('hidden');
+  resizeUI();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SYNC tab logic
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateSyncPanel() {
+  if (isConnected) {
+    document.getElementById('syncNotConnected').classList.add('hidden');
+    document.getElementById('syncActions').classList.remove('hidden');
+  } else {
+    document.getElementById('syncNotConnected').classList.remove('hidden');
+    document.getElementById('syncActions').classList.add('hidden');
+  }
+  resizeUI();
+}
+
+// Remembered project
+var _savedProjectId = '';
+function getSavedProjectId() { return _savedProjectId; }
+function saveProjectId(id) {
+  _savedProjectId = id;
+  storageSet('uxlog_figma_project', id);
+}
+// Load saved project on init
+storageGet('uxlog_figma_project').then(function(val) {
+  if (val) _savedProjectId = val;
+});
+
+function updateSyncButtons() {
+  if (currentSyncAction === 'create') {
+    document.getElementById('syncDiffButtons').classList.add('hidden');
+    document.getElementById('syncCreateButton').classList.remove('hidden');
+  } else {
+    document.getElementById('syncDiffButtons').classList.remove('hidden');
+    document.getElementById('syncCreateButton').classList.add('hidden');
+  }
+}
+
+// Sync action buttons
+document.querySelectorAll('.sync-action-btn').forEach(function(btn) {
+  btn.addEventListener('click', async function() {
+    currentSyncAction = btn.dataset.action;
+    document.getElementById('syncActionPicker').classList.add('hidden');
+    document.getElementById('syncConfig').classList.remove('hidden');
+    document.getElementById('syncPreview').classList.add('hidden');
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+    hideEl('syncResult');
+    updateSyncButtons();
+
+    // Load projects
+    try {
+      await fetchProjects();
+      renderProjectDropdown();
+      // Auto-select remembered project and trigger load
+      var saved = getSavedProjectId();
+      if (saved) {
+        var sel = document.getElementById('syncProject');
+        if (sel.querySelector('option[value="' + saved + '"]')) {
+          sel.value = saved;
+          sel.dispatchEvent(new Event('change'));
+        }
+      }
+    } catch (e) {
+      showInfo('syncResult', 'Chyba načítání projektů: ' + e.message, 'error');
+    }
+    resizeUI();
+  });
+});
+
+document.getElementById('btnBackToActions').addEventListener('click', () => {
+  document.getElementById('syncActionPicker').classList.remove('hidden');
+  document.getElementById('syncConfig').classList.add('hidden');
+  currentSyncAction = null;
+  apiDataCache = {};
+  pendingSyncDiffs = [];
+  resizeUI();
+});
+
+function renderProjectDropdown() {
+  const sel = document.getElementById('syncProject');
+  sel.innerHTML = '<option value="">— Vyberte projekt —</option>';
+  for (const p of projectsCache) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name || '(bez názvu)';
+    sel.appendChild(opt);
+  }
+}
+
+document.getElementById('syncProject').addEventListener('change', async function() {
+  var projectId = document.getElementById('syncProject').value;
+  if (projectId) saveProjectId(projectId);
+  if (!projectId) {
+    document.getElementById('syncEntityFilter').classList.add('hidden');
+    document.getElementById('syncPreview').classList.add('hidden');
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+    resizeUI();
+    return;
+  }
+
+  try {
+    apiDataCache = await fetchAllEntities(projectId);
+    renderEntityFilter(apiDataCache);
+    document.getElementById('syncEntityFilter').classList.remove('hidden');
+    document.getElementById('syncPreview').classList.add('hidden');
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+  } catch (e) {
+    showInfo('syncResult', 'Chyba: ' + e.message, 'error');
+  }
+  resizeUI();
+});
+
+function renderEntityFilter(data) {
+  const container = document.getElementById('syncEntityOptions');
+  container.innerHTML = '';
+
+  // Radio: all types
+  let html = '';
+  for (const [type, def] of Object.entries(ENTITY_TYPES)) {
+    const count = (data[type] || []).length;
+    html += `<label class="entity-option">
+      <input type="radio" name="syncEntityType" value="${type}">
+      <span>${def.label} (${count})</span>
+    </label>`;
+  }
+  container.innerHTML = html;
+  resizeUI();
+}
+
+// Preview sync changes
+document.getElementById('btnSyncPreview').addEventListener('click', async () => {
+  const projectId = document.getElementById('syncProject').value;
+  if (!projectId) {
+    showInfo('syncResult', 'Vyberte projekt.', 'warning');
+    return;
+  }
+
+  const selectedType = document.querySelector('input[name="syncEntityType"]:checked')?.value || '';
+
+  if (currentSyncAction === 'pull') {
+    // API → Figma: compare API data with stored data on cards
+    const filtered = selectedType ? { [selectedType]: apiDataCache[selectedType] || [] } : apiDataCache;
+    parent.postMessage({ pluginMessage: { type: 'diff-remote-changes', apiEntities: filtered } }, '*');
+    showInfo('syncPreview', '<span class="spinner"></span> Porovnávám změny...', '');
+  } else if (currentSyncAction === 'push') {
+    // Figma → API: compare card text with stored entity
+    parent.postMessage({ pluginMessage: { type: 'diff-local-changes' } }, '*');
+    showInfo('syncPreview', '<span class="spinner"></span> Hledám lokální změny...', '');
+  }
+  resizeUI();
+});
+
+
+function renderDiffPreview(diffs, direction) {
+  const preview = document.getElementById('syncPreview');
+  preview.classList.remove('hidden');
+  pendingSyncDiffs = diffs;
+
+  if (diffs.length === 0) {
+    const msg = direction === 'pull' ? 'Žádné změny v API oproti kartám.' : 'Žádné lokální změny v kartách.';
+    preview.innerHTML = `<div class="info-box">${msg}</div>`;
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+    resizeUI();
+    return;
+  }
+
+  let html = `<div class="info-box success">${diffs.length} entit se změní:</div>`;
+  html += '<div class="change-list">';
+
+  for (let i = 0; i < diffs.length; i++) {
+    const d = diffs[i];
+    const label = ENTITY_TYPES[d.entityType]?.singular || d.entityType;
+    const name = d.entity?.name || d.entity?.code || d.entityId;
+    html += `<div class="change-item" onclick="toggleChangeDetail(${i})">
+      <strong>${label}</strong>: ${escapeHtml(name)} (${d.changes.length} polí)
+    </div>`;
+    html += `<div class="change-detail" id="change-detail-${i}">`;
+    for (const ch of d.changes) {
+      const fieldLabel = getFieldLabel(d.entityType, ch.field);
+      html += `<div class="change-field">
+        <strong>${fieldLabel}:</strong>
+        <span class="change-old">${escapeHtml(truncate(ch.oldValue, 60))}</span>
+        → <span class="change-new">${escapeHtml(truncate(ch.newValue, 60))}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  preview.innerHTML = html;
+  document.getElementById('btnSyncExecute').classList.remove('hidden');
+  resizeUI();
+}
+
+// Create cards – direct insert
+document.getElementById('btnCreateInsert').addEventListener('click', function() {
+  var selectedType = (document.querySelector('input[name="syncEntityType"]:checked') || {}).value || '';
+  var types = selectedType ? [selectedType] : Object.keys(ENTITY_TYPES);
+  var entities = {};
+  var total = 0;
+  for (var i = 0; i < types.length; i++) {
+    var t = types[i];
+    if (apiDataCache[t] && apiDataCache[t].length > 0) {
+      entities[t] = apiDataCache[t];
+      total += apiDataCache[t].length;
+    }
+  }
+  if (total === 0) {
+    showInfo('syncResult', 'Žádná data k vytvoření karet.', 'warning');
+    return;
+  }
+  parent.postMessage({ pluginMessage: { type: 'generate-cards', entities: entities } }, '*');
+  showInfo('syncResult', '<span class="spinner"></span> Vytvářím ' + total + ' karet...', '');
+  log('info', 'sync', 'Vytvářím karty', Object.keys(entities));
+});
+
+// Execute sync
+document.getElementById('btnSyncExecute').addEventListener('click', async function() {
+  const projectId = document.getElementById('syncProject').value;
+  const selectedType = document.querySelector('input[name="syncEntityType"]:checked')?.value || '';
+
+  document.getElementById('btnSyncExecute').disabled = true;
+
+  try {
+    if (currentSyncAction === 'pull') {
+      // Apply remote changes to cards
+      const updates = pendingSyncDiffs.map(d => ({
+        entityId: d.entityId,
+        entityType: d.entityType,
+        entity: d.entity
+      }));
+      parent.postMessage({ pluginMessage: { type: 'update-cards', updates } }, '*');
+      showInfo('syncResult', '<span class="spinner"></span> Aktualizuji karty...', '');
+      log('info', 'sync', `API → Figma: ${updates.length} entit`);
+    } else if (currentSyncAction === 'push') {
+      // Push local changes to API
+      let successCount = 0;
+      let errorCount = 0;
+      for (const d of pendingSyncDiffs) {
+        try {
+          await updateEntity(d.entityType, d.entityId, d.entity);
+          successCount++;
+        } catch (e) {
+          errorCount++;
+          log('error', 'sync', `Chyba zápisu ${d.entityId}`, e.message);
+        }
+      }
+      const msg = `Zapsáno: ${successCount}` + (errorCount > 0 ? `, chyby: ${errorCount}` : '');
+      showInfo('syncResult', msg, errorCount > 0 ? 'warning' : 'success');
+      log('info', 'sync', `Figma → API: ${successCount} ok, ${errorCount} chyb`);
+
+      // Update stored entities on cards after successful push
+      if (successCount > 0) {
+        parent.postMessage({ pluginMessage: { type: 'read-all-cards' } }, '*');
+      }
+    }
+  } catch (e) {
+    showInfo('syncResult', 'Chyba: ' + e.message, 'error');
+    log('error', 'sync', 'Chyba synchronizace', e.message);
+  }
+
+  document.getElementById('btnSyncExecute').disabled = false;
+  resizeUI();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS tab logic
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateSettingsUI() {
+  document.getElementById('apiUrl').value = config.url || '';
+  document.getElementById('apiKey').value = config.apiKey || '';
+
+  if (isConnected) {
+    document.getElementById('btnConnect').classList.add('hidden');
+    document.getElementById('btnDisconnect').classList.remove('hidden');
+    document.getElementById('apiUrl').disabled = true;
+    document.getElementById('apiKey').disabled = true;
+    showInfo('settingsStatus', 'Připojeno k API.', 'success');
+  } else {
+    document.getElementById('btnConnect').classList.remove('hidden');
+    document.getElementById('btnDisconnect').classList.add('hidden');
+    document.getElementById('apiUrl').disabled = false;
+    document.getElementById('apiKey').disabled = false;
+  }
+  resizeUI();
+}
+
+document.getElementById('btnConnect').addEventListener('click', async () => {
+  const url = document.getElementById('apiUrl').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+
+  if (!url) {
+    showInfo('settingsStatus', 'Zadejte URL API.', 'warning');
+    return;
+  }
+  if (!apiKey) {
+    showInfo('settingsStatus', 'Zadejte API klíč.', 'warning');
+    return;
+  }
+
+  config = { url, apiKey };
+  document.getElementById('btnConnect').disabled = true;
+
+  try {
+    await testConnection();
+    isConnected = true;
+    saveConfig();
+    updateSettingsUI();
+    updateSyncPanel();
+    log('info', 'settings', 'Připojeno k API', url);
+    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Úspěšně připojeno k UXLog API' } }, '*');
+  } catch (e) {
+    showInfo('settingsStatus', 'Nepodařilo se připojit: ' + e.message, 'error');
+    log('error', 'settings', 'Chyba připojení', e.message);
+  }
+
+  document.getElementById('btnConnect').disabled = false;
+  resizeUI();
+});
+
+document.getElementById('btnDisconnect').addEventListener('click', () => {
+  config = { url: '', apiKey: '' };
+  isConnected = false;
+  saveConfig();
+  setStatus('disconnected', 'Nepřipojeno');
+  updateSettingsUI();
+  updateSyncPanel();
+  hideEl('settingsStatus');
+  log('info', 'settings', 'Odpojeno');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Message handler (from code.js)
+// ═══════════════════════════════════════════════════════════════════════════
+
+window.onmessage = function(event) {
+  var msg = event.data && event.data.pluginMessage;
+  if (!msg) return;
+
+  switch (msg.type) {
+    case 'storage-result':
+      if (msg.reqId && _storageCallbacks[msg.reqId]) {
+        _storageCallbacks[msg.reqId](msg.value);
+        delete _storageCallbacks[msg.reqId];
+      }
+      break;
+
+    case 'generate-cards-done':
+      showInfo('importResult', `Vytvořeno ${msg.count} karet.`, 'success');
+      showInfo('syncResult', `Vytvořeno ${msg.count} karet.`, 'success');
+      resizeUI();
+      break;
+
+    case 'selection-data':
+      renderExportPreview(msg.cards || []);
+      break;
+
+    case 'selection-changed':
+      selectionInfo = msg;
+      updateExportInfo();
+      break;
+
+    case 'all-cards-data':
+      // After push sync, cards were re-read - nothing to display
+      break;
+
+    case 'local-changes':
+      renderDiffPreview(msg.diffs || [], 'push');
+      break;
+
+    case 'remote-changes':
+      renderDiffPreview(msg.diffs || [], 'pull');
+      break;
+
+    case 'update-cards-done':
+      showInfo('syncResult', `Aktualizováno ${msg.count} karet.`, 'success');
+      resizeUI();
+      break;
+
+    case 'error':
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Chyba: ' + msg.message, timeout: 5000 } }, '*');
+      log('error', 'code', msg.message);
+      break;
+  }
+};
+
+function updateExportInfo() {
+  const el = document.getElementById('exportSelectionInfo');
+  if (selectionInfo.uxlogSelected === 0) {
+    el.innerHTML = 'Vyberte UXLog karty na plátně a klikněte "Načíst výběr".';
+    el.className = 'info-box';
+  } else {
+    let parts = [];
+    for (const [type, count] of Object.entries(selectionInfo.typeCounts || {})) {
+      const label = ENTITY_TYPES[type]?.label || type;
+      parts.push(`${label}: ${count}`);
+    }
+    el.innerHTML = `Vybrány ${selectionInfo.uxlogSelected} UXLog karty. ` + parts.join(', ');
+    el.className = 'info-box success';
+  }
+  resizeUI();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showInfo(elId, html, type) {
+  const el = document.getElementById(elId);
+  el.classList.remove('hidden');
+  el.className = 'info-box' + (type ? ' ' + type : '');
+  el.innerHTML = html;
+}
+
+function hideEl(elId) {
+  document.getElementById(elId).classList.add('hidden');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncate(str, len) {
+  if (!str) return '';
+  str = String(str);
+  return str.length > len ? str.slice(0, len) + '…' : str;
+}
+
+function getFieldLabel(entityType, field) {
+  const labels = {
+    persona: { code:'Kód', name:'Název', status:'Status', description:'Popis', motivation:'Motivace', needs:'Potřeby', problems:'Problémy', targetGroupSize:'Velikost cíl. skupiny', targetGroupValue:'Hodnota cíl. skupiny' },
+    hypothesis: { code:'Kód', name:'Název', description:'Popis', status:'Status', explanation:'Vysvětlení' },
+    scenario: { code:'Kód', name:'Název', description:'Popis', frequency:'Frekvence', value:'Hodnota', moscow:'MoSCoW' },
+    stakeholder: { name:'Název', description:'Popis', influenceLevel:'Úroveň vlivu', interestLevel:'Úroveň zájmu' },
+    goal: { code:'Kód', name:'Název', description:'Popis', metrics:'Metriky' },
+    competition: { name:'Název', description:'Popis', strengths:'Silné stránky', weaknesses:'Slabé stránky', inspiration:'Inspirace' },
+    requirement: { code:'Kód', name:'Název', description:'Popis', motivation:'Motivace', moscow:'MoSCoW', explanation:'Vysvětlení' }
+  };
+  return labels[entityType]?.[field] || field;
+}
+
+// Toggle change detail
+window.toggleChangeDetail = function(i) {
+  const el = document.getElementById('change-detail-' + i);
+  if (el) el.classList.toggle('open');
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════════════════════
+loadConfig();
+resizeUI();
+</script>
+</body>
+</html>
