@@ -1,38 +1,59 @@
 # UXLog
 
-Webová aplikace pro logování UX design procesu. Umožňuje spravovat projekty a jejich cíle, stakeholdery, konkurenci, hypotézy, persony, požadavky a scénáře.
+Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Funguje offline bez připojení k internetu; pluginy mohou přidat napojení na LLM služby, Flexi API nebo Figmu.
 
 ## Funkce
 
-- **Projekty** – název, rozsah, priorita, fáze, datum poslední práce
-- **Cíle a metriky** – kód, název, popis, metriky
-- **Stakeholdeři** – jméno, popis, úroveň vlivu a zájmu
-- **Konkurence** – silné/slabé stránky, inspirace
-- **Hypotézy** – stav (netestováno/testováno/vyvráceno)
-- **Persony** – protopersona/persona, motivace, potřeby, problémy
-- **Požadavky** – MoSCoW, motivace, konflikty
-- **Scénáře** – frekvence, hodnota, MoSCoW
+- **Projekty** - název, rozsah (malý/střední/velký), priorita, fáze (Research/Design/Development), termín, poznámkový blok
+- **Cíle a metriky** - kód, název, popis, metriky
+- **Stakeholdeři** - jméno, popis, úroveň vlivu a zájmu (Mendelowova matice)
+- **Konkurence** - silné/slabé stránky, inspirace
+- **Hypotézy** - stav (netestováno/testováno/vyvráceno), vysvětlení
+- **Persony** - protopersona/persona, motivace, potřeby, problémy, velikost a hodnota cílové skupiny
+- **Požadavky** - MoSCoW, motivace, konflikty
+- **Scénáře** - frekvence, hodnota, MoSCoW
+- **Aktivity** - šablony úkolů s checklisty a termíny
+- **Úkoly** - SMART cíle s termíny a přiřazením
+- **Bugy** - závažnost, dopad, priorita
+- **Tým** - členové týmu s rolemi
 
-- Fulltextové vyhledávání
-- Export dat do JSON
-- Tmavý režim
-- Přístupnost (skip link, ARIA, klávesové zkratky)
-- Lokální úložiště (localStorage)
+Další:
+- Vazby mezi entitami (many-to-many) s automatickým propojováním
+- Fulltextové vyhledávání napříč všemi entitami
+- Export/import dat v JSON a YAML s řešením konfliktů
+- Vlastní atributy entit (konfigurovatelné)
+- Šablony aktivit s checklisty
+- Skóre kompletnosti projektu
+- Drag & drop řazení
+- Tmavý/světlý režim
+- Přístupnost (ARIA, skip link, klávesová navigace, čtečky)
+
+## Pluginy
+
+- **data-status** - sledování času poslední synchronizace
+- **tauri-local-api** - HTTP API server na localhost:8000 (komunikace s Figma pluginem)
+- **flexi** - volitelná synchronizace s Flexi API
+- **openai** - integrace ChatGPT (poznámkový blok, návrhy vazeb)
+- **gemini** - Google Gemini AI (stejné funkce jako OpenAI)
+
+## Figma integrace
+
+Figma plugin (`figma-plugin/`) komunikuje s UXLog přes lokální HTTP API server (Tauri). Designer vybere prvky ve Figmě a plugin je pošle do UXLog.
 
 ## Vývoj
 
 ```bash
 npm install
-npm run dev
+npm run dev          # Vite dev server (:5173)
+npm test             # Vitest - jednorázový běh
+npm run test:watch   # Vitest - watch mód
 ```
 
 ## Build
 
 ```bash
-npm run build
+npm run build        # web build do dist/
 ```
-
-Výstup je v `dist/`. Nasazení na PHP server: nahrajte obsah `dist/` do kořene webu.
 
 ## Desktop (Tauri)
 
@@ -45,23 +66,18 @@ npm run tauri:build  # instalátor v src-tauri/target/release/bundle/
 
 ### Ikony
 
-Build na Windows potřebuje `src-tauri/icons/icon.ico` a další soubory z `bundle.icon` v `tauri.conf.json`. Po výměně zdrojového obrázku (čtvercový PNG, ideálně ≥512×512) spusťte z kořene repa:
+Po výměně zdrojového obrázku (čtvercový PNG, ideálně ≥512px):
 
 ```bash
 npx tauri icon src-tauri/icons/app-icon.png
 ```
 
-Nebo vygenerujte výchozí `app-icon.png` skriptem `src-tauri/icons/generate-app-icon.ps1` a pak znovu `npx tauri icon …`.
-
-## Testy
-
-```bash
-npm test
-```
-
 ## Architektura
 
-- **Vue 3** + **Vite**
-- **localStorage** pro persistenci
-- Obchodní logika v `src/lib/` (storage, models, search, store)
+- **Vue 3** + **Vite** + **Tauri 2** (Rust)
+- **localStorage** + zrcadlení na disk přes Tauri bridge
+- Obchodní logika v `src/lib/` (čisté, testovatelné funkce)
+- Stav v `src/lib/stores/` (reaktivní store moduly)
+- Plugin systém v `src/lib/plugins/` (event bus, capabilities)
 - Překlady v `src/i18n/cs.js`
+- Vlastní CSS design systém v `src/style.css` (CSS proměnné, bez externí knihovny)
