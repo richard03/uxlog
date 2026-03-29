@@ -95,7 +95,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
-import { generateId } from '../lib/id.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -106,6 +106,7 @@ import AppButton from '../components/AppButton.vue'
 const route = useRoute()
 const router = useRouter()
 const config = useConfig()
+const { generateId } = useEntityHelpers()
 const { t } = useI18n()
 
 const templateKey = computed(() => route.params.templateKey)

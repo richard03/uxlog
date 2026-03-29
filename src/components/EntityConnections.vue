@@ -36,7 +36,7 @@
           <span v-if="otherCode(conn)" class="conn-code">{{ otherCode(conn) }}</span>
           <span class="conn-name">{{ otherName(conn) }}</span>
         </router-link>
-        <span v-else class="connection-entity-link connection-entity-deleted" aria-label="Smazaná entita">
+        <span v-else class="connection-entity-link connection-entity-deleted" :aria-label="t.common.deletedEntity">
           <span class="conn-type-badge">{{ entityTypeLabel(otherType(conn)) }}</span>
           <span class="conn-name conn-name--deleted">{{ t.common.deleted }}</span>
         </span>

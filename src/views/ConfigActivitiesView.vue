@@ -99,7 +99,7 @@ import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
-import { generateId } from '../lib/id.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import EntityCard from '../components/EntityCard.vue'
 import Modal from '../components/Modal.vue'
@@ -109,6 +109,7 @@ import AppButton from '../components/AppButton.vue'
 const router = useRouter()
 const config = useConfig()
 const { t } = useI18n()
+const { generateId } = useEntityHelpers()
 
 const breadcrumbs = computed(() => [
   { label: t.nav.config, to: { name: 'config' } },

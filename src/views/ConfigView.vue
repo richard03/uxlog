@@ -42,19 +42,16 @@
 import { computed } from 'vue'
 import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
-import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
-import { loadAiKeys } from '../lib/plugins/ai-shared/keys.js'
-import { SERVICE_DEF as GEMINI_SERVICE } from '../lib/plugins/gemini/index.js'
-import { SERVICE_DEF as OPENAI_SERVICE } from '../lib/plugins/openai/index.js'
-import { loadFlexiConfig } from '../lib/plugins/flexi/flexiApi.js'
+import { usePluginAdmin } from '../composables/usePluginAdmin.js'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
 
 const config = useConfig()
 const { t } = useI18n()
+const { loadAiKeys, GEMINI_SERVICE, OPENAI_SERVICE, loadFlexiConfig } = usePluginAdmin()
 
 /** Počet typů entit (goal, stakeholder, …). */
-const entityCount = computed(() => Object.keys(ENTITY_FIELD_DEFAULTS).length)
+const entityCount = computed(() => Object.keys(config.ENTITY_FIELD_DEFAULTS).length)
 
 /** Počet definovaných šablon aktivit. */
 const activityCount = computed(() => config.getEffectiveTemplates().length)

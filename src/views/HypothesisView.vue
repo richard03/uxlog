@@ -99,9 +99,8 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
-import { generateNextCode } from '../lib/code.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
-import { getEntityCompleteness } from '../lib/completeness.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
@@ -109,6 +108,7 @@ import AppButton from '../components/AppButton.vue'
 const route = useRoute()
 const store = useStore()
 const { t, tPath } = useI18n()
+const { generateNextCode, getEntityCompleteness } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))

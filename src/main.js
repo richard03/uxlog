@@ -29,10 +29,16 @@ async function bootstrap() {
     console.error('Vue error:', err)
     const el = document.getElementById('app')
     if (el && !el.querySelector('[data-error-display]')) {
-      el.innerHTML = `<div data-error-display style="padding: 2rem; font-family: system-ui;">
-        <h1>Došlo k chybě</h1>
-        <p>${err.message}</p>
-      </div>`
+      el.textContent = ''
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute('data-error-display', '')
+      wrapper.style.cssText = 'padding: 2rem; font-family: system-ui;'
+      const h1 = document.createElement('h1')
+      h1.textContent = 'Došlo k chybě'
+      const p = document.createElement('p')
+      p.textContent = err.message
+      wrapper.append(h1, p)
+      el.append(wrapper)
     }
   }
   app.use(router)
@@ -41,11 +47,17 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   console.error('UXLog init error:', err)
-  document.getElementById('app').innerHTML = `
-    <div style="padding: 2rem; font-family: system-ui; max-width: 600px; margin: 0 auto;">
-      <h1>Chyba při načítání</h1>
-      <p>Aplikace se nepodařilo spustit. Zkuste obnovit stránku nebo použít jiný prohlížeč.</p>
-      <p style="color: #666; font-size: 0.9rem;">Technické info: ${err.message}</p>
-    </div>
-  `
+  const el = document.getElementById('app')
+  el.textContent = ''
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding: 2rem; font-family: system-ui; max-width: 600px; margin: 0 auto;'
+  const h1 = document.createElement('h1')
+  h1.textContent = 'Chyba při načítání'
+  const p1 = document.createElement('p')
+  p1.textContent = 'Aplikace se nepodařilo spustit. Zkuste obnovit stránku nebo použít jiný prohlížeč.'
+  const p2 = document.createElement('p')
+  p2.style.cssText = 'color: #666; font-size: 0.9rem;'
+  p2.textContent = `Technické info: ${err.message}`
+  wrapper.append(h1, p1, p2)
+  el.append(wrapper)
 })

@@ -98,8 +98,7 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
-import { getEntityCompleteness } from '../lib/completeness.js'
-import { getStakeholderStrategy } from '../lib/models.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
@@ -107,6 +106,7 @@ import AppButton from '../components/AppButton.vue'
 const route = useRoute()
 const store = useStore()
 const { t } = useI18n()
+const { getEntityCompleteness, getStakeholderStrategy } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))

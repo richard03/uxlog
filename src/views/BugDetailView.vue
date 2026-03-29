@@ -81,7 +81,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityFields } from '../composables/useEntityFields.js'
-import { getBugPriority } from '../lib/models.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -99,6 +99,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const { t } = useI18n()
+const { getBugPriority } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const item = computed(() => store.getBug(route.params.bugId))

@@ -1,7 +1,7 @@
 import { state, persist } from './state.js'
 import { createProject, createActivity } from '../models.js'
 import { generateId } from '../id.js'
-import { getEffectiveTemplates } from '../configStore.js'
+import { getEffectiveTemplates } from './config.js'
 import { todayISO, addDays } from '../deadline.js'
 import { pickProjectColor } from '../projectColors.js'
 

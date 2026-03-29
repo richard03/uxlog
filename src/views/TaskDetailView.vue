@@ -82,7 +82,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityFields } from '../composables/useEntityFields.js'
-import { getTeamMembers } from '../lib/stores/teamMembers.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -122,7 +121,7 @@ const headerFields = [
 ]
 
 const teamMemberOptions = computed(() => {
-  const members = getTeamMembers(projectId.value)
+  const members = store.getTeamMembers(projectId.value)
   return [
     { value: '', label: '— nevybráno —' },
     ...members.map((m) => ({ value: m.name, label: m.name })),

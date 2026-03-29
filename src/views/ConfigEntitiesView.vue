@@ -43,7 +43,6 @@
 import { computed } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
-import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import EntityCard from '../components/EntityCard.vue'
 
@@ -56,7 +55,7 @@ const breadcrumbs = computed(() => [
 ])
 
 /** Seznam klíčů typů entit. */
-const entityTypes = computed(() => Object.keys(ENTITY_FIELD_DEFAULTS))
+const entityTypes = computed(() => Object.keys(config.ENTITY_FIELD_DEFAULTS))
 
 const MAX_BADGES = 7
 

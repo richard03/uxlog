@@ -5,10 +5,10 @@
  */
 
 import { reactive, toRaw } from 'vue'
-import { ACTIVITY_TYPES } from './activityTypes.js'
-import { ENTITY_FIELD_DEFAULTS } from './entityFieldDefaults.js'
-import { generateId } from './id.js'
-import { mirrorToTauri } from './tauriBridge.js'
+import { ACTIVITY_TYPES } from '../activityTypes.js'
+import { ENTITY_FIELD_DEFAULTS } from '../entityFieldDefaults.js'
+import { generateId } from '../id.js'
+import { mirrorToTauri } from '../tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_config'
 

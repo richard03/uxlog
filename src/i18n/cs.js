@@ -606,5 +606,7 @@ export default {
     copyConfirm: 'Zkopírovat',
     close: 'Zavřít',
     actions: 'Akce',
+    deleted: 'Smazáno',
+    deletedEntity: 'Smazaná entita',
   },
 }

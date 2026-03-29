@@ -152,13 +152,9 @@
 import { reactive, ref, computed } from 'vue'
 import { toRaw } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
-import { loadAiKeys, saveAiKeys, isAiServiceEnabled, setAiServiceEnabled } from '../lib/plugins/ai-shared/keys.js'
-import { SERVICE_DEF as GEMINI_SERVICE } from '../lib/plugins/gemini/index.js'
-import { SERVICE_DEF as OPENAI_SERVICE } from '../lib/plugins/openai/index.js'
-import { loadFlexiConfig, saveFlexiConfig } from '../lib/plugins/flexi/flexiApi.js'
-import { initFlexiSync, setFlexiSnapshot } from '../lib/plugins/flexi/flexiSync.js'
-import { getAllPluginDefs, isPluginActive, enablePlugin, disablePlugin } from '../lib/plugins/registry.js'
-import { state, getData, persist } from '../lib/stores/index.js'
+import { useStore } from '../composables/useStore.js'
+import { usePlugin } from '../composables/usePlugin.js'
+import { usePluginAdmin } from '../composables/usePluginAdmin.js'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import SectionCard from '../components/SectionCard.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
@@ -166,9 +162,16 @@ import Modal from '../components/Modal.vue'
 import AppButton from '../components/AppButton.vue'
 
 const { t } = useI18n()
+const { state, getData, persist: persistStore } = useStore()
+const { allPluginDefs, isPluginActive, enablePlugin, disablePlugin } = usePlugin()
+const {
+  loadAiKeys, saveAiKeys, isAiServiceEnabled, setAiServiceEnabled,
+  GEMINI_SERVICE, OPENAI_SERVICE,
+  loadFlexiConfig, saveFlexiConfig, initFlexiSync, setFlexiSnapshot,
+} = usePluginAdmin()
 
 // --- Pluginy ---
-const pluginDefs = computed(() => getAllPluginDefs().filter((p) => !p.core))
+const pluginDefs = computed(() => allPluginDefs.value.filter((p) => !p.core))
 const pluginChanged = ref(false)
 
 function isActive(id) {
@@ -234,7 +237,7 @@ async function runSync() {
   setFlexiSnapshot({})
   await initFlexiSync(toRaw(getData()), (updates) => {
     Object.assign(state, updates)
-    persist()
+    persistStore()
   })
 }
 

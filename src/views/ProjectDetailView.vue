@@ -135,12 +135,13 @@ import AppButton from '../components/AppButton.vue'
 import AppBadge from '../components/AppBadge.vue'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
-import { generateNextCode } from '../lib/code.js'
+import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const { t, tPath } = useI18n()
+const { generateNextCode } = useEntityHelpers()
 
 const showForm = ref(false)
 const showConfirm = ref(false)

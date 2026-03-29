@@ -92,8 +92,7 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
 import { formatDate } from '../utils/formatDate.js'
-import { isActivityOverdue } from '../lib/activity.js'
-import { daysRemaining, countUncheckedItems, isProjectDelayed, todayISO, addDays } from '../lib/deadline.js'
+import { useDeadline } from '../composables/useDeadline.js'
 import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
@@ -107,6 +106,7 @@ import AppButton from '../components/AppButton.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
+const { daysRemaining, countUncheckedItems, isProjectDelayed, todayISO, addDays, isActivityOverdue } = useDeadline()
 const config = useConfig()
 const router = useRouter()
 

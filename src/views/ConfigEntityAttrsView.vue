@@ -200,7 +200,6 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
 import AppButton from '../components/AppButton.vue'
 import { FormActions } from '../components/form'
-import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -210,7 +209,7 @@ const { t, tPath } = useI18n()
 const entityType = computed(() => route.params.entityType)
 
 watch(entityType, (type) => {
-  if (type && !ENTITY_FIELD_DEFAULTS[type]) {
+  if (type && !config.ENTITY_FIELD_DEFAULTS[type]) {
     router.replace({ name: 'configEntities' })
   }
 }, { immediate: true })

@@ -115,5 +115,8 @@ export function useStore() {
     addConnection: store.addConnection,
     updateConnection: store.updateConnection,
     deleteConnection: store.deleteConnection,
+    // Low-level (pro config/admin views)
+    getData: store.getData,
+    persist: store.persist,
   }
 }

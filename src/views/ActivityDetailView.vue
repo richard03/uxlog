@@ -116,8 +116,8 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
-import { getTemplate } from '../lib/configStore.js'
-import { daysRemaining } from '../lib/deadline.js'
+import { useConfig } from '../composables/useConfig.js'
+import { useDeadline } from '../composables/useDeadline.js'
 import PageHeader from '../components/PageHeader.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Breadcrumb from '../components/Breadcrumb.vue'
@@ -139,6 +139,8 @@ const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const { t } = useI18n()
+const { getTemplate } = useConfig()
+const { daysRemaining } = useDeadline()
 
 const projectId = computed(() => route.params.id)
 const activityItem = computed(() => store.getActivity(route.params.activityId))

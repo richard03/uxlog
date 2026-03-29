@@ -2,7 +2,7 @@ import { state, getData, persist } from './state.js'
 import { updateProject } from './projects.js'
 import { createActivity } from '../models.js'
 import { ACTIVITY_TYPES } from '../activityTypes.js'
-import { getTemplate, getTemplateDurationDays } from '../configStore.js'
+import { getTemplate, getTemplateDurationDays } from './config.js'
 import { getActivityDeadlineDefault } from '../deadline.js'
 import { generateId } from '../id.js'
 
