@@ -101,11 +101,11 @@ export function loadData() {
  * Uloží všechna data do localStorage a zrcadlí do Tauri souboru.
  * @param {Object} data - Data k uložení
  */
-export function saveData(data) {
+export async function saveData(data) {
   try {
     const json = JSON.stringify(data)
     localStorage.setItem(STORAGE_KEY, json)
-    mirrorToTauri(STORAGE_KEY, json)
+    await mirrorToTauri(STORAGE_KEY, json)
   } catch (e) {
     console.error('saveData failed:', e)
     throw e

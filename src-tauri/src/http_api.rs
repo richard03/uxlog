@@ -355,6 +355,10 @@ fn cors_response(status: StatusCode, body: &str) -> Response<std::io::Cursor<Vec
         Header::from_bytes("Access-Control-Allow-Headers", "Authorization, Content-Type")
             .unwrap(),
     );
+    resp.add_header(
+        Header::from_bytes("Cache-Control", "no-store, no-cache, must-revalidate")
+            .unwrap(),
+    );
     resp.add_header(Header::from_bytes("Access-Control-Max-Age", "86400").unwrap());
     resp
 }

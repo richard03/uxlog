@@ -29,6 +29,7 @@ import { replaceStateFromStorage } from './lib/stores/state.js'
 import { hasCapability, callCapability } from './lib/plugins/registry.js'
 import {
   isTauri,
+  isMirrorInFlight,
   listenToTauriStorageUpdates,
   pullUxlogDataFromDiskIntoApp,
 } from './lib/tauriBridge.js'
@@ -49,6 +50,7 @@ let stopStorageListener = null
  */
 async function applyUxlogDataFromDiskIfChanged() {
   if (!isTauri) return
+  if (isMirrorInFlight()) return
   const changed = await pullUxlogDataFromDiskIntoApp()
   if (!changed) return
   replaceStateFromStorage()

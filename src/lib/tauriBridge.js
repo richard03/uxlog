@@ -25,15 +25,26 @@ const MIRRORED_KEYS = [
 ]
 
 /**
- * Uloží hodnotu do souboru přes Tauri IPC (fire-and-forget).
+ * Uloží hodnotu do souboru přes Tauri IPC.
+ * Vrací Promise, aby volající mohl čekat na dokončení zápisu.
  * @param {string} key  Klíč localStorage
  * @param {string} value  Serializovaná hodnota (JSON string nebo plain string)
+ * @returns {Promise<void>}
  */
-export function mirrorToTauri(key, value) {
+let _mirrorInFlight = 0
+export function isMirrorInFlight() { return _mirrorInFlight > 0 }
+
+export async function mirrorToTauri(key, value) {
   if (!isTauri) return
-  import('@tauri-apps/api/core')
-    .then(({ invoke }) => invoke('save_storage', { key, value }))
-    .catch((err) => console.error('[TauriBridge] mirrorToTauri failed:', err))
+  _mirrorInFlight++
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('save_storage', { key, value })
+  } catch (err) {
+    console.error('[TauriBridge] mirrorToTauri failed:', err)
+  } finally {
+    _mirrorInFlight--
+  }
 }
 
 /**

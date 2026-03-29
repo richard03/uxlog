@@ -689,7 +689,7 @@ async function apiRequest(method, path, body) {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`
   };
-  const opts = { method, headers };
+  const opts = { method, headers, cache: 'no-store' };
   if (body !== undefined && body !== null) opts.body = JSON.stringify(body);
 
   let url;
