@@ -1,16 +1,14 @@
 {
   "name": "UXLog",
-  "id": "uxlog-support-plugin",
+  "id": "uxlog-figma-plugin-2",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
   "editorType": ["figma"],
-  "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": [
-      "https://uxlog.prokoho.cz",
-      "*"
-    ],
-    "reasoning": "Synchronizace s uživatelským Flexi API podle URL v nastavení; uxlog.prokoho.cz pro schválený proxy origin dle projektu."
+    "allowedDomains": ["*"],
+    "reasoning": "Plugin needs to connect to user-configured UXLog API endpoint"
   }
 }
