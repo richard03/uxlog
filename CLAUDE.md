@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**UXLog** is a web application for UX design process logging, served at `https://uxlog.prokoho.cz`. I have PHP server at my disposal. In future MySQL may be used for some data, but for now I want to stick to local storage.
+**UXLog** is a desktop application for UX design process logging and cooperation with Figma. It is able to operate in closed environment without internet connection, however plugins may add connections such as LLM services or external APIs.
 
 The application allows users to create a list of projects. For each project, the name, scope, priority, and phase are recorded. The date when the user last worked on the project is recorded automatically.
 
@@ -56,8 +56,4 @@ The business logic must be fully separated from other code into unit testable fu
 ## Versioning
 
 The application version is stored in `src/lib/version.js` as `APP_VERSION`. **Increment the patch number** (e.g. `1.0.0` → `1.0.1`) with every change made to the codebase, before finishing the task.
-
-## Architecture
-
-**CORS**: Only `https://uxlog.prokoho.cz` is allowed.
 
