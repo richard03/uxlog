@@ -43,7 +43,7 @@
         :entity-id="p.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.persona.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(p.id); else if (a === 'move') confirmMoveItem(p.id); else if (a === 'copy') copyTarget.value = p.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(p.id); else if (a === 'move') confirmMoveItem(p.id); else if (a === 'copy') copyTarget = p.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="p.code" variant="badge-accent">{{ p.code }}</AppBadge>
@@ -112,6 +112,7 @@ import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 
 const route = useRoute()
 const store = useStore()
@@ -127,10 +128,10 @@ const filterText = ref('')
 const countProtopersona = computed(() => items.value.filter(p => (p.status || 'protopersona') === 'protopersona').length)
 const countPersona = computed(() => items.value.filter(p => p.status === 'persona').length)
 const visibleItems = computed(() => {
-  const allowed = []
-  if (filterProtopersona.value) allowed.push('protopersona')
-  if (filterPersona.value) allowed.push('persona')
-  let base = allowed.length === 0 ? items.value : items.value.filter(p => allowed.includes(p.status || 'protopersona'))
+  const base = filterByAnyActiveBranch(items.value, [
+    { active: filterProtopersona.value, match: (p) => (p.status || 'protopersona') === 'protopersona' },
+    { active: filterPersona.value, match: (p) => p.status === 'persona' },
+  ])
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
   return base.filter(p => [p.code, p.name, p.description, t.personaStatus[p.status || 'protopersona']].filter(Boolean).join(' ').toLowerCase().includes(q))

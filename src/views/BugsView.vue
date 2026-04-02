@@ -44,7 +44,7 @@
         :entity-id="bug.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.bug.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id); else if (a === 'copy') copyTarget.value = bug.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(bug.id); else if (a === 'move') confirmMoveItem(bug.id); else if (a === 'copy') copyTarget = bug.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="bug.code" variant="badge-accent">{{ bug.code }}</AppBadge>
@@ -103,6 +103,7 @@ import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 
 const route = useRoute()
 const store = useStore()
@@ -120,11 +121,11 @@ const countZadano = computed(() => bugs.value.filter(b => (b.status || 'zadano')
 const countOpraveno = computed(() => bugs.value.filter(b => b.status === 'opraveno').length)
 const countNeopravime = computed(() => bugs.value.filter(b => b.status === 'neopravime').length)
 const visibleBugs = computed(() => {
-  const allowed = []
-  if (filterZadano.value) allowed.push('zadano')
-  if (filterOpraveno.value) allowed.push('opraveno')
-  if (filterNeopravime.value) allowed.push('neopravime')
-  let base = allowed.length === 0 ? bugs.value : bugs.value.filter(b => allowed.includes(b.status || 'zadano'))
+  const base = filterByAnyActiveBranch(bugs.value, [
+    { active: filterZadano.value, match: (b) => (b.status || 'zadano') === 'zadano' },
+    { active: filterOpraveno.value, match: (b) => b.status === 'opraveno' },
+    { active: filterNeopravime.value, match: (b) => b.status === 'neopravime' },
+  ])
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
   return base.filter(b => [b.code, b.name, b.description, b.expectedBehavior, b.actualBehavior, t.bug.statusOptions[b.status || 'zadano']].filter(Boolean).join(' ').toLowerCase().includes(q))

@@ -18,6 +18,7 @@ export { getRequirements, getRequirement, addRequirement, updateRequirement, del
 export {
   getActivities, getAllActivities, getActivity, addActivity, updateActivity, deleteActivity,
   toggleChecklistItem, addCustomChecklistItem, removeChecklistItem, updateChecklistLabel,
+  createTaskFromChecklistItem, addTaskLinkedToActivity,
 } from './activities.js'
 export { getTeamMembers, getTeamMember, addTeamMember, updateTeamMember, deleteTeamMember } from './teamMembers.js'
 export { getTasks, getTask, addTask, updateTask, deleteTask } from './tasks.js'

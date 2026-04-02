@@ -25,9 +25,8 @@
         :key="conn.id"
         class="entity-card connection-card"
       >
-        <!-- Levá polovina: odkaz na entitu -->
+        <!-- Levá polovina: odkaz na entitu (řádky s neexistující entitou se vůbec nezobrazují) -->
         <router-link
-          v-if="otherRoute(conn)"
           :to="otherRoute(conn)"
           class="connection-entity-link"
           :aria-label="entityAriaLabel(conn)"
@@ -36,10 +35,6 @@
           <span v-if="otherCode(conn)" class="conn-code">{{ otherCode(conn) }}</span>
           <span class="conn-name">{{ otherName(conn) }}</span>
         </router-link>
-        <span v-else class="connection-entity-link connection-entity-deleted" :aria-label="t.common.deletedEntity">
-          <span class="conn-type-badge">{{ entityTypeLabel(otherType(conn)) }}</span>
-          <span class="conn-name conn-name--deleted">{{ t.common.deleted }}</span>
-        </span>
 
         <!-- Pravá polovina: poznámka – zobrazení nebo inline editor -->
         <div
@@ -84,7 +79,7 @@
         />
       </li>
     </ul>
-    <p v-else-if="connections.length === 0" class="connections-empty">{{ t.connection.noConnections }}</p>
+    <p v-else-if="resolvedConnections.length === 0" class="connections-empty">{{ t.connection.noConnections }}</p>
     <p v-else class="connections-empty">{{ t.filter.emptyFiltered }}</p>
 
     <!-- Modal: přidat souvislost -->
@@ -247,6 +242,11 @@ function otherId(conn) {
     : conn.entityId1
 }
 
+/**
+ * Druhá strana souvislosti (entita v projektu), nebo null po smazání.
+ * @param {Object} conn
+ * @returns {Object|null}
+ */
 function otherEntity(conn) {
   return resolveEntity(otherType(conn), otherId(conn))
 }
@@ -309,10 +309,17 @@ function otherRoute(conn) {
 
 const connections = computed(() => store.getConnectionsFor(props.entityType, props.entityId))
 
+/**
+ * Pouze souvislosti, u kterých druhá entita stále existuje (žádné „Smazáno“ v seznamu).
+ */
+const resolvedConnections = computed(() =>
+  connections.value.filter((c) => otherEntity(c) != null)
+)
+
 // --- Filtr podle typu entity ---
 const presentTypes = computed(() => {
   const seen = new Set()
-  for (const c of connections.value) seen.add(otherType(c))
+  for (const c of resolvedConnections.value) seen.add(otherType(c))
   return [...seen]
 })
 
@@ -327,13 +334,13 @@ function toggleType(type) {
 }
 
 function countByType(type) {
-  return connections.value.filter(c => otherType(c) === type).length
+  return resolvedConnections.value.filter((c) => otherType(c) === type).length
 }
 
 const visibleConnections = computed(() =>
   activeTypes.value.length === 0
-    ? connections.value
-    : connections.value.filter(c => activeTypes.value.includes(otherType(c)))
+    ? resolvedConnections.value
+    : resolvedConnections.value.filter((c) => activeTypes.value.includes(otherType(c)))
 )
 
 const currentEntity = computed(() => resolveEntity(props.entityType, props.entityId))
@@ -565,10 +572,6 @@ a.connection-entity-link:hover {
   background: var(--bg-muted);
 }
 
-.connection-entity-deleted {
-  opacity: 0.55;
-}
-
 .conn-type-badge {
   font-size: 0.68rem;
   font-weight: 700;
@@ -590,11 +593,6 @@ a.connection-entity-link:hover {
   font-weight: 500;
   color: var(--text);
   min-width: 0;
-}
-
-.conn-name--deleted {
-  font-style: italic;
-  color: var(--text-muted);
 }
 
 /* Pravá polovina: poznámka */

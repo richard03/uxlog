@@ -53,6 +53,11 @@ export default {
     uncheckedItems: (n) => `TOOD: ${n} kroků`,
     delayed: 'Hrozí skluz',
     overdue: 'Po termínu',
+    incompleteTasksTag: (n) => `Úkoly · ${n}`,
+    incompleteTasksAria: (n, overdue) =>
+      overdue > 0
+        ? `${n} nedokončených úkolů, z toho ${overdue} po termínu`
+        : `${n} nedokončených úkolů`,
   },
   import: {
     title: 'Import dat',
@@ -298,6 +303,9 @@ export default {
     addChecklistItem: 'Přidat krok',
     addChecklistItemPlaceholder: 'Popis nového kroku…',
     removeChecklistItem: 'Odebrat položku',
+    createTaskFromChecklistItem: 'Vytvořit úkol z položky',
+    openChecklistLinkedTask: 'Otevřít úkol',
+    assignTask: 'Zadat úkol',
   },
   task: {
     label: 'Úkol',
@@ -316,6 +324,8 @@ export default {
     edit: 'Upravit úkol',
     delete: 'Smazat úkol',
     deleteConfirm: 'Opravdu smazat úkol?',
+    filterOverdue: 'Prošlé',
+    overdueMark: 'Po termínu',
   },
   bug: {
     label: 'Chyba',

@@ -25,7 +25,7 @@
         :entity-id="m.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.teamMember.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(m.id); else if (a === 'move') confirmMoveItem(m.id); else if (a === 'copy') copyTarget.value = m.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(m.id); else if (a === 'move') confirmMoveItem(m.id); else if (a === 'copy') copyTarget = m.id }"
       >
         <h3 class="card-title">{{ m.name || t.teamMember.name }}</h3>
         <div v-if="m.email || m.phone || m.role" class="card-meta">

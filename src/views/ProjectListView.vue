@@ -8,14 +8,14 @@
       </div>
     </header>
 
-    <div v-if="projects.length === 0" class="empty-state">
+    <div v-if="projectCards.length === 0" class="empty-state">
       <p>{{ t.common.empty }}</p>
       <p>{{ t.common.emptyHint }}</p>
     </div>
 
     <ul v-else class="project-list entity-list" role="list">
       <EntityCard
-        v-for="p in projects"
+        v-for="p in projectCards"
         :key="p.id"
         :to="{ name: 'project', params: { id: p.id } }"
         :entity-id="p.id"
@@ -32,13 +32,24 @@
           <AppBadge
             v-if="p.deadline && deadlineBadgeLabel(p.deadline)"
             :variant="deadlineBadgeClass(p.deadline)"
-          >{{ t.project.deadline }}: {{ formatDeadlineDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</AppBadge>
+          >{{ t.project.deadline }}: {{ formatCalendarDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</AppBadge>
           <AppBadge v-if="getUncheckedCount(p.id) > 0" variant="badge-info">
             {{ t.project.uncheckedItems(getUncheckedCount(p.id)) }}
           </AppBadge>
           <AppBadge v-if="projectDelayed(p)" variant="badge-warning">
             {{ t.project.delayed }}
           </AppBadge>
+          <router-link
+            v-if="p.taskBadge.count > 0"
+            class="project-list__tasks-link"
+            :to="tasksRouteForProject(p)"
+            :aria-label="t.project.incompleteTasksAria(p.taskBadge.count, p.taskBadge.overdueCount)"
+            @click.stop
+          >
+            <AppBadge :variant="p.taskBadge.overdueCount > 0 ? 'badge-danger' : ''">
+              {{ t.project.incompleteTasksTag(p.taskBadge.count) }}
+            </AppBadge>
+          </router-link>
         </div>
       </EntityCard>
     </ul>
@@ -87,12 +98,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
-import { formatDate } from '../utils/formatDate.js'
+import { formatDate, formatCalendarDate } from '../utils/formatDate.js'
 import { useDeadline } from '../composables/useDeadline.js'
+import { summarizeIncompleteTasksForProjectBadge } from '../lib/tasksDisplay.js'
 import { useRouter } from 'vue-router'
 import Modal from '../components/Modal.vue'
 import ImportModal from '../components/ImportModal.vue'
@@ -123,7 +135,29 @@ const form = ref({
 })
 
 const projects = computed(() => store.getProjects())
-const dnd = useDraggableList(() => projects.value, (orderedIds) => store.reorderProjects(orderedIds))
+
+/**
+ * Projekty s předpočítaným shrnutím úkolů pro štítek (jedna hodnota na kartu).
+ */
+const projectCards = computed(() =>
+  projects.value.map((p) => ({
+    ...p,
+    taskBadge: summarizeIncompleteTasksForProjectBadge(store.getTasks(p.id)),
+  })),
+)
+
+const dnd = useDraggableList(() => projectCards.value, (orderedIds) => store.reorderProjects(orderedIds))
+
+/**
+ * Cíl odkazu na sekci Úkoly; při prošlých úkolech zapne filtr přes query.
+ * @param {{ id: string, taskBadge: { overdueCount: number } }} projectCard
+ * @returns {{ name: string, params: { id: string }, query?: { overdue: string } }}
+ */
+function tasksRouteForProject(projectCard) {
+  const loc = { name: 'tasks', params: { id: projectCard.id } }
+  if (projectCard.taskBadge.overdueCount > 0) loc.query = { overdue: '1' }
+  return loc
+}
 
 function scopeLabel(s) {
   return tPath(`scope.${s}`) || s
@@ -155,12 +189,6 @@ function getUncheckedCount(projectId) {
 
 function projectDelayed(project) {
   return isProjectDelayed(project, store.getAllActivities(project.id), config.getTemplateDurationDays)
-}
-
-function formatDeadlineDate(ymd) {
-  if (!ymd) return ''
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function defaultDeadlineForNewProject() {
@@ -231,5 +259,19 @@ function saveProject() {
 
 .project-list :deep(.card-title) {
   font-size: 1.1rem;
+}
+
+/** Odkaz na úkoly uvnitř karty projektu (bez propagace na kartu projektu). */
+.project-list__tasks-link {
+  display: inline-flex;
+  text-decoration: none;
+  color: inherit;
+  vertical-align: baseline;
+  border-radius: var(--radius-sm);
+}
+
+.project-list__tasks-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 </style>

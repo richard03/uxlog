@@ -68,6 +68,8 @@ export function useStore() {
     updateChecklistLabel: store.updateChecklistLabel,
     addCustomChecklistItem: store.addCustomChecklistItem,
     removeChecklistItem: store.removeChecklistItem,
+    createTaskFromChecklistItem: store.createTaskFromChecklistItem,
+    addTaskLinkedToActivity: store.addTaskLinkedToActivity,
     getTasks: store.getTasks,
     getTask: store.getTask,
     addTask: store.addTask,

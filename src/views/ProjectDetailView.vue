@@ -45,6 +45,14 @@
       :project-id="projectId"
       @dismiss="(id) => store.updateActivity(id, { dismissed: true })"
       @move="(id) => { moveActivityTarget = id }"
+      @assign-task="onActivityAssignTask"
+    />
+
+    <TaskAddModal
+      v-model="assignTaskModalOpen"
+      :project-id="projectId"
+      :preset="assignTaskModalPreset"
+      @save="onAssignTaskModalSave"
     />
 
     <!-- Notebook modal -->
@@ -129,6 +137,7 @@ import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
 import NotebookModal from '../components/NotebookModal.vue'
 import NotebookCard from '../components/NotebookCard.vue'
 import ActivitiesPanel from '../components/ActivitiesPanel.vue'
+import TaskAddModal from '../components/TaskAddModal.vue'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
@@ -146,6 +155,36 @@ const { generateNextCode } = useEntityHelpers()
 const showForm = ref(false)
 const showConfirm = ref(false)
 const showImport = ref(false)
+const assignTaskModalOpen = ref(false)
+const assignTaskModalPreset = ref({})
+const assignTaskActivityId = ref('')
+
+watch(assignTaskModalOpen, (open) => {
+  if (!open) {
+    assignTaskActivityId.value = ''
+    assignTaskModalPreset.value = {}
+  }
+})
+
+/**
+ * Otevře dialog „Přidat úkol“ s názvem aktivity pro kartu na přehledu projektu.
+ * @param {string} activityId
+ */
+function onActivityAssignTask(activityId) {
+  const a = store.getActivity(activityId)
+  assignTaskActivityId.value = activityId
+  assignTaskModalPreset.value = { name: a?.name || '' }
+  assignTaskModalOpen.value = true
+}
+
+/**
+ * @param {{ code: string, name: string, description: string }} payload
+ */
+function onAssignTaskModalSave(payload) {
+  const aid = assignTaskActivityId.value
+  if (!aid) return
+  store.addTaskLinkedToActivity(aid, payload)
+}
 
 const form = ref({
   name: '',

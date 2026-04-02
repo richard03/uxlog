@@ -14,6 +14,7 @@ export function useDraggableList(getItems, onReorder) {
   function onDragStart(event, id) {
     draggingId.value = id
     event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', id)
   }
 
   function onDragOver(event, id) {

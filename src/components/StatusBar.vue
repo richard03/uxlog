@@ -14,7 +14,7 @@
         {{ tPath(item.label) }}: <span class="status-plain">{{ plainStatusValue(item) }}</span>
       </span>
       <span v-else class="status-item" :title="toIso(item.value?.value)">
-        {{ tPath(item.label) }}: <time :datetime="toIso(item.value?.value)">{{ formatTs(item.value?.value) ?? t.statusBar.never }}</time>
+        {{ tPath(item.label) }}: <time :datetime="toIso(item.value?.value)">{{ formatStatusBarDateTime(item.value?.value) ?? t.statusBar.never }}</time>
       </span>
     </template>
   </footer>
@@ -25,6 +25,7 @@ import { computed, unref } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { APP_VERSION } from '../lib/version.js'
 import { getStatusItems } from '../lib/plugins/registry.js'
+import { formatStatusBarDateTime } from '../utils/formatDate.js'
 
 const { t, tPath } = useI18n()
 const version = APP_VERSION
@@ -37,21 +38,6 @@ const visibleItems = computed(() =>
     return item.visible !== false
   })
 )
-
-/** Formátuje timestamp jako HH:MM:SS pokud dnes, jinak D.M.YYYY HH:MM:SS */
-function formatTs(ts) {
-  if (!ts) return null
-  const d = new Date(ts)
-  const now = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  if (sameDay) return time
-  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()} ${time}`
-}
 
 function toIso(ts) {
   return ts ? new Date(ts).toISOString() : ''

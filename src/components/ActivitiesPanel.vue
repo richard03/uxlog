@@ -12,8 +12,8 @@
         :to="{ name: 'activityDetail', params: { id: projectId, activityId: activity.id } }"
         :entity-id="activity.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.activity.notInterested, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') $emit('dismiss', activity.id); else if (a === 'move') $emit('move', activity.id) }"
+        :kebab-items="kebabItemsForActivity(activity)"
+        @action="(a) => onActivityCardAction(a, activity.id)"
       >
         <div class="card-badges">
           <ActivityStatusBadge :status="activity.status" :label="t.activity.statusOptions[activity.status]" />
@@ -56,8 +56,10 @@
 import { ref, computed } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
+import { useConfig } from '../composables/useConfig.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { ACTIVITY_TYPES, getActivityType } from '../lib/activityTypes.js'
+import { getEffectiveActivityChecklist } from '../lib/activityChecklistLinks.js'
 import Modal from './Modal.vue'
 import KebabMenu from './KebabMenu.vue'
 import EntityCard from './EntityCard.vue'
@@ -70,19 +72,70 @@ const props = defineProps({
   projectId: { type: String, required: true },
 })
 
-defineEmits(['dismiss', 'move'])
+const emit = defineEmits(['dismiss', 'move', 'assign-task'])
 
 const { t } = useI18n()
 const store = useStore()
+const { getTemplate } = useConfig()
 
 const activities = computed(() => store.getActivities(props.projectId))
 const dnd = useDraggableList(() => activities.value, (orderedIds) => store.reorderEntities('activities', props.projectId, orderedIds))
 
+/**
+ * Šablona checklistu pro aktivitu (config nebo vestavěný typ).
+ * @param {Object} activity
+ * @returns {Array}
+ */
+function templateChecklistFor(activity) {
+  if (!activity?.typeKey) return []
+  const cfg = getTemplate(activity.typeKey)?.checklist
+  if (cfg !== undefined && cfg !== null) return cfg
+  return ACTIVITY_TYPES.find((x) => x.key === activity.typeKey)?.checklist || []
+}
+
+/**
+ * Efektivní položky checklistu pro aktivitu.
+ * @param {Object} activity
+ * @returns {Array<{id: string}>}
+ */
+function effectiveChecklistFor(activity) {
+  return getEffectiveActivityChecklist(activity, templateChecklistFor(activity))
+}
+
+/**
+ * Průběh checklistu pro badge (počet splněných vůči aktuálním položkám).
+ * @param {Object} activity
+ * @returns {{ done: number, total: number }}
+ */
 function getChecklist(activity) {
-  const type = activity.typeKey ? getActivityType(activity.typeKey) : null
-  const total = type?.checklist?.length ?? 0
-  const done = total ? (activity.checkedItems || []).length : 0
+  const items = effectiveChecklistFor(activity)
+  const total = items.length
+  const checked = new Set(activity.checkedItems || [])
+  const done = items.filter((ci) => checked.has(ci.id)).length
   return { done, total }
+}
+
+/**
+ * Položky kebab menu u karty aktivity.
+ * @param {Object} activity
+ * @returns {Array}
+ */
+function kebabItemsForActivity(activity) {
+  return [
+    { label: t.common.moveToProject, action: 'move' },
+    { label: t.activity.assignTask, action: 'assign-task' },
+    { label: t.activity.notInterested, action: 'delete', variant: 'danger' },
+  ]
+}
+
+/**
+ * @param {string} action
+ * @param {string} activityId
+ */
+function onActivityCardAction(action, activityId) {
+  if (action === 'delete') emit('dismiss', activityId)
+  else if (action === 'move') emit('move', activityId)
+  else if (action === 'assign-task') emit('assign-task', activityId)
 }
 
 const activityGroups = computed(() => [

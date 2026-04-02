@@ -44,7 +44,7 @@
         :entity-id="s.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.scenario.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(s.id); else if (a === 'move') confirmMoveItem(s.id); else if (a === 'copy') copyTarget.value = s.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(s.id); else if (a === 'move') confirmMoveItem(s.id); else if (a === 'copy') copyTarget = s.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="s.code" variant="badge-accent">{{ s.code }}</AppBadge>
@@ -114,6 +114,7 @@ import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 
 const route = useRoute()
 const store = useStore()
@@ -131,11 +132,11 @@ const countMain = computed(() => items.value.filter(s => (s.type || 'main') === 
 const countSecondary = computed(() => items.value.filter(s => s.type === 'secondary').length)
 const countError = computed(() => items.value.filter(s => s.type === 'error').length)
 const visibleItems = computed(() => {
-  const allowed = []
-  if (filterMain.value) allowed.push('main')
-  if (filterSecondary.value) allowed.push('secondary')
-  if (filterError.value) allowed.push('error')
-  let base = allowed.length === 0 ? items.value : items.value.filter(s => allowed.includes(s.type || 'main'))
+  const base = filterByAnyActiveBranch(items.value, [
+    { active: filterMain.value, match: (s) => (s.type || 'main') === 'main' },
+    { active: filterSecondary.value, match: (s) => s.type === 'secondary' },
+    { active: filterError.value, match: (s) => s.type === 'error' },
+  ])
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
   return base.filter(s => [s.code, s.name, s.description, t.scenario.scenarioType[s.type || 'main']].filter(Boolean).join(' ').toLowerCase().includes(q))

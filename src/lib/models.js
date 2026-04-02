@@ -243,6 +243,8 @@ export function createActivity(projectId, overrides = {}) {
     customChecklistItems: [],
     removedChecklistItems: [],
     baseChecklist: null,
+    /** @type {Object.<string, string>} id položky checklistu → id úkolu vytvořeného z položky */
+    checklistItemTaskIds: {},
     ...overrides,
   }
 }

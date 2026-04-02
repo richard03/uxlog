@@ -5,6 +5,7 @@
  */
 
 import cs from '../i18n/cs.js'
+import { dateLocaleBcp47ForUi } from '../i18n/dateLocale.js'
 
 const messages = { cs }
 
@@ -24,10 +25,12 @@ function getByPath(obj, path) {
 /**
  * Vrací objekt překladů a helper pro dynamické cesty.
  * @param {string} [locale='cs']
- * @returns {{ t: Object, tPath: (path: string) => string }}
+ * @returns {{ t: Object, tPath: (path: string) => string, dateLocaleBcp47: string }}
  */
 export function useI18n(locale = 'cs') {
   const t = messages[locale] || messages.cs
   const tPath = (path) => getByPath(t, path)
-  return { t, tPath }
+  /** BCP 47 pro Intl (datum/čas) — držet v souladu s výběrem locale */
+  const dateLocaleBcp47 = dateLocaleBcp47ForUi(locale)
+  return { t, tPath, dateLocaleBcp47 }
 }

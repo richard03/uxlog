@@ -25,7 +25,7 @@
         :entity-id="g.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.goal.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(g.id); else if (a === 'move') confirmMoveItem(g.id); else if (a === 'copy') copyTarget.value = g.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(g.id); else if (a === 'move') confirmMoveItem(g.id); else if (a === 'copy') copyTarget = g.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="g.code" variant="badge-accent">{{ g.code }}</AppBadge>

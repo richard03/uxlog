@@ -20,7 +20,7 @@
             <span :class="{ 'checklist-text-done': isChecked(ci.id) }">{{ getItemLabel(ci) }}</span>
           </label>
           <KebabMenu
-            :items="kebabItems"
+            :items="kebabItemsFor(ci)"
             @action="(a) => handleKebabAction(a, ci)"
           />
         </div>
@@ -93,6 +93,9 @@ import IconPlus from './IconPlus.vue'
  * @prop {string} saveText - uložit
  * @prop {boolean} showAddForm - zda zobrazit formulář pro přidání (v-model)
  * @prop {boolean} done - zda je checklist dokončen
+ * @prop {Object.<string, string>} linkedTaskIds - id položky checklistu → id propojeného úkolu
+ * @prop {string} createTaskFromItemText - položka menu: vytvořit úkol
+ * @prop {string} openLinkedTaskText - položka menu: otevřít úkol
  */
 const props = defineProps({
   title: { type: String, required: true },
@@ -110,19 +113,42 @@ const props = defineProps({
   saveText: { type: String, default: '' },
   showAddForm: { type: Boolean, default: false },
   done: { type: Boolean, default: false },
+  linkedTaskIds: { type: Object, default: () => ({}) },
+  createTaskFromItemText: { type: String, default: '' },
+  openLinkedTaskText: { type: String, default: '' },
 })
 
-const emit = defineEmits(['toggle', 'edit-label', 'remove', 'add', 'update:showAddForm'])
+const emit = defineEmits([
+  'toggle',
+  'edit-label',
+  'remove',
+  'add',
+  'update:showAddForm',
+  'create-task-from-item',
+  'open-linked-task',
+])
 
 const editingId = ref(null)
 const editingValue = ref('')
 const newItemValue = ref('')
 const newItemInputRef = ref(null)
 
-const kebabItems = computed(() => [
-  { label: props.editLabelText, action: 'edit' },
-  { label: props.removeItemText, action: 'remove', variant: 'danger' },
-])
+/**
+ * Položky kebab menu pro jednu řádku checklistu (úkol z položky je volitelný).
+ * @param {{ id: string }} ci
+ * @returns {Array<{ label: string, action: string, variant?: string }>}
+ */
+function kebabItemsFor(ci) {
+  const items = [{ label: props.editLabelText, action: 'edit' }]
+  const tid = props.linkedTaskIds?.[ci.id]
+  if (tid) {
+    items.push({ label: props.openLinkedTaskText, action: 'openTask' })
+  } else {
+    items.push({ label: props.createTaskFromItemText, action: 'createTask' })
+  }
+  items.push({ label: props.removeItemText, action: 'remove', variant: 'danger' })
+  return items
+}
 
 const displayProgressText = computed(() =>
   props.done ? props.doneText : props.progressText
@@ -140,10 +166,20 @@ function hasCustomLabel(ci) {
   return !!props.customLabels?.[ci.id]
 }
 
+/**
+ * Zpracuje akci z kebab menu u položky checklistu.
+ * @param {string} action
+ * @param {{ id: string }} ci
+ */
 function handleKebabAction(action, ci) {
   if (action === 'edit') {
     editingId.value = ci.id
     editingValue.value = getItemLabel(ci)
+  } else if (action === 'createTask') {
+    emit('create-task-from-item', ci.id)
+  } else if (action === 'openTask') {
+    const tid = props.linkedTaskIds?.[ci.id]
+    if (tid) emit('open-linked-task', tid)
   } else if (action === 'remove') {
     emit('remove', ci.id)
   }

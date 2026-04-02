@@ -2,9 +2,28 @@ import { state, getData, persist } from './state.js'
 import { updateProject } from './projects.js'
 import { createActivity } from '../models.js'
 import { ACTIVITY_TYPES } from '../activityTypes.js'
-import { getTemplate, getTemplateDurationDays } from './config.js'
+import { getTemplate } from './config.js'
 import { getActivityDeadlineDefault } from '../deadline.js'
 import { generateId } from '../id.js'
+import { addTask, getTask } from './tasks.js'
+import { addConnection } from './connections.js'
+import {
+  getEffectiveActivityChecklist,
+  omitChecklistItemTaskLink,
+} from '../activityChecklistLinks.js'
+
+/**
+ * Checklist ze šablony v konfiguraci nebo z vestavěných ACTIVITY_TYPES.
+ * @param {Object} activity
+ * @returns {Array<{id: string, label?: string}>}
+ */
+function resolveTemplateChecklist(activity) {
+  if (activity.typeKey) {
+    const cfg = getTemplate(activity.typeKey)?.checklist
+    if (cfg !== undefined && cfg !== null) return cfg
+  }
+  return ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)?.checklist || []
+}
 
 export function getActivities(projectId) {
   return (getData().activities || [])
@@ -56,10 +75,7 @@ export function deleteActivity(id) {
 }
 
 function effectiveChecklist(activity) {
-  const baseChecklist = activity.baseChecklist || (ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)?.checklist) || []
-  const removed = new Set(activity.removedChecklistItems || [])
-  const defaults = baseChecklist.filter((ci) => !removed.has(ci.id))
-  return [...defaults, ...(activity.customChecklistItems || [])]
+  return getEffectiveActivityChecklist(activity, resolveTemplateChecklist(activity))
 }
 
 function recalcStatus(activity, checkedItems) {
@@ -98,7 +114,7 @@ export function removeChecklistItem(activityId, itemId) {
   const idx = state.activities?.findIndex((a) => a.id === activityId)
   if (idx === undefined || idx === -1) return
   const a = state.activities[idx]
-  const baseChecklist = a.baseChecklist || (ACTIVITY_TYPES.find((t) => t.key === a.typeKey)?.checklist) || []
+  const baseChecklist = a.baseChecklist || resolveTemplateChecklist(a) || []
   const isDefault = baseChecklist.some((ci) => ci.id === itemId)
   const customChecklistItems = (a.customChecklistItems || []).filter((ci) => ci.id !== itemId)
   const removedChecklistItems = isDefault
@@ -107,7 +123,8 @@ export function removeChecklistItem(activityId, itemId) {
   const checkedItems = (a.checkedItems || []).filter((id) => id !== itemId)
   const checklistLabels = { ...(a.checklistLabels || {}) }
   delete checklistLabels[itemId]
-  const updated = { ...a, customChecklistItems, removedChecklistItems, checkedItems, checklistLabels }
+  const checklistItemTaskIds = omitChecklistItemTaskLink(a.checklistItemTaskIds, itemId)
+  const updated = { ...a, customChecklistItems, removedChecklistItems, checkedItems, checklistLabels, checklistItemTaskIds }
   updated.status = recalcStatus(updated, checkedItems)
   state.activities[idx] = updated
   persist()
@@ -125,4 +142,63 @@ export function updateChecklistLabel(activityId, itemId, label) {
   }
   state.activities[idx] = { ...a, checklistLabels: labels }
   persist()
+}
+
+/**
+ * Z položky checklistu vytvoří úkol (stejná pole jako při ručním přidání úkolu), propojí aktivitu s úkolem.
+ * Pokud už položka vede na existující úkol, nový nevytváří.
+ * @param {string} activityId
+ * @param {string} checklistItemId
+ * @param {{ code?: string, name: string, description?: string }} taskPayload
+ * @returns {{ task: Object, created: boolean }|null}
+ */
+export function createTaskFromChecklistItem(activityId, checklistItemId, taskPayload) {
+  const idx = state.activities?.findIndex((a) => a.id === activityId)
+  if (idx === undefined || idx === -1) return null
+  const a = state.activities[idx]
+  const items = effectiveChecklist(a)
+  const item = items.find((ci) => ci.id === checklistItemId)
+  if (!item) return null
+
+  const name = (taskPayload?.name || '').trim()
+  if (!name) return null
+
+  const linkedId = a.checklistItemTaskIds?.[checklistItemId]
+  if (linkedId) {
+    const existing = getTask(linkedId)
+    if (existing && existing.projectId === a.projectId) {
+      return { task: existing, created: false }
+    }
+  }
+
+  const task = addTask(a.projectId, {
+    code: (taskPayload?.code || '').trim(),
+    name,
+    description: (taskPayload?.description || '').trim(),
+  })
+  addConnection(a.projectId, 'activities', a.id, 'tasks', task.id)
+  const checklistItemTaskIds = { ...(a.checklistItemTaskIds || {}), [checklistItemId]: task.id }
+  state.activities[idx] = { ...a, checklistItemTaskIds }
+  persist()
+  return { task, created: true }
+}
+
+/**
+ * Vytvoří úkol a přidá souvislost aktivita ↔ úkol (bez vazby na položku checklistu).
+ * @param {string} activityId
+ * @param {{ code?: string, name: string, description?: string }} taskPayload
+ * @returns {Object|null} Úkol nebo null při chybě validace
+ */
+export function addTaskLinkedToActivity(activityId, taskPayload) {
+  const a = getActivity(activityId)
+  if (!a) return null
+  const name = (taskPayload?.name || '').trim()
+  if (!name) return null
+  const task = addTask(a.projectId, {
+    code: (taskPayload?.code || '').trim(),
+    name,
+    description: (taskPayload?.description || '').trim(),
+  })
+  addConnection(a.projectId, 'activities', activityId, 'tasks', task.id)
+  return task
 }

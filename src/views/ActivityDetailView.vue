@@ -14,8 +14,8 @@
           <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
           <KebabMenu
-            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.activity.delete, action: 'delete', variant: 'danger' }]"
-            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
+            :items="activityHeaderKebabItems"
+            @action="onActivityHeaderKebab"
           />
         </div>
       </div>
@@ -49,7 +49,7 @@
         <InlineEditableDetailField
           :label="t.activity.deadline"
           :empty="!item.deadline"
-          :display-value="item.deadline ? formatDeadlineDate(item.deadline) : '—'"
+          :display-value="item.deadline ? formatCalendarDate(item.deadline) : '—'"
           :raw-value="item.deadline ?? ''"
           :field="{ key: 'deadline', type: 'date' }"
           :value-class="deadlineOverdue ? 'deadline-overdue' : ''"
@@ -66,6 +66,9 @@
       :items="effectiveChecklist"
       :checked-ids="activityItem?.checkedItems || []"
       :custom-labels="activityItem?.checklistLabels || {}"
+      :linked-task-ids="checklistLinkedTaskIds"
+      :create-task-from-item-text="t.activity.createTaskFromChecklistItem"
+      :open-linked-task-text="t.activity.openChecklistLinkedTask"
       :progress-text="t.activity.checklistProgress(checkedCount, effectiveChecklist.length)"
       :done-text="t.activity.checklistDone"
       :add-item-text="t.activity.addChecklistItem"
@@ -81,6 +84,8 @@
       @edit-label="(p) => store.updateChecklistLabel(activityItem.id, p.itemId, p.value)"
       @remove="store.removeChecklistItem(activityItem.id, $event)"
       @add="onAddChecklistItem"
+      @create-task-from-item="onCreateTaskFromChecklistItem"
+      @open-linked-task="onOpenChecklistLinkedTask"
     />
 
     <SectionCard v-if="activityType" :title="t.activity.typeInfo" :aria-label="t.activity.typeInfo">
@@ -105,6 +110,13 @@
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
     <MoveToProjectModal v-if="showMove" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'project', params: { id: projectId } })" />
     <MoveToProjectModal v-if="showCopy" mode="copy" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
+
+    <TaskAddModal
+      v-model="taskAddModalOpen"
+      :project-id="projectId"
+      :preset="taskAddPreset"
+      @save="onTaskAddModalSave"
+    />
   </div>
   <div v-else-if="project && !item" class="container">
     <p>{{ t.common.loading }}</p>
@@ -112,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
@@ -134,6 +146,9 @@ import ActivityChecklist from '../components/ActivityChecklist.vue'
 import SectionCard from '../components/SectionCard.vue'
 import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
+import TaskAddModal from '../components/TaskAddModal.vue'
+import { getEffectiveActivityChecklist, resolveActivityChecklistItemLabel } from '../lib/activityChecklistLinks.js'
+import { formatCalendarDate } from '../utils/formatDate.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -148,13 +163,9 @@ const item = activityItem
 const project = computed(() => store.getProject(projectId.value))
 const activityType = computed(() => activityItem.value?.typeKey ? getTemplate(activityItem.value.typeKey) : null)
 
-const effectiveChecklist = computed(() => {
-  if (!activityItem.value) return []
-  const removed = new Set(activityItem.value.removedChecklistItems || [])
-  const baseChecklist = activityItem.value.baseChecklist || activityType.value?.checklist || []
-  const defaults = baseChecklist.filter((ci) => !removed.has(ci.id))
-  return [...defaults, ...(activityItem.value.customChecklistItems || [])]
-})
+const effectiveChecklist = computed(() =>
+  getEffectiveActivityChecklist(activityItem.value, activityType.value?.checklist)
+)
 
 const checkedCount = computed(() => (activityItem.value?.checkedItems || []).length)
 const checklistDone = computed(() =>
@@ -162,13 +173,100 @@ const checklistDone = computed(() =>
   checkedCount.value === effectiveChecklist.value.length
 )
 
+/** Vazby položka checklistu → úkol pouze pokud úkol v projektu stále existuje (pro menu). */
+const checklistLinkedTaskIds = computed(() => {
+  const raw = activityItem.value?.checklistItemTaskIds
+  if (!raw) return {}
+  const pid = projectId.value
+  const out = {}
+  for (const [itemId, taskId] of Object.entries(raw)) {
+    const task = store.getTask(taskId)
+    if (task && task.projectId === pid) out[itemId] = taskId
+  }
+  return out
+})
+
 const statusOptions = computed(() =>
   Object.entries(t.activity.statusOptions || {}).map(([value, label]) => ({ value, label }))
 )
 
+const activityHeaderKebabItems = computed(() => [
+  { label: t.common.moveToProject, action: 'move' },
+  { label: t.common.copyToProject, action: 'copy' },
+  { label: t.activity.assignTask, action: 'assign-task' },
+  { label: t.activity.delete, action: 'delete', variant: 'danger' },
+])
+
+/**
+ * Akce v hlavičce aktivity.
+ * @param {string} action
+ */
+function onActivityHeaderKebab(action) {
+  if (action === 'move') showMove.value = true
+  else if (action === 'copy') showCopy.value = true
+  else if (action === 'assign-task') openAssignTaskFromActivity()
+  else if (action === 'delete') confirmDelete()
+}
+
+const taskAddModalOpen = ref(false)
+const taskAddPreset = ref({})
+/** Kontext uložení: jen souvislost s aktivitou, nebo úkol z řádku checklistu. */
+const taskAddContext = ref(null)
+
+watch(taskAddModalOpen, (open) => {
+  if (!open) {
+    taskAddContext.value = null
+    taskAddPreset.value = {}
+  }
+})
+
+/**
+ * Otevře stejný dialog „Přidat úkol“ jako v sekci Úkoly, název předvyplněn názvem aktivity.
+ */
+function openAssignTaskFromActivity() {
+  taskAddContext.value = { type: 'activity' }
+  taskAddPreset.value = { name: activityItem.value?.name || '' }
+  taskAddModalOpen.value = true
+}
+
 function onAddChecklistItem(label) {
   store.addCustomChecklistItem(activityItem.value.id, label)
   addingItem.value = false
+}
+
+/**
+ * Otevře dialog přidání úkolu s názvem z položky checklistu; po uložení vznikne vazba položka ↔ úkol.
+ * @param {string} checklistItemId
+ */
+function onCreateTaskFromChecklistItem(checklistItemId) {
+  if (!activityItem.value?.id) return
+  const ci = effectiveChecklist.value.find((x) => x.id === checklistItemId)
+  const name = ci ? resolveActivityChecklistItemLabel(activityItem.value.checklistLabels, ci) : ''
+  taskAddContext.value = { type: 'checklistItem', itemId: checklistItemId }
+  taskAddPreset.value = { name }
+  taskAddModalOpen.value = true
+}
+
+/**
+ * Uložení z dialogu přidání úkolu (z aktivity nebo z řádku checklistu).
+ * @param {{ code: string, name: string, description: string }} payload
+ */
+function onTaskAddModalSave(payload) {
+  const ctx = taskAddContext.value
+  if (!activityItem.value?.id || !ctx) return
+  if (ctx.type === 'activity') {
+    store.addTaskLinkedToActivity(activityItem.value.id, payload)
+  } else if (ctx.type === 'checklistItem') {
+    store.createTaskFromChecklistItem(activityItem.value.id, ctx.itemId, payload)
+  }
+}
+
+/**
+ * Přejde na detail úkolu propojeného s položkou checklistu.
+ * @param {string} taskId
+ */
+function onOpenChecklistLinkedTask(taskId) {
+  router.push({ name: 'taskDetail', params: { id: projectId.value, taskId } })
 }
 
 const breadcrumbs = computed(() => [
@@ -206,12 +304,6 @@ function saveFieldModal() {
     store.updateActivity(item.value.id, { [editingField.value]: editValue.value })
     closeEdit()
   }
-}
-
-function formatDeadlineDate(ymd) {
-  if (!ymd) return ''
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 const deadlineOverdue = computed(() => {

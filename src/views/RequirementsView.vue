@@ -45,7 +45,7 @@
         :entity-id="r.id"
         :dnd="dnd"
         :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id); else if (a === 'copy') copyTarget.value = r.id }"
+        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id); else if (a === 'copy') copyTarget = r.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
@@ -116,6 +116,7 @@ import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 
 const route = useRoute()
 const store = useStore()
@@ -135,12 +136,12 @@ const countShould = computed(() => items.value.filter(r => r.priority === 'shoul
 const countCould = computed(() => items.value.filter(r => (r.priority || 'could') === 'could').length)
 const countWont = computed(() => items.value.filter(r => r.priority === 'wont').length)
 const visibleItems = computed(() => {
-  const allowed = []
-  if (filterMust.value) allowed.push('must')
-  if (filterShould.value) allowed.push('should')
-  if (filterCould.value) allowed.push('could')
-  if (filterWont.value) allowed.push('wont')
-  let base = allowed.length === 0 ? items.value : items.value.filter(r => allowed.includes(r.priority || 'could'))
+  const base = filterByAnyActiveBranch(items.value, [
+    { active: filterMust.value, match: (r) => r.priority === 'must' },
+    { active: filterShould.value, match: (r) => r.priority === 'should' },
+    { active: filterCould.value, match: (r) => (r.priority || 'could') === 'could' },
+    { active: filterWont.value, match: (r) => r.priority === 'wont' },
+  ])
   const q = filterText.value.toLowerCase().trim()
   if (!q) return base
   return base.filter(r => [r.code, r.name, r.description, t.moscow[r.priority || 'could']].filter(Boolean).join(' ').toLowerCase().includes(q))

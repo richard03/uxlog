@@ -1,6 +1,7 @@
 import { state, getData, persist } from './state.js'
 import { updateProject } from './projects.js'
 import { createTask } from '../models.js'
+import { dropChecklistLinksPointingToTask } from '../activityChecklistLinks.js'
 
 export function getTasks(projectId) {
   return (getData().tasks || [])
@@ -30,9 +31,22 @@ export function updateTask(id, updates) {
   return state.tasks[idx]
 }
 
+/**
+ * Smaže úkol a z aktivit odstraní vazby checklistu, které na něj ukazovaly.
+ * @param {string} id
+ */
 export function deleteTask(id) {
   const task = state.tasks?.find((t) => t.id === id)
   state.tasks = (state.tasks || []).filter((t) => t.id !== id)
+  if (state.activities?.length) {
+    state.activities = state.activities.map((a) => {
+      const prev = a.checklistItemTaskIds
+      if (!prev || !Object.keys(prev).length) return a
+      const nextMap = dropChecklistLinksPointingToTask(prev, id)
+      if (Object.keys(nextMap).length === Object.keys(prev).length) return a
+      return { ...a, checklistItemTaskIds: nextMap }
+    })
+  }
   if (task?.projectId) updateProject(task.projectId, {})
   persist()
 }
