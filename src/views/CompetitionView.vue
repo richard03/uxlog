@@ -8,6 +8,7 @@
           <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
           <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'competitions')" :filename="t.sections.competition" />
           <AppButton variant="primary" @click="openForm()">{{ t.competition.add }}</AppButton>
+          <KebabMenu :items="sectionKebabItems" @action="onSectionKebab" />
         </div>
       </div>
     </header>
@@ -60,6 +61,13 @@
     />
     <MoveToProjectModal v-if="moveTarget" state-key="competitions" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
     <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="competitions" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
+
+    <CompetitionAnalysisModal
+      v-if="showAnalysis"
+      :project-data="projectData"
+      @close="showAnalysis = false"
+      @confirm-action="confirmAnalysisAction"
+    />
   </div>
 </template>
 
@@ -77,11 +85,16 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
+import CompetitionAnalysisModal from '../components/CompetitionAnalysisModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import { hasCapability, callCapability } from '../lib/plugins/registry.js'
+import { exportCompetitionPdf } from '../lib/exportPdf.js'
+import { isTauri } from '../lib/tauriBridge.js'
+import { showToast } from '../composables/useToast.js'
 
 const route = useRoute()
 const store = useStore()
@@ -92,6 +105,58 @@ const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const items = computed(() => store.getCompetitions(projectId.value))
 const dnd = useDraggableList(() => items.value, (orderedIds) => store.reorderEntities('competitions', projectId.value, orderedIds))
+
+const aiAvailable = computed(() => hasCapability('ai:available') && callCapability('ai:available'))
+
+const sectionKebabItems = computed(() => {
+  const list = [{ label: t.competition.exportPdf, action: 'exportPdf' }]
+  if (aiAvailable.value) {
+    list.push({ label: t.competition.analyzeCompetition, action: 'analyze' })
+  }
+  return list
+})
+
+const showAnalysis = ref(false)
+
+async function onSectionKebab(action) {
+  if (action === 'exportPdf') {
+    try {
+      await exportCompetitionPdf({
+        competitions: items.value,
+        projectName: project.value?.name || 'Projekt',
+        labels: {
+          title: t.competition.pdfTitle,
+          description: t.competition.pdfDescription,
+          strengths: t.competition.pdfStrengths,
+          weaknesses: t.competition.pdfWeaknesses,
+          inspiration: t.competition.pdfInspiration,
+          noData: t.competition.pdfNoData,
+        },
+      })
+      showToast(isTauri ? t.competition.pdfExported : t.competition.pdfExportedWeb)
+    } catch (err) {
+      console.error('[PDF export]', err)
+      showToast(t.competition.pdfExportError)
+    }
+  } else if (action === 'analyze') {
+    showAnalysis.value = true
+  }
+}
+
+const projectData = computed(() => ({
+  goals: store.getGoals(projectId.value),
+  stakeholders: store.getStakeholders(projectId.value),
+  competitions: store.getCompetitions(projectId.value),
+  hypotheses: store.getHypotheses(projectId.value),
+  personas: store.getPersonas(projectId.value),
+  scenarios: store.getScenarios(projectId.value),
+  requirements: store.getRequirements(projectId.value),
+  teamMembers: store.getTeamMembers(projectId.value),
+}))
+
+function confirmAnalysisAction(action) {
+  store.addCompetition(projectId.value, action.fields)
+}
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },

@@ -49,7 +49,7 @@ var DROP_SHADOW = {
   offset: { x: 0, y: 8 }, radius: 32, spread: -4,
 };
 
-var PAD = 28;
+var PAD = 56;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entity configs – matches figma-plugin v1
@@ -325,13 +325,12 @@ function buildColorBlock(label, value, hint, bgColorHex, fieldName) {
   var block = figma.createFrame();
   block.name = label;
   block.layoutMode = 'VERTICAL';
-  block.primaryAxisSizingMode = 'FIXED';
+  block.primaryAxisSizingMode = 'AUTO';
   block.counterAxisSizingMode = 'FIXED';
-  block.resize(600, 600);
-  block.paddingLeft = 28;
-  block.paddingRight = 28;
-  block.paddingTop = 24;
-  block.paddingBottom = 24;
+  block.paddingLeft = 56;
+  block.paddingRight = 56;
+  block.paddingTop = 48;
+  block.paddingBottom = 48;
   block.itemSpacing = 12;
   block.fills = [solid(bgColorHex)];
 
@@ -352,7 +351,7 @@ function buildColorBlock(label, value, hint, bgColorHex, fieldName) {
   textNode.fills = [solid(COLOR_TEXT)];
   textNode.lineHeight = { value: 155, unit: 'PERCENT' };
   if (fieldName) setTextUxlogField(textNode, fieldName);
-  fl(block, textNode, 'FILL', 'FILL', 1);
+  fl(block, textNode, 'FILL', 'HUG');
 
   return block;
 }
@@ -544,60 +543,18 @@ function buildBlocksArea(entity, config, CWIDTH) {
   var container = figma.createFrame();
   container.name = 'Bloky';
   container.layoutMode = 'VERTICAL';
-  container.primaryAxisSizingMode = 'FIXED';
+  container.primaryAxisSizingMode = 'AUTO';
   container.counterAxisSizingMode = 'FIXED';
   container.itemSpacing = 0;
   container.fills = [];
 
   var blocks = config.blocks || [];
-  var layout = config.blockLayout || '1col';
-
-  if (layout === '1col') {
-    fl(container, buildColorBlock(blocks[0].name, entity[blocks[0].field] || '', blocks[0].hint, blocks[0].colorHex, blocks[0].field), 'FILL', 'FILL');
-  } else if (layout === '2col') {
-    var row = figma.createFrame();
-    row.name = 'Řada 1';
-    row.layoutMode = 'HORIZONTAL';
-    row.primaryAxisSizingMode = 'FIXED';
-    row.counterAxisSizingMode = 'FIXED';
-    row.itemSpacing = 0;
-    row.fills = [];
-    fl(container, row, 'FILL', 'FILL', 1);
-    for (var i = 0; i < Math.min(blocks.length, 2); i++) {
-      fl(row, buildColorBlock(blocks[i].name, entity[blocks[i].field] || '', blocks[i].hint, blocks[i].colorHex, blocks[i].field), 'FILL', 'FILL');
-    }
-  } else if (layout === '3col') {
-    var row3 = figma.createFrame();
-    row3.name = 'Řada 1';
-    row3.layoutMode = 'HORIZONTAL';
-    row3.primaryAxisSizingMode = 'FIXED';
-    row3.counterAxisSizingMode = 'FIXED';
-    row3.itemSpacing = 0;
-    row3.fills = [];
-    fl(container, row3, 'FILL', 'FILL', 1);
-    var visibleBlocks = blocks.filter(function(b) {
-      return b.field !== 'wontHaveExplanation' || entity.priority === 'wont';
-    });
-    for (var j = 0; j < Math.min(visibleBlocks.length, 3); j++) {
-      fl(row3, buildColorBlock(visibleBlocks[j].name, entity[visibleBlocks[j].field] || '', visibleBlocks[j].hint, visibleBlocks[j].colorHex, visibleBlocks[j].field), 'FILL', 'FILL');
-    }
-  } else if (layout === '1+3') {
-    var b0 = blocks[0];
-    var topB = buildColorBlock(b0.name, entity[b0.field] || '', b0.hint, b0.colorHex, b0.field);
-    fl(container, topB, 'FILL', 'FIXED');
-    topB.resize(CWIDTH, 280);
-
-    var row13 = figma.createFrame();
-    row13.name = 'Řada 2';
-    row13.layoutMode = 'HORIZONTAL';
-    row13.primaryAxisSizingMode = 'FIXED';
-    row13.counterAxisSizingMode = 'FIXED';
-    row13.itemSpacing = 0;
-    row13.fills = [];
-    fl(container, row13, 'FILL', 'FILL', 1);
-    for (var k = 1; k < Math.min(blocks.length, 4); k++) {
-      fl(row13, buildColorBlock(blocks[k].name, entity[blocks[k].field] || '', blocks[k].hint, blocks[k].colorHex, blocks[k].field), 'FILL', 'FILL');
-    }
+  var visibleBlocks = blocks.filter(function(b) {
+    return b.field !== 'wontHaveExplanation' || entity.priority === 'wont';
+  });
+  for (var i = 0; i < visibleBlocks.length; i++) {
+    var b = visibleBlocks[i];
+    fl(container, buildColorBlock(b.name, entity[b.field] || '', b.hint, b.colorHex, b.field), 'FILL', 'HUG');
   }
 
   return container;
@@ -605,14 +562,13 @@ function buildBlocksArea(entity, config, CWIDTH) {
 
 function buildGenericCard(entity, entityType, config) {
   var CWIDTH = config.cardW || 1000;
-  var CHEIGHT = config.cardH || 700;
 
   var card = figma.createFrame();
   card.name = 'UXLog:' + entityType + ':' + (entity.id || 'new');
   card.layoutMode = 'VERTICAL';
-  card.primaryAxisSizingMode = 'FIXED';
+  card.primaryAxisSizingMode = 'AUTO';
   card.counterAxisSizingMode = 'FIXED';
-  card.resize(CWIDTH, CHEIGHT);
+  card.resize(CWIDTH, 100);
   card.itemSpacing = 0;
   card.fills = [solid(COLOR_WHITE)];
   card.cornerRadius = 16;
@@ -636,7 +592,7 @@ function buildGenericCard(entity, entityType, config) {
   fl(card, buildDivider(), 'FILL', 'FIXED');
 
   // Blocks
-  fl(card, buildBlocksArea(entity, config, CWIDTH), 'FILL', 'FILL', 1);
+  fl(card, buildBlocksArea(entity, config, CWIDTH), 'FILL', 'HUG');
 
   // Plugin data
   card.setPluginData('uxlogEntityType', entityType);
@@ -790,25 +746,14 @@ function buildPersonaBlockGrid(persona) {
   var grid = figma.createFrame();
   grid.name = 'Bloky';
   grid.layoutMode = 'VERTICAL';
-  grid.primaryAxisSizingMode = 'FIXED';
+  grid.primaryAxisSizingMode = 'AUTO';
   grid.counterAxisSizingMode = 'FIXED';
   grid.itemSpacing = 0;
   grid.fills = [];
 
-  for (var row = 0; row < 2; row++) {
-    var rowFrame = figma.createFrame();
-    rowFrame.name = 'Řada ' + (row + 1);
-    rowFrame.layoutMode = 'HORIZONTAL';
-    rowFrame.primaryAxisSizingMode = 'FIXED';
-    rowFrame.counterAxisSizingMode = 'FIXED';
-    rowFrame.itemSpacing = 0;
-    rowFrame.fills = [];
-    fl(grid, rowFrame, 'FILL', 'FILL', 1);
-
-    for (var col = 0; col < 2; col++) {
-      var sec = sections[row * 2 + col];
-      fl(rowFrame, buildColorBlock(sec.label, sec.value || '', sec.hint, sec.colorHex, sec.field), 'FILL', 'FILL');
-    }
+  for (var i = 0; i < sections.length; i++) {
+    var sec = sections[i];
+    fl(grid, buildColorBlock(sec.label, sec.value || '', sec.hint, sec.colorHex, sec.field), 'FILL', 'HUG');
   }
 
   return grid;
@@ -818,9 +763,9 @@ function buildPersonaCard(persona) {
   var card = figma.createFrame();
   card.name = 'UXLog:persona:' + (persona.id || 'new');
   card.layoutMode = 'VERTICAL';
-  card.primaryAxisSizingMode = 'FIXED';
+  card.primaryAxisSizingMode = 'AUTO';
   card.counterAxisSizingMode = 'FIXED';
-  card.resize(PERSONA_W, PERSONA_H);
+  card.resize(PERSONA_W, 100);
   card.itemSpacing = 0;
   card.fills = [solid(COLOR_WHITE)];
   card.cornerRadius = 16;
@@ -859,7 +804,7 @@ function buildPersonaCard(persona) {
   fl(card, buildDivider(), 'FILL', 'FIXED');
 
   // Block grid
-  fl(card, buildPersonaBlockGrid(persona), 'FILL', 'FILL', 1);
+  fl(card, buildPersonaBlockGrid(persona), 'FILL', 'HUG');
 
   // Plugin data
   card.setPluginData('uxlogEntityType', 'persona');
@@ -1065,12 +1010,17 @@ var DIFF_FIELDS = {
   requirement: ['code', 'name', 'description', 'motivation', 'priority', 'wontHaveExplanation'],
 };
 
+function normalizeFieldValue(val) {
+  if (val == null) return '';
+  return String(val).trim();
+}
+
 function diffEntities(oldEntity, newEntity, fields) {
   var changes = [];
   for (var i = 0; i < fields.length; i++) {
     var f = fields[i];
-    var oldVal = String(oldEntity[f] != null ? oldEntity[f] : '');
-    var newVal = String(newEntity[f] != null ? newEntity[f] : '');
+    var oldVal = normalizeFieldValue(oldEntity[f]);
+    var newVal = normalizeFieldValue(newEntity[f]);
     if (oldVal !== newVal) {
       changes.push({ field: f, oldValue: oldVal, newValue: newVal });
     }
@@ -1361,6 +1311,49 @@ figma.ui.onmessage = async function(msg) {
             useCards[useci].setPluginData('uxlogLastSyncTs', String(Date.now()));
           }
         }
+        break;
+      }
+
+      case 'revert-field': {
+        // Revert a single field on a card to its stored (original) value
+        var rfEntityId = msg.entityId;
+        var rfField = msg.field;
+        var rfOriginalValue = msg.originalValue;
+        await loadFonts();
+        var rfCards = findCardsByEntityId(rfEntityId);
+        for (var rfi = 0; rfi < rfCards.length; rfi++) {
+          var rfCard = rfCards[rfi];
+          var rfEntityType = rfCard.getPluginData('uxlogEntityType');
+          var rfConfig = rfEntityType === 'persona' ? null : ENTITY_CONFIGS[rfEntityType];
+          // Collect hints
+          var rfHints = {};
+          if (rfEntityType === 'persona') {
+            rfHints = { description: 'Kdo to je, čím se liší od ostatních?', motivation: 'O co jí jde?', needs: 'Co potřebuje a co chce?', problems: 'Jaké má problémy a co ji frustruje?' };
+          } else if (rfConfig) {
+            var rfBlocks = rfConfig.blocks || [];
+            for (var rbi = 0; rbi < rfBlocks.length; rbi++) rfHints[rfBlocks[rbi].field] = rfBlocks[rbi].hint;
+          }
+          // Walk card to find the text node for this field
+          (function walkRevert(node) {
+            if (node.type === 'TEXT') {
+              var f = node.getPluginData('uxlogField');
+              if (f === rfField) {
+                var isEmpty = !rfOriginalValue || !String(rfOriginalValue).trim();
+                var displayVal = isEmpty ? '' : forwardMapValue(f, String(rfOriginalValue).trim());
+                var newText = isEmpty ? (rfHints[f] || FALLBACK_EMPTY) : displayVal;
+                if (node.characters !== newText) {
+                  suppressTextChangeIds[node.id] = true;
+                  node.characters = newText;
+                  delete suppressTextChangeIds[node.id];
+                }
+                try { node.setPluginData('uxlogAppliedValue', 'v:' + newText); } catch (e) {}
+              }
+            }
+            var ch = node.children || [];
+            for (var ci = 0; ci < ch.length; ci++) walkRevert(ch[ci]);
+          })(rfCard);
+        }
+        figma.ui.postMessage({ type: 'revert-field-done', entityId: rfEntityId, field: rfField });
         break;
       }
 

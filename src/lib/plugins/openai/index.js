@@ -8,6 +8,7 @@
 import {
   buildProjectContext, buildNotebookPrompt, parseActions,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
+  buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
 
@@ -59,6 +60,15 @@ async function processNotebook(notebookText, projectData) {
   return parseActions(responseText)
 }
 
+async function analyzeCompetition(topic, projectData) {
+  const apiKey = getKey()
+  if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
+  const context = buildProjectContext(projectData)
+  const prompt = buildCompetitionAnalysisPrompt(topic, context)
+  const responseText = await callOpenAI(apiKey, prompt, getModel())
+  return parseCompetitionAnalysis(responseText)
+}
+
 async function suggestConnections(entity, entityType, projectData) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
@@ -90,6 +100,10 @@ export default {
 
     ctx.registerCapability('ai:suggestions', (entity, entityType, projectData) => {
       return suggestConnections(entity, entityType, projectData)
+    })
+
+    ctx.registerCapability('ai:competition-analysis', (topic, projectData) => {
+      return analyzeCompetition(topic, projectData)
     })
   },
 }

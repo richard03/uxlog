@@ -15,6 +15,7 @@
       </router-view>
     </main>
     <StatusBar />
+    <ToastNotification />
   </div>
 </template>
 
@@ -23,6 +24,7 @@ import { onMounted, onUnmounted } from 'vue'
 import { toRaw } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import StatusBar from './components/StatusBar.vue'
+import ToastNotification from './components/ToastNotification.vue'
 import { useI18n } from './composables/useI18n.js'
 import { state, getData, persist } from './lib/stores/index.js'
 import { replaceStateFromStorage } from './lib/stores/state.js'
@@ -32,6 +34,7 @@ import {
   isMirrorInFlight,
   listenToTauriStorageUpdates,
   pullUxlogDataFromDiskIntoApp,
+  openExternal,
 } from './lib/tauriBridge.js'
 
 const { t } = useI18n()
@@ -99,7 +102,27 @@ function handleVisibilityChange() {
   }
 }
 
+/**
+ * Globální handler: kliknutí na <a target="_blank"> nebo <a href="http...">
+ * v Tauri otevře odkaz v externím prohlížeči.
+ */
+function handleExternalLink(e) {
+  if (!isTauri) return
+  const link = e.target.closest('a[href]')
+  if (!link) return
+  const href = link.getAttribute('href')
+  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return
+  // Pouze externí URL (http/https) nebo target=_blank
+  const isExternal = /^https?:\/\//.test(href)
+  const isBlank = link.getAttribute('target') === '_blank'
+  if (isExternal || isBlank) {
+    e.preventDefault()
+    openExternal(href)
+  }
+}
+
 onMounted(() => {
+  document.addEventListener('click', handleExternalLink)
   // Počáteční sync hned po startu
   runSync()
   applyUxlogDataFromDiskIfChanged()
@@ -121,6 +144,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('click', handleExternalLink)
   clearInterval(syncTimer)
   if (diskPollTimer) {
     clearInterval(diskPollTimer)

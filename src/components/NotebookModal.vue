@@ -23,73 +23,63 @@
       <p>{{ t.notebook.processing }}</p>
     </div>
 
-    <!-- Actions view -->
-    <div v-else class="nb-actions">
-      <div class="nb-actions-header">
+    <!-- Akce z AI — sdílený náhled (PendingReview*) -->
+    <PendingReviewLayout v-else>
+      <template #toolbar-left>
         <AppButton variant="tertiary" size="sm" @click="backToEdit">
           ← {{ t.notebook.backToEdit }}
         </AppButton>
-        <AppButton
-          v-if="aiActions.some(a => a._status === 'pending')"
-          variant="primary"
-          size="sm"
-          @click="confirmAllActions"
-        >
-          {{ t.notebook.actionConfirmAll }}
-        </AppButton>
-      </div>
-      <div class="nb-action-list" role="list">
-        <div
-          v-for="action in aiActions"
-          :key="action._id"
-          class="nb-action-card"
-          :class="`nb-action-${action._status}`"
-          role="listitem"
-        >
-          <div class="nb-action-meta">
-            <span class="nb-action-entity-badge">{{ t.notebook.entityLabels[action.entity] || action.entity }}</span>
-            <span class="nb-action-type" :class="`nb-action-type-${action.type}`">
-              {{ action.type === 'create' ? t.notebook.actionCreate : t.notebook.actionUpdate }}
-            </span>
-            <strong class="nb-action-name">{{ action.entityName }}</strong>
-          </div>
-          <div class="nb-action-fields">
-            <div v-for="(val, key) in action.fields" :key="key" class="nb-action-field">
-              <label :for="`af-${action._id}-${key}`" class="nb-field-key">{{ key }}</label>
-              <textarea
-                v-if="action._status === 'pending'"
-                :id="`af-${action._id}-${key}`"
-                class="nb-field-input"
-                :value="action.fields[key]"
-                @input="action.fields[key] = $event.target.value"
-                rows="2"
-              ></textarea>
-              <span v-else class="nb-field-val">{{ val }}</span>
-            </div>
-          </div>
-          <blockquote v-if="action.sourceText" class="nb-action-source">{{ action.sourceText }}</blockquote>
-          <div v-if="action._status === 'pending'" class="nb-action-btns">
-            <AppButton variant="primary" size="sm" @click="handleConfirmAction(action)">
-              {{ t.notebook.actionConfirm }}
-            </AppButton>
-            <AppButton variant="tertiary" size="sm" @click="action._status = 'skipped'">
-              {{ t.notebook.actionSkip }}
-            </AppButton>
-          </div>
-          <div v-else class="nb-action-status">
-            {{ action._status === 'confirmed' ? t.notebook.actionDone : t.notebook.actionSkipped }}
-          </div>
-        </div>
-      </div>
-    </div>
+      </template>
+      <template #toolbar-right>
+        <template v-if="pendingActions.length">
+          <AppButton variant="primary" size="sm" @click="confirmAllPending">
+            {{ t.notebook.actionConfirmAll }}
+          </AppButton>
+          <AppButton variant="secondary" size="sm" @click="rejectAllPending">
+            {{ t.notebook.rejectAll }}
+          </AppButton>
+        </template>
+      </template>
+
+      <PendingReviewRow
+        v-for="action in pendingActions"
+        :key="action._id"
+        :expanded="!!expandedById[action._id]"
+        :confirm-label="t.notebook.actionConfirm"
+        :skip-label="t.notebook.actionSkip"
+        @toggle="toggleRow(action._id)"
+        @confirm="confirmOne(action)"
+        @skip="skipOne(action)"
+      >
+        <template #summary>
+          <span class="pr-badge">{{ t.notebook.entityLabels[action.entity] || action.entity }}</span>
+          <span
+            class="pr-type-pill"
+            :class="action.type === 'update' ? 'pr-type-pill--update' : 'pr-type-pill--create'"
+          >
+            {{ action.type === 'create' ? t.notebook.actionCreate : t.notebook.actionUpdate }}
+          </span>
+          <strong class="pr-title">{{ action.entityName }}</strong>
+          <span v-if="action.entityId" class="pr-meta-id">{{ t.import.rowId }}: {{ action.entityId }}</span>
+        </template>
+        <template #body>
+          <PendingReviewAiFields :model="action.fields" :id-prefix="`af-${action._id}`" />
+          <blockquote v-if="action.sourceText" class="pr-source">{{ action.sourceText }}</blockquote>
+        </template>
+      </PendingReviewRow>
+    </PendingReviewLayout>
   </Modal>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import Modal from './Modal.vue'
 import AppButton from './AppButton.vue'
+import PendingReviewLayout from './PendingReviewLayout.vue'
+import PendingReviewRow from './PendingReviewRow.vue'
+import PendingReviewAiFields from './PendingReviewAiFields.vue'
 import { useI18n } from '../composables/useI18n.js'
+import { showToast } from '../composables/useToast.js'
 import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 
 const props = defineProps({
@@ -103,21 +93,89 @@ const { t } = useI18n()
 
 const text = ref(props.initialText)
 const view = ref('edit') // 'edit' | 'processing' | 'actions'
-const aiActions = ref([])
+const pendingActions = ref([])
 const aiResidualText = ref('')
 const aiError = ref('')
 const aiKeyAvailable = ref(hasCapability('ai:available') && callCapability('ai:available'))
 
+/** Rozbalení řádku akce (klíč = _id). */
+const expandedById = reactive({})
+
 watch(() => props.initialText, (v) => { text.value = v }, { immediate: true })
 
-function handleClose() {
-  emit('close', text.value)
+/**
+ * Přepne stav rozbalení řádku.
+ * @param {number} id
+ */
+function toggleRow(id) {
+  expandedById[id] = !expandedById[id]
 }
+
+/**
+ * Vymaže stav rozbalení a připraví mapu pro nové akce.
+ * @param {Array} actions
+ */
+function resetExpandedFor(actions) {
+  for (const k of Object.keys(expandedById)) delete expandedById[k]
+  for (const a of actions) expandedById[a._id] = false
+}
+
+/**
+ * Připojí text zdroje ke zbytku zápisníku (při přeskočení akce).
+ * @param {{ sourceText?: string }} action
+ */
+function mergeSkippedSource(action) {
+  if (!action.sourceText?.trim()) return
+  aiResidualText.value = [aiResidualText.value, action.sourceText.trim()].filter(Boolean).join('\n\n')
+}
+
+/**
+ * Složí výsledný text zápisníku z AI zbytku a zdrojů nepotvrzených akcí.
+ */
+function buildFinalNotebookText() {
+  const parts = [aiResidualText.value]
+  for (const a of pendingActions.value) {
+    if (a.sourceText?.trim()) parts.push(a.sourceText.trim())
+  }
+  return parts.filter(Boolean).join('\n\n').trim()
+}
+
+/**
+ * Odebere akci ze seznamu.
+ * @param {{ _id: number }} action
+ */
+function removeAction(action) {
+  pendingActions.value = pendingActions.value.filter((a) => a._id !== action._id)
+  delete expandedById[action._id]
+}
+
+/**
+ * Zavře modal a předá rodiči finální text zápisníku.
+ */
+function finishAndClose() {
+  emit('close', buildFinalNotebookText())
+}
+
+/**
+ * Handler zavření (křížek / overlay) — zohlední režim akcí.
+ */
+function handleClose() {
+  const out = view.value === 'actions' ? buildFinalNotebookText() : text.value
+  emit('close', out)
+}
+
+watch(
+  () => [view.value, pendingActions.value.length],
+  ([v, len]) => {
+    if (v !== 'actions' || len > 0) return
+    finishAndClose()
+  },
+)
 
 async function runAiProcess() {
   view.value = 'processing'
   aiError.value = ''
-  aiActions.value = []
+  pendingActions.value = []
   try {
     const { actions, residualText } = await callCapability('ai:notebook', text.value, props.projectData)
     aiResidualText.value = residualText
@@ -126,7 +184,9 @@ async function runAiProcess() {
       text.value = residualText
       view.value = 'edit'
     } else {
-      aiActions.value = actions.map((a, i) => ({ ...a, _id: i, _status: 'pending' }))
+      const mapped = actions.map((a, i) => ({ ...a, _id: i }))
+      pendingActions.value = mapped
+      resetExpandedFor(mapped)
       view.value = 'actions'
     }
   } catch (e) {
@@ -135,33 +195,55 @@ async function runAiProcess() {
   }
 }
 
-function handleConfirmAction(action) {
+/**
+ * Potvrdí jednu akci — uložení do store, odebrání ze seznamu.
+ * @param {object} action
+ */
+function confirmOne(action) {
   emit('confirm-action', action)
-  action._status = 'confirmed'
+  removeAction(action)
+  showToast(t.notebook.itemImported)
 }
 
-function confirmAllActions() {
-  for (const action of aiActions.value) {
-    if (action._status === 'pending') {
-      handleConfirmAction(action)
-    }
-  }
+/**
+ * Přeskočí akci — vrátí zdroj do zbytku a odebere ze seznamu.
+ * @param {object} action
+ */
+function skipOne(action) {
+  mergeSkippedSource(action)
+  removeAction(action)
+  showToast(t.notebook.itemSkipped)
 }
 
-function buildNotebookFromResidual() {
-  const parts = [aiResidualText.value]
-  for (const a of aiActions.value) {
-    if (a._status !== 'confirmed' && a.sourceText?.trim()) {
-      parts.push(a.sourceText.trim())
-    }
+/**
+ * Potvrdí všechny zbývající akce najednou.
+ */
+function confirmAllPending() {
+  for (const action of pendingActions.value) {
+    emit('confirm-action', action)
   }
-  return parts.filter(Boolean).join('\n\n').trim()
+  showToast(t.notebook.batchImported)
+  pendingActions.value = []
+  for (const k of Object.keys(expandedById)) delete expandedById[k]
+}
+
+/**
+ * Zahodí všechny návrhy bez zápisu do store.
+ */
+function rejectAllPending() {
+  for (const action of pendingActions.value) {
+    mergeSkippedSource(action)
+  }
+  showToast(t.notebook.allRejected)
+  pendingActions.value = []
+  for (const k of Object.keys(expandedById)) delete expandedById[k]
 }
 
 function backToEdit() {
-  text.value = buildNotebookFromResidual()
+  text.value = buildFinalNotebookText()
   view.value = 'edit'
-  aiActions.value = []
+  pendingActions.value = []
+  for (const k of Object.keys(expandedById)) delete expandedById[k]
   aiResidualText.value = ''
   aiError.value = ''
 }
@@ -218,132 +300,4 @@ function backToEdit() {
   color: var(--text-muted);
 }
 
-.nb-actions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  gap: var(--space-md);
-}
-
-.nb-actions-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.nb-action-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.nb-action-card {
-  padding: var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  transition: opacity var(--transition);
-}
-
-.nb-action-confirmed { opacity: 0.55; border-color: var(--accent); }
-.nb-action-skipped { opacity: 0.35; }
-
-.nb-action-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.nb-action-entity-badge {
-  font-size: 0.72rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-muted);
-  color: var(--accent);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-}
-
-.nb-action-type {
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.nb-action-type-create { background: var(--accent-muted); color: var(--accent); }
-.nb-action-type-update { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
-
-.nb-action-name { font-size: 0.95rem; }
-
-.nb-action-fields {
-  font-size: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nb-field-key {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.nb-field-input {
-  width: 100%;
-  padding: 4px 6px;
-  font-size: 0.85rem;
-  font-family: inherit;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  resize: vertical;
-  line-height: 1.4;
-  transition: border-color var(--transition);
-}
-
-.nb-field-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.nb-field-val {
-  color: var(--text);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.nb-action-source {
-  margin: 0;
-  padding: var(--space-xs) var(--space-sm);
-  border-left: 3px solid var(--border);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-style: italic;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.nb-action-btns {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.nb-action-status {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
 </style>

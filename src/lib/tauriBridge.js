@@ -112,6 +112,55 @@ export async function restoreAllFromTauri() {
 }
 
 /**
+ * Otevře URL v externím prohlížeči (Tauri) nebo v novém tabu (web).
+ * @param {string} url
+ */
+export async function openExternal(url) {
+  if (isTauri) {
+    const { open } = await import('@tauri-apps/plugin-shell')
+    await open(url)
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+}
+
+/**
+ * Uloží soubor na disk přes Tauri invoke a otevře ho.
+ * Ve webovém prostředí použije klasický <a> download.
+ * @param {string} filename
+ * @param {Uint8Array|ArrayBuffer} data
+ * @param {string} mimeType
+ */
+export async function saveAndOpenFile(filename, data, mimeType) {
+  if (isTauri) {
+    const { invoke } = await import('@tauri-apps/api/core')
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+    const base64 = uint8ArrayToBase64(bytes)
+    const path = await invoke('save_download_file', { filename, dataBase64: base64 })
+    const { open } = await import('@tauri-apps/plugin-shell')
+    await open(path)
+  } else {
+    const blob = new Blob([data], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+}
+
+/** Uint8Array → base64 string (bezpečné i pro velké soubory). */
+function uint8ArrayToBase64(bytes) {
+  let binary = ''
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
+/**
  * Přihlásí listener na externí změny storage z Tauri backendu.
  * Vrací unsubscribe funkci, nebo no-op mimo Tauri.
  * @param {(payload: { key?: string }) => void} onChange

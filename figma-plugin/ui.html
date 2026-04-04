@@ -137,7 +137,16 @@ select { appearance: auto; }
 .change-item:hover { background: var(--bg-hover); }
 .change-detail { padding: 4px 8px; font-size: 10px; color: var(--text-muted); display: none; }
 .change-detail.open { display: block; }
-.change-field { margin: 2px 0; }
+.change-field { margin: 2px 0; display: flex; align-items: flex-start; gap: 4px; }
+.change-field-text { flex: 1; min-width: 0; }
+.change-field-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.cf-btn { width: 18px; height: 18px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+.cf-accept { background: var(--success); color: #fff; }
+.cf-accept:hover { opacity: 0.8; }
+.cf-reject { background: var(--error); color: #fff; }
+.cf-reject:hover { opacity: 0.8; }
+.change-field.resolved { opacity: 0.4; text-decoration: line-through; }
+.change-field.resolved .cf-btn { display: none; }
 .change-old { color: var(--error); text-decoration: line-through; }
 .change-new { color: var(--success); }
 .sync-action-btn {
@@ -1346,10 +1355,17 @@ function renderDiffPreview(diffs, direction) {
     for (var ci = 0; ci < d.changes.length; ci++) {
       var ch = d.changes[ci];
       var fieldLabel = getFieldLabel(d.entityType, ch.field);
-      html += '<div class="change-field">';
+      var fid = 'cf-' + i + '-' + ci;
+      html += '<div class="change-field" id="' + fid + '">';
+      html += '<div class="change-field-text">';
       html += '<strong>' + escapeHtml(fieldLabel) + ':</strong> ';
       html += '<span class="change-old">' + escapeHtml(truncate(ch.oldValue, 60)) + '</span>';
       html += ' → <span class="change-new">' + escapeHtml(truncate(ch.newValue, 60)) + '</span>';
+      html += '</div>';
+      html += '<span class="change-field-actions">';
+      html += '<button class="cf-btn cf-accept" title="Potvrdit" onclick="event.stopPropagation();acceptField(' + i + ',' + ci + ')">✓</button>';
+      html += '<button class="cf-btn cf-reject" title="Zamítnout" onclick="event.stopPropagation();rejectField(' + i + ',' + ci + ')">✗</button>';
+      html += '</span>';
       html += '</div>';
     }
     html += '</div>';
@@ -1399,9 +1415,14 @@ document.getElementById('btnSyncExecute').addEventListener('click', async functi
   document.getElementById('btnSyncExecute').disabled = true;
 
   try {
+    // Filter out fully-resolved diffs (all fields individually accepted/rejected)
+    var unresolvedDiffs = pendingSyncDiffs.filter(function(d) {
+      return d.changes.some(function(c) { return !c._resolved; });
+    });
+
     if (currentSyncAction === 'pull') {
-      // Apply remote changes to cards
-      const updates = pendingSyncDiffs.map(d => ({
+      // Apply remote changes to cards (only unresolved)
+      const updates = unresolvedDiffs.map(d => ({
         entityId: d.entityId,
         entityType: d.entityType,
         entity: d.entity
@@ -1410,12 +1431,12 @@ document.getElementById('btnSyncExecute').addEventListener('click', async functi
       showInfo('syncResult', '<span class="spinner"></span> Aktualizuji karty...', '');
       log('info', 'sync', `API → Figma: ${updates.length} entit`);
     } else if (currentSyncAction === 'push') {
-      // Push local changes to API
+      // Push local changes to API (only unresolved)
       var successCount = 0;
       var errorCount = 0;
       var succeededDiffs = [];
-      for (var pdi = 0; pdi < pendingSyncDiffs.length; pdi++) {
-        var d = pendingSyncDiffs[pdi];
+      for (var pdi = 0; pdi < unresolvedDiffs.length; pdi++) {
+        var d = unresolvedDiffs[pdi];
         try {
           await updateEntity(d.entityType, d.entityId, d.entity);
           successCount++;
@@ -1642,6 +1663,82 @@ window.toggleChangeDetail = function(i) {
   const el = document.getElementById('change-detail-' + i);
   if (el) el.classList.toggle('open');
 };
+
+// Accept a single field change — push it to API immediately and mark resolved
+window.acceptField = async function(diffIdx, changeIdx) {
+  var d = pendingSyncDiffs[diffIdx];
+  if (!d) return;
+  var ch = d.changes[changeIdx];
+  if (!ch || ch._resolved) return;
+
+  if (currentSyncAction === 'push') {
+    // Push single field to API
+    try {
+      // Send full entity with the accepted field value to API
+      var fullEntity = Object.assign({}, d.entity);
+      fullEntity[ch.field] = ch.newValue;
+      await updateEntity(d.entityType, d.entityId, fullEntity);
+      // Update stored entity on card
+      parent.postMessage({ pluginMessage: { type: 'update-stored-entities', updates: [{ entityId: d.entityId, entity: fullEntity }] } }, '*');
+      d.entity = fullEntity;
+    } catch (e) {
+      log('error', 'sync', 'Chyba potvrzení pole ' + ch.field, e.message);
+      return;
+    }
+  } else if (currentSyncAction === 'pull') {
+    // Apply single remote field to card
+    parent.postMessage({ pluginMessage: { type: 'update-cards', updates: [{ entityId: d.entityId, entityType: d.entityType, entity: Object.assign({}, d.entity) }] } }, '*');
+  }
+
+  ch._resolved = 'accepted';
+  markFieldResolved(diffIdx, changeIdx, '✓');
+  checkEntityFullyResolved(diffIdx);
+};
+
+// Reject a single field change — revert card text to original (stored) value
+window.rejectField = function(diffIdx, changeIdx) {
+  var d = pendingSyncDiffs[diffIdx];
+  if (!d) return;
+  var ch = d.changes[changeIdx];
+  if (!ch || ch._resolved) return;
+
+  if (currentSyncAction === 'push') {
+    // Revert card to stored (original) value
+    parent.postMessage({ pluginMessage: { type: 'revert-field', entityId: d.entityId, field: ch.field, originalValue: ch.oldValue } }, '*');
+  }
+  // For pull: just ignore the remote change (don't apply it)
+
+  ch._resolved = 'rejected';
+  markFieldResolved(diffIdx, changeIdx, '✗');
+  checkEntityFullyResolved(diffIdx);
+};
+
+function markFieldResolved(diffIdx, changeIdx, symbol) {
+  var el = document.getElementById('cf-' + diffIdx + '-' + changeIdx);
+  if (el) el.classList.add('resolved');
+  resizeUI();
+}
+
+function checkEntityFullyResolved(diffIdx) {
+  var d = pendingSyncDiffs[diffIdx];
+  if (!d) return;
+  var allResolved = d.changes.every(function(c) { return !!c._resolved; });
+  if (allResolved) {
+    // Update entity header to show it's done
+    var items = document.querySelectorAll('#syncChangeList .change-item');
+    if (items[diffIdx]) {
+      items[diffIdx].style.opacity = '0.4';
+      items[diffIdx].style.textDecoration = 'line-through';
+    }
+  }
+  // If ALL diffs are fully resolved, hide the execute button
+  var allDone = pendingSyncDiffs.every(function(dd) {
+    return dd.changes.every(function(c) { return !!c._resolved; });
+  });
+  if (allDone) {
+    document.getElementById('btnSyncExecute').classList.add('hidden');
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Init

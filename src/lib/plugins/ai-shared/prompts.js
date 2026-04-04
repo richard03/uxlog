@@ -8,6 +8,44 @@
 // ---------------------------------------------------------------------------
 
 /**
+ * Převede hodnotu pole z JSON odpovědi LLM na prostý řetězec pro formulář a úložiště.
+ * Pole (např. odrážky SWOT) sloučí na řádky bez JSON závorek.
+ * @param {unknown} v
+ * @returns {string}
+ */
+export function aiFieldToPlainString(v) {
+  if (v == null) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (Array.isArray(v)) {
+    return v
+      .map((x) => {
+        if (x == null) return ''
+        if (typeof x === 'object') return JSON.stringify(x)
+        return String(x)
+      })
+      .filter((s) => s !== '')
+      .join('\n')
+  }
+  if (typeof v === 'object') return JSON.stringify(v, null, 2)
+  return String(v)
+}
+
+/**
+ * Normalizuje všechny hodnoty v objektu `fields` z AI akce.
+ * @param {Record<string, unknown>|null|undefined} fields
+ * @returns {Record<string, string>}
+ */
+export function normalizeActionFields(fields) {
+  if (!fields || typeof fields !== 'object') return {}
+  const out = {}
+  for (const [k, v] of Object.entries(fields)) {
+    out[k] = aiFieldToPlainString(v)
+  }
+  return out
+}
+
+/**
  * Sestaví přehled existujících entit projektu pro prompt.
  * @param {Object} projectData
  * @returns {string}
@@ -104,13 +142,19 @@ export function parseActions(text) {
   const parsed = JSON.parse(cleaned)
   const rawActions = Array.isArray(parsed) ? parsed : (parsed?.actions ?? [])
   const residualText = typeof parsed?.residualText === 'string' ? parsed.residualText : ''
-  const actions = rawActions.filter(
-    (a) =>
-      a &&
-      (a.type === 'create' || a.type === 'update') &&
-      typeof a.entity === 'string' &&
-      a.fields && typeof a.fields === 'object'
-  )
+  const actions = rawActions
+    .filter(
+      (a) =>
+        a &&
+        (a.type === 'create' || a.type === 'update') &&
+        typeof a.entity === 'string' &&
+        a.fields &&
+        typeof a.fields === 'object',
+    )
+    .map((a) => ({
+      ...a,
+      fields: normalizeActionFields(a.fields),
+    }))
   return { actions, residualText }
 }
 
@@ -233,4 +277,88 @@ export function parseSuggestions(text) {
   return suggestions.filter(
     (s) => s && typeof s.entityType === 'string' && typeof s.entityId === 'string'
   )
+}
+
+// ---------------------------------------------------------------------------
+// Competition analysis
+// ---------------------------------------------------------------------------
+
+/**
+ * Sestaví prompt pro AI analýzu konkurence.
+ * @param {string} topic - popis tématu/oboru uživatele
+ * @param {string} projectContext - existující entity projektu
+ * @returns {string}
+ */
+export function buildCompetitionAnalysisPrompt(topic, projectContext) {
+  return `Jsi asistent pro UX design týmy. Uživatel ti popíše téma nebo obor svého projektu a ty najdeš reálné konkurenty na trhu.
+
+## Existující záznamy projektu:
+${projectContext}
+
+## Téma/obor projektu:
+${topic}
+
+## Tvůj úkol:
+Najdi 3–6 reálných konkurentů pro zadané téma a prověř jejich weby. Nepodváděj, zadavatel URL bude prověřovat. Pro každého konkurenta uveď:
+- name: název firmy/produktu
+- url: URL webové stránky (musí být reálná, existující URL)
+- description: stručný popis čím se zabývají
+- strengths: silné stránky konkurenta (co dělají dobře nebo co mají lepší oproti konkurenci)
+- weaknesses: slabé stránky konkurenta (kde mají nedostatky)
+- inspiration: co se od nich můžeme naučit nebo inspirovat
+
+Pravidla:
+1. Uváděj POUZE reálné, existující firmy/produkty, které skutečně fungují na trhu. NEVYMÝŠLEJ si konkurenty — pokud si nejsi jistý, že firma/produkt existuje, NEUVÁDĚJ ji.
+2. Do pole "url" uváděj POUZE URL, o kterých jsi si jistý, že skutečně existují a jsou funkční. Pokud si nejsi jistý, konkurenci neuváděj.
+3. Silné a slabé stránky musí být konkrétní a relevantní, ne obecné fráze.
+4. Nezahrnuj konkurenty, kteří už existují v přehledu projektu výše.
+5. Raději uveď méně konkurentů, ale za to spolehlivých, než více s nejistými údaji.
+
+Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
+{
+  "competitors": [
+    {
+      "name": "Název konkurenta",
+      "url": "https://example.com",
+      "description": "Stručný popis",
+      "strengths": "Konkrétní silné stránky",
+      "weaknesses": "Konkrétní slabé stránky",
+      "inspiration": "Co se můžeme naučit"
+    }
+  ]
+}
+
+Pokud pro zadané téma nemůžeš najít žádné relevantní konkurenty, vrať: { "competitors": [] }`
+}
+
+/**
+ * Parsuje JSON s výsledky analýzy konkurence z odpovědi LLM.
+ * @param {string} text
+ * @returns {{ actions: Array, residualText: string }}
+ */
+export function parseCompetitionAnalysis(text) {
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim()
+  const parsed = JSON.parse(cleaned)
+  const competitors = Array.isArray(parsed?.competitors) ? parsed.competitors : []
+  const actions = competitors
+    .filter((c) => c && typeof c.name === 'string' && c.name.trim())
+    .map((c) => ({
+      type: 'create',
+      entity: 'competition',
+      entityId: null,
+      entityName: c.name,
+      fields: normalizeActionFields({
+        name: c.name ?? '',
+        url: c.url ?? '',
+        description: c.description ?? '',
+        strengths: c.strengths ?? '',
+        weaknesses: c.weaknesses ?? '',
+        inspiration: c.inspiration ?? '',
+      }),
+      sourceText: '',
+    }))
+  return { actions, residualText: '' }
 }

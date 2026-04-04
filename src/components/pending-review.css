@@ -1,0 +1,225 @@
+/**
+ * Společné styly pro náhled „akcí“ — zápisník AI, analýza konkurence, import YAML.
+ * Třídy s prefixem pr- (pending review).
+ */
+
+.pr-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-md);
+}
+
+.pr-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.pr-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.pr-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.pr-batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.pr-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* --- Řádek (accordion) --- */
+
+.pr-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  transition: border-color var(--transition);
+}
+
+.pr-row-open {
+  border-color: var(--accent);
+}
+
+.pr-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
+}
+
+.pr-row-toggle {
+  flex: 1;
+  min-width: min(100%, 12rem);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pr-row-toggle:hover {
+  background: var(--bg-muted);
+}
+
+.pr-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+}
+
+.pr-chevron {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  margin-top: 0.35em;
+  color: var(--text-muted);
+}
+
+.pr-row-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.pr-row-body {
+  padding: 0 var(--space-md) var(--space-md);
+  padding-left: calc(var(--space-md) + 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* --- Shrnutí řádku (badges, titulky) --- */
+
+.pr-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.pr-type-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.pr-type-pill--create {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.pr-type-pill--update {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.pr-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.pr-meta-id {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  width: 100%;
+}
+
+.pr-meta-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+/* --- Jednoduchá pole (AI akce) --- */
+
+.pr-field-stack {
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pr-field-key {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.pr-field-input {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  resize: vertical;
+  line-height: 1.4;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+
+.pr-field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.pr-source {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.5;
+  word-break: break-word;
+}

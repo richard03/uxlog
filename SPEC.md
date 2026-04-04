@@ -57,7 +57,7 @@ Event-driven plugin registrywith capabilities and event bus.
 ## Key Features
 Project list: compact tasks-count tag links to the project’s Tasks section (if any tasks are overdue, URL may include `?overdue=1` to turn on the overdue filter). Tasks list: incomplete overdue items are visually emphasized; “Prošlé” filter matches any task whose due date is in the past. Multi-select list filters (tasks, bugs, requirements, personas, hypotheses, scenarios) use **OR**: an item appears if it matches **at least one** active badge.
 Full-text search across all entity fields
-JSON and YAML export/import with conflict resolution
+JSON and YAML export/import with conflict resolution (import preview: collapsed rows with id/title and create vs update; “import all” / “reject entire import”; per-row expand for diff, edit, single import or skip; list closes when nothing remains)
 Dark/light theme with CSS variable tokens
 Accessibility (ARIA labels, keyboard navigation, skip links, screen reader support)
 AI-powered notebook and entity connection suggestions (via plugins)

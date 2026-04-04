@@ -1,6 +1,7 @@
 <template>
   <Modal
     :title="step === 'file' ? t.import.title : t.import.previewTitle"
+    :size="step === 'preview' ? 'large' : 'normal'"
     @close="$emit('close')"
   >
     <!-- Step 1: výběr souboru nebo vložení textu -->
@@ -62,20 +63,51 @@
         </select>
       </div>
 
+      <!-- Horní akce: hromadný import / odmítnutí -->
+      <div v-if="remainingCount > 0" class="pr-batch-bar">
+        <AppButton variant="primary" :disabled="remainingCount === 0" @click="importAllPending">
+          {{ t.import.importAll }} ({{ remainingCount }})
+        </AppButton>
+        <AppButton variant="secondary" @click="rejectAllPending">{{ t.import.rejectAll }}</AppButton>
+      </div>
+
       <!-- Metadata projektu (jen pro import do existujícího) -->
       <section v-if="plan.project && selectedTarget !== 'new'" class="im-section">
         <div class="im-section-header">
           <span class="im-section-title">{{ t.import.projectMeta }}</span>
+          <span class="badge">1</span>
         </div>
-        <div class="im-card" :class="{ 'im-card-skipped': projectStatus === 'skipped' }">
-          <div class="im-card-meta">
-            <span class="im-action-badge im-action-update">{{ t.import.badgeOverwrite }}</span>
-            <strong class="im-card-name">{{ plan.project.item.name }}</strong>
-          </div>
-          <div class="im-card-btns">
-            <AppButton v-if="projectStatus !== 'skipped'" variant="secondary" size="sm" @click="projectStatus = 'skipped'">{{ t.import.skip }}</AppButton>
-            <AppButton v-else variant="secondary" size="sm" @click="projectStatus = 'included'">{{ t.import.include }}</AppButton>
-          </div>
+
+        <div class="pr-stack">
+          <PendingReviewRow
+            :expanded="expandedProject"
+            :confirm-label="t.import.importThis"
+            :skip-label="t.import.skipThis"
+            @toggle="expandedProject = !expandedProject"
+            @confirm="importProjectMetaOnly"
+            @skip="skipProjectMeta"
+          >
+            <template #summary>
+              <span class="pr-type-pill pr-type-pill--update">{{ t.import.badgeOverwrite }}</span>
+              <span class="pr-meta-id">{{ t.import.rowId }}: {{ plan.project.item.id || '—' }}</span>
+              <strong class="pr-title">{{ plan.project.item.name || '—' }}</strong>
+            </template>
+            <template #body>
+              <p v-if="getDiffFields({ item: plan.project.item, action: 'update', existing: projectExisting }).length === 0" class="im-muted">
+                {{ t.import.noFieldChanges }}
+              </p>
+              <div v-else class="im-diff">
+                <ImportDiffFieldRow
+                  v-for="f in getDiffFields({ item: plan.project.item, action: 'update', existing: projectExisting })"
+                  :key="f.key"
+                  :item="plan.project.item"
+                  :field-key="f.key"
+                  :has-existing-side="'oldVal' in f"
+                  :existing-value="'oldVal' in f ? f.oldVal : undefined"
+                />
+              </div>
+            </template>
+          </PendingReviewRow>
         </div>
       </section>
 
@@ -88,65 +120,53 @@
         <div class="im-section-header">
           <span class="im-section-title">{{ section.label }}</span>
           <span class="badge">{{ plan[section.key].length }}</span>
-          <div class="im-section-actions">
-            <AppButton variant="secondary" size="sm" @click="setAllInSection(section.key, 'included')">{{ t.import.includeAll }}</AppButton>
-            <AppButton variant="secondary" size="sm" @click="setAllInSection(section.key, 'skipped')">{{ t.import.skipAll }}</AppButton>
-          </div>
         </div>
 
-        <div class="im-card-list">
-          <div
+        <div class="pr-stack">
+          <PendingReviewRow
             v-for="(entry, i) in plan[section.key]"
-            :key="entry.item.id || i"
-            class="im-card"
-            :class="{ 'im-card-skipped': statuses[section.key]?.[i] === 'skipped' }"
-            role="listitem"
+            :key="entry.item.id + '-' + i"
+            :expanded="!!expandedEntity[section.key][i]"
+            :confirm-label="t.import.importThis"
+            :skip-label="t.import.skipThis"
+            @toggle="toggleEntityExpanded(section.key, i)"
+            @confirm="importOneEntity(section.key, i)"
+            @skip="skipOneEntity(section.key, i)"
           >
-            <div class="im-card-meta">
-              <span class="im-action-badge" :class="`im-action-${entry.action}`">
+            <template #summary>
+              <span
+                class="pr-type-pill"
+                :class="entry.action === 'create' ? 'pr-type-pill--create' : 'pr-type-pill--update'"
+              >
                 {{ entry.action === 'create' ? t.import.badgeNew : t.import.badgeOverwrite }}
               </span>
-              <strong class="im-card-name">{{ entityLabel(entry.item) }}</strong>
-              <span v-if="entry.action === 'update' && entry.matchReason !== 'id'" class="im-match-reason">
+              <span class="pr-meta-id">{{ t.import.rowId }}: {{ entry.item.id || '—' }}</span>
+              <strong class="pr-title">{{ entityTitle(entry.item) }}</strong>
+              <span v-if="entry.action === 'update' && entry.matchReason !== 'id'" class="pr-meta-hint">
                 ({{ t.import.matchBy }} {{ matchReasonLabel(entry.matchReason) }}: {{ entityLabel(entry.existing) }})
               </span>
-            </div>
-
-            <div v-if="getDiffFields(entry).length" class="im-diff">
-              <div v-for="f in getDiffFields(entry)" :key="f.key" class="im-diff-row">
-                <span class="im-diff-key">{{ f.key }}</span>
-                <span v-if="f.oldVal !== undefined" class="im-diff-old">{{ f.oldVal }}</span>
-                <span v-if="f.oldVal !== undefined" class="im-diff-arrow">→</span>
-                <span class="im-diff-new">{{ f.newVal }}</span>
+            </template>
+            <template #body>
+              <div v-if="getDiffFields(entry).length === 0" class="im-muted">{{ t.import.noFieldChanges }}</div>
+              <div v-else class="im-diff">
+                <ImportDiffFieldRow
+                  v-for="f in getDiffFields(entry)"
+                  :key="f.key"
+                  :item="entry.item"
+                  :field-key="f.key"
+                  :has-existing-side="'oldVal' in f"
+                  :existing-value="'oldVal' in f ? f.oldVal : undefined"
+                />
               </div>
-            </div>
-
-            <div class="im-card-btns">
-              <AppButton
-                v-if="statuses[section.key]?.[i] !== 'skipped'"
-                variant="tertiary"
-                size="sm"
-                @click="statuses[section.key][i] = 'skipped'"
-              >{{ t.import.skip }}</AppButton>
-              <AppButton
-                v-else
-                variant="tertiary"
-                size="sm"
-                @click="statuses[section.key][i] = 'included'"
-              >{{ t.import.include }}</AppButton>
-            </div>
-          </div>
+            </template>
+          </PendingReviewRow>
         </div>
       </section>
 
       <p v-if="importError" class="import-error" role="alert">{{ importError }}</p>
-      <p v-if="selectedCount === 0 && !importError" class="import-error" role="alert">
-        {{ t.import.nothingSelected }}
-      </p>
 
       <FormActions>
         <AppButton variant="secondary" @click="goBack">{{ t.import.back }}</AppButton>
-        <AppButton variant="primary" :disabled="selectedCount === 0" @click="doImport">{{ t.import.doImport }} ({{ selectedCount }})</AppButton>
       </FormActions>
     </div>
   </Modal>
@@ -156,9 +176,12 @@
 import { ref, reactive, computed, watch } from 'vue'
 import Modal from './Modal.vue'
 import AppButton from './AppButton.vue'
+import ImportDiffFieldRow from './ImportDiffFieldRow.vue'
+import PendingReviewRow from './PendingReviewRow.vue'
 import { FormActions } from './form'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
+import { showToast } from '../composables/useToast.js'
 import { parseYaml } from '../lib/yaml.js'
 import { analyzeImport, buildImportData } from '../lib/importLogic.js'
 
@@ -176,8 +199,11 @@ const step = ref('file')
 const pastedYaml = ref('')
 const parseError = ref('')
 const importError = ref('')
-const parsedData = ref(null)
+const pendingParsed = ref(null)
 const selectedTarget = ref(props.projectId || 'new')
+const expandedProject = ref(false)
+const didImport = ref(false)
+const lastEffectiveProjectId = ref(null)
 
 const ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses',
@@ -201,60 +227,89 @@ const sectionDefs = computed(() => [
   { key: 'bugs', label: t.sections.bugs },
 ])
 
-// Plan se přepočítá při každé změně selectedTarget
+/** Rozbalení řádků entit (index ↔ stav). */
+const expandedEntity = reactive(Object.fromEntries(ENTITY_KEYS.map((k) => [k, []])))
+
 const plan = computed(() => {
-  if (!parsedData.value) return null
+  if (!pendingParsed.value) return null
   const effectiveId = selectedTarget.value === 'new' ? '__new__' : selectedTarget.value
   if (!effectiveId) return null
   try {
-    return analyzeImport(parsedData.value, store.state, effectiveId)
+    return analyzeImport(pendingParsed.value, store.state, effectiveId)
   } catch (err) {
     console.error('[Import] analyzeImport threw:', err)
     return null
   }
 })
 
+/** Existující projekt v úložišti (pro diff metadat). */
+const projectExisting = computed(() => {
+  if (!plan.value?.project || selectedTarget.value === 'new') return null
+  return (store.state.projects || []).find((p) => p.id === selectedTarget.value) || null
+})
+
 const visibleSections = computed(() =>
   sectionDefs.value.filter((s) => plan.value?.[s.key]?.length > 0)
 )
 
-// Stav jednotlivých položek: 'included' | 'skipped'
-const projectStatus = ref('included')
-const statuses = reactive({})
-for (const key of ENTITY_KEYS) statuses[key] = []
-
-function initStatuses(importPlan) {
-  projectStatus.value = 'included'
+/**
+ * Synchronizuje délku pole rozbalení s plánem importu.
+ * @param {Object|null} p
+ */
+function syncExpandedRows(p) {
+  if (!p) return
   for (const key of ENTITY_KEYS) {
-    statuses[key] = (importPlan[key] || []).map(() => 'included')
+    const len = (p[key] || []).length
+    const arr = expandedEntity[key]
+    while (arr.length < len) arr.push(false)
+    if (arr.length > len) arr.length = len
   }
 }
 
-watch(plan, (newPlan) => {
-  if (newPlan) initStatuses(newPlan)
-})
+watch(plan, (p) => {
+  if (p) syncExpandedRows(p)
+}, { immediate: true })
 
-function setAllInSection(key, status) {
-  statuses[key] = statuses[key].map(() => status)
-}
-
-const selectedCount = computed(() => {
+const remainingCount = computed(() => {
   if (!plan.value) return 0
-  let count = 0
-  if (projectStatus.value === 'included' && plan.value.project && selectedTarget.value !== 'new') count++
+  let n = 0
+  if (plan.value.project && selectedTarget.value !== 'new') n++
   for (const key of ENTITY_KEYS) {
-    count += (statuses[key] || []).filter(s => s !== 'skipped').length
+    n += (plan.value[key] || []).length
   }
-  return count
+  return n
 })
+
+const isPlanVisuallyEmpty = computed(() => {
+  if (!plan.value) return false
+  const hasProjectRow = plan.value.project && selectedTarget.value !== 'new'
+  const hasEntities = ENTITY_KEYS.some((k) => (plan.value[k] || []).length > 0)
+  return !hasProjectRow && !hasEntities
+})
+
+watch(isPlanVisuallyEmpty, (empty) => {
+  if (empty && step.value === 'preview') {
+    finishPreviewSession()
+  }
+})
+
+/**
+ * Ukončí krok náhledu: zavře okno a případně oznámí import.
+ */
+function finishPreviewSession() {
+  if (didImport.value) {
+    emit('imported', { projectId: lastEffectiveProjectId.value })
+  } else {
+    emit('close')
+  }
+}
 
 // Pole atributů, která přeskakujeme v diffu
 const SKIP_FIELDS = new Set(['id', 'projectId', 'sortOrder'])
 
 /**
  * Vrátí seznam změněných / nových polí pro zobrazení diffu.
- * Pro 'create' vrátí všechna neprázdná viditelná pole.
- * Pro 'update' vrátí pouze pole, která se liší od existující entity.
+ * @param {{ item: object, action: string, existing?: object|null }} entry
  */
 function getDiffFields(entry) {
   const { item, action, existing } = entry
@@ -283,14 +338,32 @@ function entityLabel(item) {
   return parts.join(' ') || item.id || ''
 }
 
+/** Nadpis řádku (bez ID — ID je zvlášť). */
+function entityTitle(item) {
+  if (!item) return '—'
+  if (item.code && item.name) return `${item.code} · ${item.name}`
+  return item.name || item.code || '—'
+}
+
 function matchReasonLabel(reason) {
   if (reason === 'code') return t.import.matchCode
   if (reason === 'name') return t.import.matchName
+  if (reason === 'id') return t.import.matchId
   return reason
 }
 
 /**
+ * Přepne rozbalení entity.
+ * @param {string} sectionKey
+ * @param {number} index
+ */
+function toggleEntityExpanded(sectionKey, index) {
+  expandedEntity[sectionKey][index] = !expandedEntity[sectionKey][index]
+}
+
+/**
  * Určí výchozí target po parsování YAML.
+ * @param {object} parsed
  */
 function detectDefaultTarget(parsed) {
   const yamlProjectId = parsed?.project?.id
@@ -338,7 +411,14 @@ function processYaml(text) {
     return
   }
 
-  parsedData.value = parsed
+  try {
+    pendingParsed.value = structuredClone(parsed)
+  } catch {
+    pendingParsed.value = JSON.parse(JSON.stringify(parsed))
+  }
+  didImport.value = false
+  lastEffectiveProjectId.value = null
+  expandedProject.value = false
   selectedTarget.value = detectDefaultTarget(parsed)
   step.value = 'preview'
 }
@@ -363,13 +443,66 @@ function handleFile(event) {
 
 function goBack() {
   step.value = 'file'
-  parsedData.value = null
+  pendingParsed.value = null
   parseError.value = ''
   importError.value = ''
+  didImport.value = false
 }
 
-function doImport() {
-  if (selectedCount.value === 0 || !plan.value) return
+/**
+ * Sestaví výběr jen pro jednu entitu (ostatní false).
+ * @param {string} entityKey
+ * @param {number} index
+ * @param {boolean} includeProject
+ */
+function buildSingleEntitySelection(entityKey, index, includeProject) {
+  const p = plan.value
+  if (!p) return null
+  const selections = {
+    project: !!(includeProject && p.project && selectedTarget.value !== 'new'),
+  }
+  for (const k of ENTITY_KEYS) {
+    const len = (p[k] || []).length
+    selections[k] = Array.from({ length: len }, (_, i) => k === entityKey && i === index)
+  }
+  return selections
+}
+
+/**
+ * Výběr pouze pro metadata projektu.
+ */
+function buildProjectOnlySelection() {
+  const p = plan.value
+  if (!p) return null
+  const selections = { project: true }
+  for (const k of ENTITY_KEYS) {
+    selections[k] = (p[k] || []).map(() => false)
+  }
+  return selections
+}
+
+/**
+ * Výběr pro import všech zbývajících položek.
+ */
+function buildAllRemainingSelection() {
+  const p = plan.value
+  if (!p) return null
+  const selections = {
+    project: !!(p.project && selectedTarget.value !== 'new'),
+  }
+  for (const k of ENTITY_KEYS) {
+    selections[k] = (p[k] || []).map(() => true)
+  }
+  return selections
+}
+
+/**
+ * Spustí import dle výběru a aktualizuje stav.
+ * @param {object} selections
+ * @returns {boolean}
+ */
+function runImport(selections) {
+  if (!plan.value) return false
   importError.value = ''
   const createNew = selectedTarget.value === 'new'
   const targetId = createNew ? null : selectedTarget.value
@@ -378,33 +511,86 @@ function doImport() {
     const projectExists = (store.state.projects || []).some((p) => p.id === targetId)
     if (!projectExists) {
       importError.value = t.import.targetNotFound
-      return
+      return false
     }
-  }
-
-  // Převést statuses zpět na boolean selections pro buildImportData
-  const selections = { project: projectStatus.value !== 'skipped' }
-  for (const key of ENTITY_KEYS) {
-    selections[key] = (statuses[key] || []).map(s => s !== 'skipped')
   }
 
   try {
     const importData = buildImportData(plan.value, selections, targetId, store.state, createNew)
     store.importProjectData(importData)
-    emit('imported', { projectId: importData.effectiveProjectId })
+    lastEffectiveProjectId.value = importData.effectiveProjectId
+    didImport.value = true
+    return true
   } catch (err) {
     importError.value = t.import.importError + (err?.message ? ` ${err.message}` : '')
-    console.error('[Import] doImport error:', err)
+    console.error('[Import] runImport error:', err)
+    return false
   }
+}
+
+function importAllPending() {
+  const selections = buildAllRemainingSelection()
+  if (!selections) return
+  if (!runImport(selections)) return
+  clearAllPendingData()
+}
+
+function rejectAllPending() {
+  emit('close')
+}
+
+function importProjectMetaOnly() {
+  const selections = buildProjectOnlySelection()
+  if (!selections || !runImport(selections)) return
+  showToast(t.import.itemImported)
+  if (pendingParsed.value?.project) {
+    pendingParsed.value = { ...pendingParsed.value, project: null }
+  }
+}
+
+function skipProjectMeta() {
+  if (pendingParsed.value?.project) {
+    pendingParsed.value = { ...pendingParsed.value, project: null }
+  }
+  showToast(t.import.itemSkipped)
+}
+
+function importOneEntity(sectionKey, index) {
+  const selections = buildSingleEntitySelection(sectionKey, index, false)
+  if (!selections || !runImport(selections)) return
+  showToast(t.import.itemImported)
+  removePendingEntityAt(sectionKey, index)
+}
+
+function skipOneEntity(sectionKey, index) {
+  removePendingEntityAt(sectionKey, index)
+  showToast(t.import.itemSkipped)
+}
+
+/**
+ * Odebere entitu z rozpracovaných dat YAML podle indexu.
+ * @param {string} sectionKey
+ * @param {number} index
+ */
+function removePendingEntityAt(sectionKey, index) {
+  const src = pendingParsed.value
+  if (!src || !Array.isArray(src[sectionKey])) return
+  const next = [...src[sectionKey]]
+  next.splice(index, 1)
+  pendingParsed.value = { ...src, [sectionKey]: next }
+}
+
+/**
+ * Po hromadném importu vyprázdní lokální data (spustí prázdný plán → zavření).
+ */
+function clearAllPendingData() {
+  const empty = { project: null }
+  for (const k of ENTITY_KEYS) empty[k] = []
+  pendingParsed.value = empty
 }
 </script>
 
 <style scoped>
-:deep(.modal) {
-  max-width: 680px;
-  width: 100%;
-}
-
 .import-file-step,
 .import-preview-step {
   display: flex;
@@ -459,7 +645,6 @@ function doImport() {
   margin: 0;
 }
 
-/* Sekce */
 .im-section {
   display: flex;
   flex-direction: column;
@@ -478,112 +663,18 @@ function doImport() {
   font-size: 0.9rem;
 }
 
-.im-section-actions {
-  margin-left: auto;
-  display: flex;
-  gap: var(--space-xs);
-}
-
-/* Karta položky */
-.im-card-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.im-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  transition: opacity var(--transition);
-}
-
-.im-card-skipped {
-  opacity: 0.35;
-}
-
-/* Meta řádek */
-.im-card-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.im-action-badge {
-  font-size: 0.72rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.im-action-create {
-  background: var(--accent-muted);
-  color: var(--accent);
-}
-
-.im-action-update {
-  background: var(--bg-muted);
+.im-muted {
+  font-size: 0.85rem;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  margin: 0;
 }
 
-.im-card-name {
-  font-size: 0.95rem;
-}
-
-.im-match-reason {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-/* Diff */
 .im-diff {
-  font-size: 0.82rem;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-sm);
   border-left: 2px solid var(--border);
   padding-left: var(--space-sm);
-}
-
-.im-diff-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.im-diff-key {
-  color: var(--text-muted);
-  min-width: 9rem;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-}
-
-.im-diff-old {
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.im-diff-arrow {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.im-diff-new {
-  color: var(--text);
-}
-
-/* Tlačítka */
-.im-card-btns {
-  display: flex;
-  gap: var(--space-xs);
 }
 
 .form-actions {
@@ -591,10 +682,5 @@ function doImport() {
   gap: var(--space-sm);
   justify-content: flex-end;
   margin-top: var(--space-sm);
-}
-
-.btn-sm {
-  font-size: 0.85rem;
-  padding: 0.25rem 0.75rem;
 }
 </style>

@@ -14,6 +14,30 @@ import { useConfig } from './useConfig.js'
 import { useI18n } from './useI18n.js'
 import { formatCalendarDate } from '../utils/formatDate.js'
 
+/**
+ * Hodnotu z úložiště převede na řetězec pro zobrazení a inline editaci.
+ * Ošetří pole/objekty z chybného importu nebo AI (bez JSON závorek v UI).
+ * @param {unknown} raw
+ * @returns {string}
+ */
+function storageValueToEditableString(raw) {
+  if (raw == null || raw === '') return ''
+  if (typeof raw === 'string') return raw
+  if (typeof raw === 'number' || typeof raw === 'boolean') return String(raw)
+  if (Array.isArray(raw)) {
+    return raw
+      .map((x) => {
+        if (x == null) return ''
+        if (typeof x === 'object') return JSON.stringify(x)
+        return String(x)
+      })
+      .filter((s) => s !== '')
+      .join('\n')
+  }
+  if (typeof raw === 'object') return JSON.stringify(raw, null, 2)
+  return String(raw)
+}
+
 export function useEntityFields(entityType, entityRef, updateFn, headerFields = []) {
   const { getEffectiveEntityFields } = useConfig()
   const { t, tPath } = useI18n()
@@ -55,9 +79,12 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
    * @returns {*}
    */
   function getFieldValue(field) {
-    if (field.isCustom) return entityRef.value?.customFields?.[field.id] ?? ''
+    if (field.isCustom) {
+      return storageValueToEditableString(entityRef.value?.customFields?.[field.id])
+    }
     if (field.type === 'number-unit') return entityRef.value?.[field.valueKey] ?? ''
-    return entityRef.value?.[field.key] ?? ''
+    if (field.type === 'select') return entityRef.value?.[field.key] ?? ''
+    return storageValueToEditableString(entityRef.value?.[field.key])
   }
 
   /**
@@ -67,21 +94,26 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
    * @returns {string}
    */
   function displayFieldValue(field) {
-    const val = getFieldValue(field)
-    if (!val && val !== 0) return '—'
     if (field.type === 'select') {
-      return field.options?.find((o) => o.value === val)?.label ?? val
+      const val = entityRef.value?.[field.key]
+      if (!val && val !== 0) return '—'
+      return field.options?.find((o) => o.value === val)?.label ?? String(val)
     }
     if (field.type === 'date') {
-      return formatCalendarDate(String(val), { month: 'long' }) || val
+      const val = entityRef.value?.[field.key]
+      if (!val && val !== 0) return '—'
+      return formatCalendarDate(String(val), { month: 'long' }) || String(val)
     }
     if (field.type === 'number-unit') {
-      if (!val) return '—'
+      const val = entityRef.value?.[field.valueKey]
+      if (!val && val !== 0) return '—'
       const unitVal = entityRef.value?.[field.unitKey] ?? ''
       const unitLabel = field.units?.find((u) => u.value === unitVal)?.label ?? unitVal
       return `${val} ${unitLabel}`
     }
-    return val
+    const text = getFieldValue(field)
+    if (!text && text !== '0') return '—'
+    return text
   }
 
   /**
@@ -113,12 +145,14 @@ export function useEntityFields(entityType, entityRef, updateFn, headerFields = 
     editingField.value = key
     const field = allFields.value.find((f) => f.key === key)
     if (field?.isCustom) {
-      editValue.value = entityRef.value?.customFields?.[field.id] ?? ''
+      editValue.value = storageValueToEditableString(entityRef.value?.customFields?.[field.id])
     } else if (field?.type === 'number-unit') {
       editValue.value = entityRef.value?.[field.valueKey] ?? ''
       editUnit.value = entityRef.value?.[field.unitKey] ?? 'daily'
-    } else {
+    } else if (field?.type === 'select') {
       editValue.value = entityRef.value?.[key] ?? ''
+    } else {
+      editValue.value = storageValueToEditableString(entityRef.value?.[key])
     }
   }
 

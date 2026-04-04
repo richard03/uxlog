@@ -24,6 +24,7 @@ Before finishing:
 - **All user-facing texts** in `src/i18n/cs.js` - never hardcode Czech strings in components.
 - **Plugins** (`src/lib/plugins/`) for optional features (AI, sync, Figma API). Don't add plugin logic to core.
 - **Custom CSS design system** with CSS variables in `src/style.css` - no external UI library.
+- **Náhled čekajících změn (AI / import):** společné `pending-review.css` (třídy `pr-*`, načteno v `main.js`) a komponenty `PendingReviewLayout.vue` (horní lišta + scrollovatelný seznam), `PendingReviewRow.vue` (sbalitelný řádek s tlačítky Potvrdit/Přeskočit), `PendingReviewAiFields.vue` (textarea pole z objektu `fields`). Používá `NotebookModal` a `CompetitionAnalysisModal`; `ImportModal` sdílí jen `PendingReviewRow` a v těle řádku vlastní diff + `ImportFieldEditor`.
 
 ## Versioning
 The app version is stored in `src/lib/version.js` as `APP_VERSION`.
