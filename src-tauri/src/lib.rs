@@ -3,21 +3,22 @@
 use tauri::Manager;
 
 mod http_api;
+mod repository;
 mod storage;
 
-/// Uloží hodnotu do souboru (volá WebView přes invoke).
+/// Uloží hodnotu do embedded storage backendu (volá WebView přes invoke).
 #[tauri::command]
 fn save_storage(key: String, value: String) -> Result<(), String> {
     storage::save(&key, &value)
 }
 
-/// Načte hodnotu ze souboru (volá WebView při startu).
+/// Načte hodnotu z embedded storage backendu (volá WebView při startu).
 #[tauri::command]
 fn load_storage(key: String) -> Result<Option<String>, String> {
     storage::load(&key)
 }
 
-/// Vrátí seznam všech uložených klíčů.
+/// Vrátí seznam všech uložených storage klíčů.
 #[tauri::command]
 fn list_storage_keys() -> Vec<String> {
     storage::list_keys()
@@ -34,8 +35,7 @@ fn get_api_port() -> u16 {
 fn save_download_file(filename: String, data_base64: String) -> Result<String, String> {
     use std::fs;
 
-    let bytes = base64_decode(&data_base64)
-        .map_err(|e| format!("Base64 decode error: {e}"))?;
+    let bytes = base64_decode(&data_base64).map_err(|e| format!("Base64 decode error: {e}"))?;
 
     let docs = dirs::document_dir()
         .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")));
@@ -46,7 +46,13 @@ fn save_download_file(filename: String, data_base64: String) -> Result<String, S
 
     let safe_name: String = filename
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let path = dir.join(&safe_name);
     fs::write(&path, bytes).map_err(|e| format!("Zápis souboru selhal: {e}"))?;
@@ -59,11 +65,20 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     const TABLE: [u8; 128] = {
         let mut t = [255u8; 128];
         let mut i = 0u8;
-        while i < 26 { t[(b'A' + i) as usize] = i; i += 1; }
+        while i < 26 {
+            t[(b'A' + i) as usize] = i;
+            i += 1;
+        }
         i = 0;
-        while i < 26 { t[(b'a' + i) as usize] = 26 + i; i += 1; }
+        while i < 26 {
+            t[(b'a' + i) as usize] = 26 + i;
+            i += 1;
+        }
         i = 0;
-        while i < 10 { t[(b'0' + i) as usize] = 52 + i; i += 1; }
+        while i < 10 {
+            t[(b'0' + i) as usize] = 52 + i;
+            i += 1;
+        }
         t[b'+' as usize] = 62;
         t[b'/' as usize] = 63;
         t
@@ -117,7 +132,7 @@ pub fn run() {
                 .app_data_dir()
                 .expect("Nelze zjistit app_data_dir");
 
-            storage::init_storage_dir(data_dir);
+            repository::init_repository(data_dir)?;
             http_api::start_server(app.handle().clone());
 
             Ok(())

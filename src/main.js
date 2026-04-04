@@ -1,7 +1,7 @@
 /**
  * Vstupní bod Vue aplikace UXLog.
  *
- * V Tauri prostředí nejdřív obnoví localStorage ze souborů (pokud je prázdný)
+ * V Tauri prostředí nejdřív obnoví localStorage z nativního storage (pokud je prázdný)
  * a teprve pak inicializuje store a Vue app.
  */
 
@@ -20,7 +20,7 @@ async function bootstrap() {
   if (isTauri) {
     await restoreAllFromTauri()
     initStore()
-    console.log('[UXLog] Tauri: data obnovena ze souborů')
+    console.log('[UXLog] Tauri: data obnovena z nativního storage')
   }
 
   installPlugins()

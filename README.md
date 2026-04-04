@@ -75,7 +75,7 @@ npx tauri icon src-tauri/icons/app-icon.png
 ## Architektura
 
 - **Vue 3** + **Vite** + **Tauri 2** (Rust)
-- **localStorage** + zrcadlení na disk přes Tauri bridge
+- **Web:** `localStorage`; **desktop (Tauri):** embedded `SQLite` přes nativní storage bridge
 - Obchodní logika v `src/lib/` (čisté, testovatelné funkce)
 - Stav v `src/lib/stores/` (reaktivní store moduly)
 - Plugin systém v `src/lib/plugins/` (event bus, capabilities)

@@ -1,7 +1,7 @@
 /**
  * Modul pro práci s localStorage.
  * Centralizuje přístup k datům a zajišťuje konzistentní klíče.
- * V Tauri prostředí zrcadlí zápisy do souborů přes tauriBridge.
+ * V Tauri prostředí zrcadlí zápisy do nativního storage přes tauriBridge.
  */
 
 import { mirrorToTauri } from './tauriBridge.js'
@@ -98,7 +98,7 @@ export function loadData() {
 }
 
 /**
- * Uloží všechna data do localStorage a zrcadlí do Tauri souboru.
+ * Uloží všechna data do localStorage a zrcadlí do Tauri storage backendu.
  * @param {Object} data - Data k uložení
  */
 export async function saveData(data) {

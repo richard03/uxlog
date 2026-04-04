@@ -1,9 +1,9 @@
 /**
- * Tauri bridge – detekce prostředí a zrcadlení localStorage do souborů.
+ * Tauri bridge – detekce prostředí a zrcadlení localStorage do nativního storage.
  *
  * V Tauri WebView localStorage funguje, ale data nejsou dostupná pro
  * lokální HTTP server (Figma plugin). Tento modul zrcadlí každý zápis
- * do souboru přes Tauri invoke a při startu obnoví localStorage ze souborů,
+ * do SQLite backendu přes Tauri invoke a při startu obnoví localStorage z něj,
  * pokud je prázdný (první spuštění, vymazaná cache).
  */
 
@@ -25,7 +25,7 @@ const MIRRORED_KEYS = [
 ]
 
 /**
- * Uloží hodnotu do souboru přes Tauri IPC.
+ * Uloží hodnotu do nativního storage přes Tauri IPC.
  * Vrací Promise, aby volající mohl čekat na dokončení zápisu.
  * @param {string} key  Klíč localStorage
  * @param {string} value  Serializovaná hodnota (JSON string nebo plain string)
@@ -48,7 +48,7 @@ export async function mirrorToTauri(key, value) {
 }
 
 /**
- * Načte hodnotu ze souboru přes Tauri IPC.
+ * Načte hodnotu z nativního storage přes Tauri IPC.
  * @param {string} key
  * @returns {Promise<string|null>}
  */
@@ -59,7 +59,7 @@ async function loadFromTauri(key) {
 }
 
 /**
- * Znovu načte konkrétní klíč ze souboru a přepíše jím localStorage.
+ * Znovu načte konkrétní klíč z nativního storage a přepíše jím localStorage.
  * Vrací načtenou hodnotu, nebo null pokud neexistuje.
  * @param {string} key
  * @returns {Promise<string|null>}
@@ -75,7 +75,7 @@ export async function reloadKeyFromTauri(key) {
 }
 
 /**
- * Porovná `uxlog_data` v localStorage se souborem na disku (zápis z lokálního HTTP API).
+ * Porovná `uxlog_data` v localStorage s nativním storage backendem.
  * Při rozdílu přepíše localStorage a vrátí true — volající pak může obnovit Vue state.
  * @returns {Promise<boolean>}
  */
@@ -91,19 +91,26 @@ export async function pullUxlogDataFromDiskIntoApp() {
 }
 
 /**
- * Při startu Tauri aplikace obnoví chybějící klíče v localStorage ze souborů.
+ * Při startu Tauri aplikace obnoví chybějící klíče v localStorage z nativního storage.
+ * Pokud storage backend ještě neobsahuje hodnotu, ale localStorage ano,
+ * seedne backend z lokální hodnoty kvůli migraci starších instalací.
  * Volá se z main.js PŘED inicializací storů.
  */
 export async function restoreAllFromTauri() {
   if (!isTauri) return
   for (const key of MIRRORED_KEYS) {
     const existing = localStorage.getItem(key)
-    if (existing) continue
     try {
       const value = await loadFromTauri(key)
       if (value != null) {
+        if (existing) continue
         localStorage.setItem(key, value)
-        console.log(`[TauriBridge] Obnoveno z disku: ${key}`)
+        console.log(`[TauriBridge] Obnoveno z nativního storage: ${key}`)
+        continue
+      }
+      if (existing) {
+        await mirrorToTauri(key, existing)
+        console.log(`[TauriBridge] Seednuto do nativního storage: ${key}`)
       }
     } catch (err) {
       console.warn(`[TauriBridge] Nelze obnovit ${key}:`, err)

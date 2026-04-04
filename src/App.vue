@@ -41,7 +41,7 @@ const { t } = useI18n()
 
 /** Interval automatického syncu (každých 60 s). */
 const SYNC_INTERVAL_MS = 60_000
-/** Tauri: periodická kontrola souboru uxlog_data (zápis z Figma HTTP API mimo WebView). */
+/** Tauri: periodická kontrola nativního storage pro zápisy z Figma HTTP API mimo WebView. */
 const DISK_STORAGE_POLL_MS = 2_500
 let syncTimer = null
 let diskPollTimer = null
@@ -49,7 +49,7 @@ let syncing = false
 let stopStorageListener = null
 
 /**
- * Pokud se na disku změnilo uxlog_data (např. PUT z Figmy), přepíše localStorage a Vue state.
+ * Pokud se v nativním storage změnilo uxlog_data (např. PUT z Figmy), přepíše localStorage a Vue state.
  */
 async function applyUxlogDataFromDiskIfChanged() {
   if (!isTauri) return

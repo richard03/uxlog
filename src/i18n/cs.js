@@ -356,6 +356,12 @@ export default {
       done: 'Dokončený',
       cancelled: 'Zrušený',
     },
+    /** Popisky badge filtrů v seznamu (množné / souhrnné znění). */
+    filterBarStatus: {
+      incomplete: 'Nedokončené',
+      done: 'Dokončené',
+      cancelled: 'Zrušené',
+    },
     add: 'Přidat úkol',
     edit: 'Upravit úkol',
     delete: 'Smazat úkol',

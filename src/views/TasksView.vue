@@ -15,9 +15,9 @@
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.status }}</span>
       <div class="filter-bar-group">
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterIncomplete }" type="button" @click="filterIncomplete = !filterIncomplete">{{ t.task.statusOptions.incomplete }} ({{ countIncomplete }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterDone }" type="button" @click="filterDone = !filterDone">{{ t.task.statusOptions.done }} ({{ countDone }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterCancelled }" type="button" @click="filterCancelled = !filterCancelled">{{ t.task.statusOptions.cancelled }} ({{ countCancelled }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterIncomplete }" type="button" @click="filterIncomplete = !filterIncomplete">{{ t.task.filterBarStatus.incomplete }} ({{ countIncomplete }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterDone }" type="button" @click="filterDone = !filterDone">{{ t.task.filterBarStatus.done }} ({{ countDone }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterCancelled }" type="button" @click="filterCancelled = !filterCancelled">{{ t.task.filterBarStatus.cancelled }} ({{ countCancelled }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterOverdue }" type="button" @click="filterOverdue = !filterOverdue">{{ t.task.filterOverdue }} ({{ countOverdue }})</button>
       </div>
       <div class="filter-search">
@@ -81,6 +81,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import {
+  TASK_LIST_FILTER_DEFAULTS,
+  getTasksListFilterState,
+  setTasksListFilterState,
+} from '../lib/tasksListFilterState.js'
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
@@ -106,11 +111,26 @@ const { t } = useI18n()
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
 const tasks = computed(() => store.getTasks(projectId.value))
-const filterIncomplete = ref(false)
-const filterDone = ref(false)
-const filterCancelled = ref(false)
-const filterOverdue = ref(false)
-const filterText = ref('')
+const filterIncomplete = ref(TASK_LIST_FILTER_DEFAULTS.filterIncomplete)
+const filterDone = ref(TASK_LIST_FILTER_DEFAULTS.filterDone)
+const filterCancelled = ref(TASK_LIST_FILTER_DEFAULTS.filterCancelled)
+const filterOverdue = ref(TASK_LIST_FILTER_DEFAULTS.filterOverdue)
+const filterText = ref(TASK_LIST_FILTER_DEFAULTS.filterText)
+
+/**
+ * Načte uložené filtry pro projekt (nebo výchozí) do lokálních refů.
+ * @param {string} id
+ */
+function applyTasksListFiltersFromStore(id) {
+  const s = getTasksListFilterState(id)
+  filterIncomplete.value = s.filterIncomplete
+  filterDone.value = s.filterDone
+  filterCancelled.value = s.filterCancelled
+  filterOverdue.value = s.filterOverdue
+  filterText.value = s.filterText
+}
+
+watch(projectId, (id) => applyTasksListFiltersFromStore(id), { immediate: true })
 const countIncomplete = computed(() => tasks.value.filter(t => (t.status || 'incomplete') === 'incomplete').length)
 const countDone = computed(() => tasks.value.filter(t => t.status === 'done').length)
 const countCancelled = computed(() => tasks.value.filter(t => t.status === 'cancelled').length)
@@ -121,6 +141,20 @@ watch(
   () => route.query.overdue,
   (v) => {
     if (v === '1' || v === 'true') filterOverdue.value = true
+  },
+  { immediate: true },
+)
+
+watch(
+  [filterIncomplete, filterDone, filterCancelled, filterOverdue, filterText, projectId],
+  () => {
+    setTasksListFilterState(projectId.value, {
+      filterIncomplete: filterIncomplete.value,
+      filterDone: filterDone.value,
+      filterCancelled: filterCancelled.value,
+      filterOverdue: filterOverdue.value,
+      filterText: filterText.value,
+    })
   },
   { immediate: true },
 )

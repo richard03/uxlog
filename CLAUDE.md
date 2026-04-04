@@ -19,7 +19,7 @@ Before finishing:
 
 ## Architecture Rules
 - **Business logic in `src/lib/`** as pure, unit-testable functions. Stores handle state + persistence. Never mix UI logic into lib/.
-- **Local-first:** All data in localStorage, mirrored to disk via Tauri. No server required.
+- **Local-first:** Web build stores data in localStorage; desktop Tauri build stores data in embedded SQLite and exposes the same state to the local HTTP API. No external server required.
 - **No cascading deletion:** Deleting an entity removes only relationship links, not related entities.
 - **All user-facing texts** in `src/i18n/cs.js` - never hardcode Czech strings in components.
 - **Plugins** (`src/lib/plugins/`) for optional features (AI, sync, Figma API). Don't add plugin logic to core.

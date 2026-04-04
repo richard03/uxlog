@@ -9,11 +9,10 @@
 //!   PUT  /api/uxlog_{entityType}/{id}  – aktualizace entity
 //!   GET  /api/uxlog_checksum           – kontrolní součty kolekcí
 //!
-//! Veškerá data čte/zapisuje ze stejných souborů jako WebView (storage modul).
+//! Veškerá data čte/zapisuje ze stejné SQLite repository jako WebView.
 //! Server je dostupný pouze z localhost.
 
-use crate::storage;
-use chrono::DateTime;
+use crate::repository;
 use serde::Serialize;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -50,23 +49,6 @@ pub fn start_server(app_handle: AppHandle) -> thread::JoinHandle<()> {
     })
 }
 
-/// Kolekce entit mapované na klíče v storage (odpovídá hlavní app).
-const ENTITY_COLLECTIONS: &[&str] = &[
-    "projects",
-    "goals",
-    "stakeholders",
-    "competitions",
-    "hypotheses",
-    "personas",
-    "scenarios",
-    "requirements",
-    "activities",
-    "teamMembers",
-    "tasks",
-    "bugs",
-    "connections",
-];
-
 /// Zpracuje HTTP požadavek a vrátí odpověď.
 fn handle_request(
     request: &mut Request,
@@ -84,7 +66,9 @@ fn handle_request(
     match (&method, path) {
         (Method::Get, "/api/uxlog_checksum") => handle_checksum(),
         (Method::Get, p) if p.starts_with("/api/uxlog_") => handle_get_collection(&url),
-        (Method::Put, p) if p.starts_with("/api/uxlog_") => handle_put_entity(request, p, app_handle),
+        (Method::Put, p) if p.starts_with("/api/uxlog_") => {
+            handle_put_entity(request, p, app_handle)
+        }
         _ => cors_response(StatusCode(404), r#"{"error":"Not found"}"#),
     }
 }
@@ -100,15 +84,14 @@ fn handle_get_collection(url: &str) -> Response<std::io::Cursor<Vec<u8>>> {
         return handle_get_single_entity(base, collection_name);
     }
 
-    if !ENTITY_COLLECTIONS.contains(&collection_name) {
+    if !repository::is_supported_collection(collection_name) {
         return cors_response(StatusCode(404), r#"{"error":"Unknown collection"}"#);
     }
 
-    let data = load_app_data();
-    let entities = data
-        .get(collection_name)
-        .cloned()
-        .unwrap_or_else(|| serde_json::Value::Array(vec![]));
+    let entities = match repository::get_collection_entities(collection_name) {
+        Ok(records) => serde_json::Value::Array(records),
+        Err(err) => return server_error_response(&err),
+    };
 
     let body = if since > 0 {
         let filtered = entities
@@ -116,7 +99,7 @@ fn handle_get_collection(url: &str) -> Response<std::io::Cursor<Vec<u8>>> {
             .map(|records| {
                 records
                     .iter()
-                    .filter(|record| record_change_ts(record) > since)
+                    .filter(|record| repository::record_change_ts(record) > since)
                     .cloned()
                     .collect::<Vec<_>>()
             })
@@ -145,26 +128,13 @@ fn handle_get_single_entity(
         return cors_response(StatusCode(400), r#"{"error":"Missing id"}"#);
     }
 
-    let data = load_app_data();
-    let entities = data
-        .get(collection)
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
-
-    let entity = entities.iter().find(|e| {
-        e.get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s == id)
-            .unwrap_or(false)
-    });
-
-    match entity {
-        Some(e) => {
-            let body = serde_json::to_string(e).unwrap_or_else(|_| "null".to_string());
+    match repository::get_entity(collection, id) {
+        Ok(Some(entity)) => {
+            let body = serde_json::to_string(&entity).unwrap_or_else(|_| "null".to_string());
             cors_response(StatusCode(200), &body)
         }
-        None => cors_response(StatusCode(404), r#"{"error":"Entity not found"}"#),
+        Ok(None) => cors_response(StatusCode(404), r#"{"error":"Entity not found"}"#),
+        Err(err) => server_error_response(&err),
     }
 }
 
@@ -182,7 +152,7 @@ fn handle_put_entity(
     let collection = parts[0];
     let put_id = parts[1];
 
-    if !ENTITY_COLLECTIONS.contains(&collection) {
+    if !repository::is_supported_collection(collection) {
         return cors_response(StatusCode(404), r#"{"error":"Unknown collection"}"#);
     }
 
@@ -202,72 +172,39 @@ fn handle_put_entity(
         .and_then(|v| v.as_str())
         .unwrap_or(put_id);
 
-    let mut data = load_app_data();
-    let arr = data
-        .entry(collection)
-        .or_insert_with(|| serde_json::Value::Array(vec![]));
-
-    if let Some(entities) = arr.as_array_mut() {
-        let idx = entities.iter().position(|e| {
-            e.get("id")
-                .and_then(|v| v.as_str())
-                .map(|s| s == uxlog_id)
-                .unwrap_or(false)
-        });
-
-        let mut record = incoming.clone();
-        if let Some(obj) = record.as_object_mut() {
-            obj.insert("id".to_string(), serde_json::Value::String(uxlog_id.to_string()));
-        }
-
-        match idx {
-            Some(i) => entities[i] = record,
-            None => entities.push(record),
-        }
+    let mut record = incoming.clone();
+    if let Some(obj) = record.as_object_mut() {
+        obj.insert(
+            "id".to_string(),
+            serde_json::Value::String(uxlog_id.to_string()),
+        );
+    } else {
+        return cors_response(
+            StatusCode(400),
+            r#"{"error":"Entity body must be an object"}"#,
+        );
     }
 
-    save_app_data(&data);
+    if let Err(err) = repository::upsert_entity(collection, uxlog_id, &record) {
+        return server_error_response(&err);
+    }
     emit_storage_updated(app_handle, "uxlog_data");
     cors_response(StatusCode(200), r#"{"ok":true}"#)
 }
 
 /// GET /api/uxlog_checksum – checksum per kolekce podle skutečného obsahu.
 fn handle_checksum() -> Response<std::io::Cursor<Vec<u8>>> {
-    let data = load_app_data();
     let mut checksums = serde_json::Map::new();
-    for col in ENTITY_COLLECTIONS {
-        let records = data
-            .get(*col)
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default();
+    for col in repository::ENTITY_COLLECTIONS {
+        let records = match repository::get_collection_entities(col) {
+            Ok(records) => records,
+            Err(err) => return server_error_response(&err),
+        };
         let checksum = checksum_records(&records);
-        checksums.insert(
-            col.to_string(),
-            serde_json::Value::String(checksum),
-        );
+        checksums.insert(col.to_string(), serde_json::Value::String(checksum));
     }
     let body = serde_json::to_string(&checksums).unwrap_or_else(|_| "{}".to_string());
     cors_response(StatusCode(200), &body)
-}
-
-/// Načte hlavní data aplikace (uxlog_data) ze storage.
-fn load_app_data() -> serde_json::Map<String, serde_json::Value> {
-    let raw = storage::load("uxlog_data").ok().flatten().unwrap_or_default();
-    if raw.is_empty() {
-        return serde_json::Map::new();
-    }
-    serde_json::from_str::<serde_json::Value>(&raw)
-        .ok()
-        .and_then(|v| v.as_object().cloned())
-        .unwrap_or_default()
-}
-
-/// Uloží hlavní data aplikace do storage.
-fn save_app_data(data: &serde_json::Map<String, serde_json::Value>) {
-    let json = serde_json::to_string(&serde_json::Value::Object(data.clone()))
-        .unwrap_or_else(|_| "{}".to_string());
-    let _ = storage::save("uxlog_data", &json);
 }
 
 /// Načte číselný query parametr since z URL, pokud je přítomen.
@@ -280,35 +217,6 @@ fn parse_since_param(url: &str) -> Option<i64> {
         }
     }
     None
-}
-
-/// Vrátí čas poslední změny záznamu v ms epoch.
-/// Použije maximum z _ts a ISO timestampů, aby zachytil změny z obou směrů.
-fn record_change_ts(record: &serde_json::Value) -> i64 {
-    let mut best = 0_i64;
-    if let Some(ts) = record.get("_ts").and_then(|v| v.as_i64()) {
-        best = best.max(ts);
-    }
-    if let Some(ts) = record.get("_ts").and_then(|v| v.as_u64()) {
-        best = best.max(ts as i64);
-    }
-    if let Some(ts) = record
-        .get("updatedAt")
-        .or_else(|| record.get("lastWorkedAt"))
-        .or_else(|| record.get("createdAt"))
-        .and_then(|v| v.as_str())
-        .and_then(parse_iso_timestamp_ms)
-    {
-        best = best.max(ts);
-    }
-    best
-}
-
-/// Převede ISO timestamp na ms epoch. Vrací None pro neplatné hodnoty.
-fn parse_iso_timestamp_ms(value: &str) -> Option<i64> {
-    DateTime::parse_from_rfc3339(value)
-        .ok()
-        .map(|dt| dt.timestamp_millis())
 }
 
 /// Spočítá deterministický checksum seznamu záznamů.
@@ -327,6 +235,12 @@ fn checksum_records(records: &[serde_json::Value]) -> String {
     format!("{:x}", hasher.finish())
 }
 
+/// Vytvoří JSON odpověď 500 pro interní chyby repository vrstvy.
+fn server_error_response(message: &str) -> Response<std::io::Cursor<Vec<u8>>> {
+    let body = serde_json::json!({ "error": message }).to_string();
+    cors_response(StatusCode(500), &body)
+}
+
 /// Pošle do Tauri WebView událost o externí změně storage.
 fn emit_storage_updated(app_handle: &AppHandle, key: &str) {
     let payload = StorageUpdatedEvent { key };
@@ -340,9 +254,7 @@ fn cors_response(status: StatusCode, body: &str) -> Response<std::io::Cursor<Vec
     let data = body.as_bytes().to_vec();
     let cursor = std::io::Cursor::new(data.clone());
     let mut resp = Response::new(status, vec![], cursor, Some(data.len()), None);
-    resp.add_header(
-        Header::from_bytes("Content-Type", "application/json; charset=utf-8").unwrap(),
-    );
+    resp.add_header(Header::from_bytes("Content-Type", "application/json; charset=utf-8").unwrap());
     resp.add_header(Header::from_bytes("Access-Control-Allow-Origin", "*").unwrap());
     resp.add_header(
         Header::from_bytes(
@@ -352,12 +264,14 @@ fn cors_response(status: StatusCode, body: &str) -> Response<std::io::Cursor<Vec
         .unwrap(),
     );
     resp.add_header(
-        Header::from_bytes("Access-Control-Allow-Headers", "Authorization, Content-Type")
-            .unwrap(),
+        Header::from_bytes(
+            "Access-Control-Allow-Headers",
+            "Authorization, Content-Type",
+        )
+        .unwrap(),
     );
     resp.add_header(
-        Header::from_bytes("Cache-Control", "no-store, no-cache, must-revalidate")
-            .unwrap(),
+        Header::from_bytes("Cache-Control", "no-store, no-cache, must-revalidate").unwrap(),
     );
     resp.add_header(Header::from_bytes("Access-Control-Max-Age", "86400").unwrap());
     resp
