@@ -1,16 +1,20 @@
 <template>
   <div class="container" v-if="project">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-row">
-        <h1><ProjectColorTag :color="project?.color" />{{ t.sections.personas }}</h1>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'personas')" :filename="t.sections.personas" />
-          <AppButton variant="primary" @click="openForm()">{{ t.persona.add }}</AppButton>
-        </div>
-      </div>
-    </header>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project?.color"
+      :title="t.sections.personas">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'personas')" :filename="t.sections.personas" />
+      </template>
+    </ProjectPageHeader>
+
+    <ColumnHeading :title="t.sections.personas">
+      <template #actions>
+        <AppButton variant="primary" size="sm" @click="openForm()">{{ t.persona.add }}</AppButton>
+      </template>
+    </ColumnHeading>
 
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.status }}</span>
@@ -98,9 +102,10 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import ColumnHeading from '../components/ColumnHeading.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
@@ -109,7 +114,6 @@ import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { useEntityHelpers } from '../composables/useEntityHelpers.js'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 import { filterByAnyActiveBranch } from '../lib/listFilters.js'

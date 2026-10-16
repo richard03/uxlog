@@ -1,32 +1,29 @@
 <template>
   <div class="container" v-if="project && item">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-title-row">
-        <div class="header-title">
-          <div class="header-title-main">
-            <button class="editable-name" @click="openEdit('name')" :aria-label="`${t.common.edit} – ${t.requirement.name}`">
-              <h1><ProjectColorTag :color="project?.color" />{{ item.name || t.requirement.name }}</h1>
-              <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-          </div>
-          <p class="entity-type">{{ t.requirement.label }}
-            <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.requirement.code}`">
-              <span>{{ item.code || '–' }}</span>
-              <svg class="pencil" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-          </p>
-        </div>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
-          <KebabMenu
-            :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
-            @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
-          />
-        </div>
-      </div>
-    </header>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project?.color"
+      :title="item.name || t.requirement.name"
+      :on-edit-title="() => openEdit('name')"
+      :edit-title-label="`${t.common.edit} – ${t.requirement.name}`">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
+        <KebabMenu
+          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
+        />
+      </template>
+    </ProjectPageHeader>
+
+    <ColumnHeading :title="`${t.requirement.label} ${item.name || ''}`.trim()">
+      <template #sub>
+        <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.requirement.code}`">
+        <span>{{ item.code || '–' }}</span>
+        <svg class="pencil" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </template>
+    </ColumnHeading>
 
     <section class="detail-section">
       <dl class="detail-list">
@@ -82,14 +79,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityFields } from '../composables/useEntityFields.js'
+import ColumnHeading from '../components/ColumnHeading.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'

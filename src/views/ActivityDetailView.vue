@@ -1,28 +1,22 @@
 <template>
   <div class="container" v-if="project && item">
-    <PageHeader>
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-title-row">
-        <div class="header-title">
-          <button class="editable-name" @click="openEdit('name')" :aria-label="`${t.common.edit} – ${t.activity.name}`">
-            <h1><ProjectColorTag :color="project?.color" />{{ item.name || t.activity.name }}</h1>
-            <svg class="pencil" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <p class="entity-type">{{ t.activity.label }}</p>
-        </div>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
-          <KebabMenu
-            :items="activityHeaderKebabItems"
-            @action="onActivityHeaderKebab"
-          />
-        </div>
-      </div>
-      <div class="status-badge-row">
-        <ActivityStatusBadge :status="item.status" :label="t.activity.statusOptions[item.status]" />
-      </div>
-    </PageHeader>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project?.color"
+      :title="item.name || t.activity.name"
+      :on-edit-title="() => openEdit('name')"
+      :edit-title-label="`${t.common.edit} – ${t.activity.name}`">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
+        <KebabMenu
+          :items="activityHeaderKebabItems"
+          @action="onActivityHeaderKebab"
+        />
+      </template>
+    </ProjectPageHeader>
+
+    <ColumnHeading :title="`${t.activity.label} ${item.name || ''}`.trim()" />
 
     <section class="detail-section">
       <dl class="detail-list">
@@ -130,18 +124,16 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
 import { useDeadline } from '../composables/useDeadline.js'
-import PageHeader from '../components/PageHeader.vue'
+import ColumnHeading from '../components/ColumnHeading.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import Modal from '../components/Modal.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import { FormGroup, FormInput, FormActions } from '../components/form'
-import ActivityStatusBadge from '../components/ActivityStatusBadge.vue'
 import ActivityChecklist from '../components/ActivityChecklist.vue'
 import SectionCard from '../components/SectionCard.vue'
 import AppButton from '../components/AppButton.vue'

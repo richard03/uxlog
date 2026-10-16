@@ -51,7 +51,7 @@ const projectColor = computed(() => {
 }
 
 .header-inner {
-  max-width: 900px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
   display: flex;
   align-items: center;

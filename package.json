@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build && node scripts/copy-installers.js"
+    "tauri:dev": "node scripts/check-build-cache.js && tauri dev",
+    "tauri:build": "node scripts/check-build-cache.js && tauri build && node scripts/copy-installers.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

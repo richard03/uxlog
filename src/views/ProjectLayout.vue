@@ -1,0 +1,98 @@
+<template>
+  <div class="project-layout container" :style="{ '--project-header-height': `${headerHeight}px` }">
+    <!-- Hlavička aktuální obrazovky (ProjectPageHeader ji sem teleportuje) – přes celou šířku -->
+    <div :id="PROJECT_HEADER_TARGET_ID" ref="headerEl" class="project-layout-header"></div>
+    <!-- Zápisník (chat) – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci -->
+    <aside v-if="project" class="project-layout-chat">
+      <NotebookChat :project-id="projectId" />
+    </aside>
+    <div class="project-layout-content">
+      <router-view />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { useStore } from '../composables/useStore.js'
+import NotebookChat from '../components/NotebookChat.vue'
+import { PROJECT_HEADER_TARGET_ID } from '../components/ProjectPageHeader.vue'
+
+const route = useRoute()
+const store = useStore()
+
+const projectId = computed(() => String(route.params.id || ''))
+const project = computed(() => store.getProject(projectId.value))
+
+/** Výška hlavičky – chat pod ní musí se vstupním polem zůstat celý na obrazovce. */
+const headerEl = ref(null)
+const headerHeight = ref(0)
+let resizeObserver = null
+
+onMounted(() => {
+  if (typeof ResizeObserver === 'undefined' || !headerEl.value) return
+  resizeObserver = new ResizeObserver(([entry]) => {
+    headerHeight.value = Math.round(entry.target.getBoundingClientRect().height)
+  })
+  resizeObserver.observe(headerEl.value)
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+</script>
+
+<style scoped>
+.project-layout {
+  display: grid;
+  /* Zápisník = polovina šířky, druhá polovina patří obrazovce vpravo */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--space-lg);
+  align-items: start;
+}
+
+.project-layout-header {
+  grid-column: 1 / -1;
+}
+
+.project-layout-header:empty {
+  display: none;
+}
+
+/* Chat zůstává na očích i při scrollování dlouhého obsahu vpravo */
+.project-layout-chat {
+  position: sticky;
+  top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  /* Celý chat (i pole pro zprávu) musí být vidět bez scrollování stránky:
+     AppHeader (~71px) + odsazení main a .container (2 × 16px) + StatusBar (24px) + rezerva dole
+     + hlavička obrazovky projektu (měřeno v JS) */
+  max-height: calc(100vh - 9rem - var(--project-header-height, 0px) - var(--space-lg)); /* + okraj pod hlavičkou */
+  min-height: 0;
+}
+
+.project-layout-chat > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Vnořená obrazovka už nemá vlastní šířku ani odsazení – určuje je layout */
+.project-layout-content > :deep(.container) {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Úzká okna: obsah nahoře, chat pod ním */
+@media (max-width: 800px) {
+  .project-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-layout-chat {
+    position: static;
+    order: 1;
+    max-height: none;
+  }
+}
+</style>

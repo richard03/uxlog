@@ -64,6 +64,8 @@ npm run tauri:dev    # vývojové okno + Vite
 npm run tauri:build  # instalátor v src-tauri/target/release/bundle/
 ```
 
+Oba příkazy nejdřív spustí `scripts/check-build-cache.js`: pokud byl projekt přesunut do jiné složky, smaže zastaralou Rust cache (`src-tauri/target`), která obsahuje absolutní cesty. První build po přesunu je proto delší.
+
 ### Ikony
 
 Po výměně zdrojového obrázku (čtvercový PNG, ideálně ≥512px):

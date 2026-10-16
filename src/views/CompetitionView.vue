@@ -1,17 +1,21 @@
 <template>
   <div class="container" v-if="project">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-row">
-        <h1><ProjectColorTag :color="project?.color" />{{ t.sections.competition }}</h1>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'competitions')" :filename="t.sections.competition" />
-          <AppButton variant="primary" @click="openForm()">{{ t.competition.add }}</AppButton>
-          <KebabMenu :items="sectionKebabItems" @action="onSectionKebab" />
-        </div>
-      </div>
-    </header>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project?.color"
+      :title="t.sections.competition">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'competitions')" :filename="t.sections.competition" />
+        <KebabMenu :items="sectionKebabItems" @action="onSectionKebab" />
+      </template>
+    </ProjectPageHeader>
+
+    <ColumnHeading :title="t.sections.competition">
+      <template #actions>
+        <AppButton variant="primary" size="sm" @click="openForm()">{{ t.competition.add }}</AppButton>
+      </template>
+    </ColumnHeading>
 
     <div v-if="items.length === 0" class="empty-state">
       <p>{{ t.common.empty }}</p>
@@ -76,9 +80,10 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import ColumnHeading from '../components/ColumnHeading.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
@@ -88,7 +93,6 @@ import AppBadge from '../components/AppBadge.vue'
 import CompetitionAnalysisModal from '../components/CompetitionAnalysisModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { useEntityHelpers } from '../composables/useEntityHelpers.js'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormInput, FormTextarea, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
 import { hasCapability, callCapability } from '../lib/plugins/registry.js'

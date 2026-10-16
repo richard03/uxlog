@@ -5,8 +5,9 @@
       <AppButton variant="secondary" size="sm" @click="openAddActivity">{{ t.activity.add }}</AppButton>
     </div>
 
-    <ul v-if="activities.length" class="entity-list" role="list">
+    <ul v-if="activities.length" class="entity-list activity-list" role="list">
       <EntityCard
+        class="activity-card"
         v-for="activity in activities"
         :key="activity.id"
         :to="{ name: 'activityDetail', params: { id: projectId, activityId: activity.id } }"
@@ -15,6 +16,7 @@
         :kebab-items="kebabItemsForActivity(activity)"
         @action="(a) => onActivityCardAction(a, activity.id)"
       >
+        <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
         <div class="card-badges">
           <ActivityStatusBadge :status="activity.status" :label="t.activity.statusOptions[activity.status]" />
           <AppBadge
@@ -23,7 +25,6 @@
             :aria-label="t.activity.checklistProgress(getChecklist(activity).done, getChecklist(activity).total)"
           >{{ getChecklist(activity).done }}/{{ getChecklist(activity).total }}</AppBadge>
         </div>
-        <h3 class="card-title">{{ activity.name || t.activity.label }}</h3>
       </EntityCard>
     </ul>
     <p v-else class="activities-empty">
@@ -173,14 +174,51 @@ function saveActivity() {
 </script>
 
 <style scoped>
-.activities-panel {
-  margin-top: var(--space-xl);
+/* Vzhled sjednocený s řádky ve sloupci Artefakty (CounterCard variant="row") */
+.activity-list {
+  gap: var(--space-sm);
+}
+
+.activity-list .activity-card {
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.activity-list .activity-card :deep(.ec-link) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.activity-list .activity-card :deep(.card-title) {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.activity-list .activity-card :deep(.card-title) {
+  overflow-wrap: anywhere;
+}
+
+/* Stav a počítadlo kroků pod názvem aktivity */
+.activity-list .activity-card :deep(.card-badges) {
+  margin: 0;
+}
+
+.activity-list .activity-card :deep(.kebab-menu) {
+  align-self: flex-start;
+  margin: -2px -8px 0 0;
 }
 
 .activities-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 2rem;
   margin-bottom: var(--space-md);
 }
 

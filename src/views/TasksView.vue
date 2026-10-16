@@ -1,16 +1,20 @@
 <template>
   <div class="container" v-if="project">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-row">
-        <h1><ProjectColorTag :color="project?.color" />{{ t.sections.tasks }}</h1>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'tasks')" :filename="t.sections.tasks" />
-          <AppButton variant="primary" @click="openForm()">{{ t.task.add }}</AppButton>
-        </div>
-      </div>
-    </header>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project?.color"
+      :title="t.sections.tasks">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'tasks')" :filename="t.sections.tasks" />
+      </template>
+    </ProjectPageHeader>
+
+    <ColumnHeading :title="t.sections.tasks">
+      <template #actions>
+        <AppButton variant="primary" size="sm" @click="openForm()">{{ t.task.add }}</AppButton>
+      </template>
+    </ColumnHeading>
 
     <div class="filter-bar">
       <span class="filter-bar-label">{{ t.filter.status }}</span>
@@ -89,9 +93,10 @@ import {
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
+import ColumnHeading from '../components/ColumnHeading.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import TaskAddModal from '../components/TaskAddModal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
@@ -99,7 +104,6 @@ import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import AppButton from '../components/AppButton.vue'
 import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 import { isIncompleteTaskOverdue, isTaskOverdue } from '../lib/tasksDisplay.js'

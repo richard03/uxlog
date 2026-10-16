@@ -9,6 +9,7 @@ import {
   buildProjectContext, buildNotebookPrompt, parseActions,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
+  buildAskContext, buildAskNotes, buildAskPrompt, parseAskAnswer,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
 
@@ -60,6 +61,21 @@ async function processNotebook(notebookText, projectData) {
   return parseActions(responseText)
 }
 
+/**
+ * Dotaz nad projektem (režim „Zeptat se“) – vrací jen text odpovědi, nic nezapisuje.
+ * @param {string} question
+ * @param {Object} projectData
+ * @param {Array} history - předchozí zprávy zápisníku
+ * @returns {Promise<{ answer: string }>}
+ */
+async function askProject(question, projectData, history) {
+  const apiKey = getKey()
+  if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
+  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history))
+  const responseText = await callOpenAI(apiKey, prompt, getModel())
+  return parseAskAnswer(responseText)
+}
+
 async function analyzeCompetition(topic, projectData) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
@@ -96,6 +112,10 @@ export default {
 
     ctx.registerCapability('ai:notebook', (notebookText, projectData) => {
       return processNotebook(notebookText, projectData)
+    })
+
+    ctx.registerCapability('ai:ask', (question, projectData, history) => {
+      return askProject(question, projectData, history)
     })
 
     ctx.registerCapability('ai:suggestions', (entity, entityType, projectData) => {

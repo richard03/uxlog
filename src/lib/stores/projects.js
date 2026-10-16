@@ -4,6 +4,7 @@ import { generateId } from '../id.js'
 import { getEffectiveTemplates } from './config.js'
 import { todayISO, addDays } from '../deadline.js'
 import { pickProjectColor } from '../projectColors.js'
+import { createNotebookEntry, appendNotebookEntry, updateNotebookEntry, getNotebookHistory } from '../notebookChat.js'
 
 export function getProjects() {
   return [...(state.projects || [])].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
@@ -50,6 +51,43 @@ export function updateProject(id, updates) {
   state.projects[idx] = { ...state.projects[idx], ...updates, lastWorkedAt: new Date().toISOString() }
   persist()
   return state.projects[idx]
+}
+
+/**
+ * Normalizovaná historie zápisníku projektu (od nejstarší zprávy).
+ * @param {string} projectId
+ * @returns {Array<Object>}
+ */
+export function getProjectNotebookHistory(projectId) {
+  return getNotebookHistory(getProject(projectId))
+}
+
+/**
+ * Přidá zprávu do historie zápisníku projektu.
+ * @param {string} projectId
+ * @param {string} text
+ * @param {string} status - 'processing' (čeká na AI) nebo 'saved' (bez AI)
+ * @param {'process'|'ask'} mode - „Vložit informace“ nebo „Zeptat se“
+ * @returns {Object|null} vytvořený záznam
+ */
+export function addNotebookEntry(projectId, text, status = 'processing', mode = 'process') {
+  const project = getProject(projectId)
+  if (!project) return null
+  const entry = createNotebookEntry(text, { id: generateId(), status, mode })
+  updateProject(projectId, appendNotebookEntry(project, entry))
+  return entry
+}
+
+/**
+ * Aktualizuje záznam v historii zápisníku projektu.
+ * @param {string} projectId
+ * @param {string} entryId
+ * @param {Object} updates
+ */
+export function updateNotebookEntryInProject(projectId, entryId, updates) {
+  const project = getProject(projectId)
+  if (!project) return
+  updateProject(projectId, updateNotebookEntry(project, entryId, updates))
 }
 
 const PROJECT_ENTITY_KEYS = [

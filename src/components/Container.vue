@@ -44,7 +44,7 @@ export default {
 
 <style scoped>
 .container--page {
-  max-width: 900px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
   padding: var(--space-md);
 }

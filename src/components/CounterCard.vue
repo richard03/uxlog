@@ -16,7 +16,7 @@
  * @param {Object} to - route objekt pro router-link
  * @param {string} label - popisek karty (lze přepsat slotem #label)
  * @param {number|string} count - číslo nebo text v badge (lze přepsat slotem #count)
- * @param {'section'|'config'} variant - section: kompaktní pro sekce projektu, config: větší pro konfiguraci
+ * @param {'section'|'row'|'config'} variant - section: kompaktní pro sekce projektu, row: řádek (popisek vlevo, počet vpravo), config: větší pro konfiguraci
  * @param {boolean} countAsIcon - když true, count má větší velikost pro emoji/ikony
  * @param {string} ariaLabel - volitelný aria-label pro přístupnost
  */
@@ -24,7 +24,7 @@ defineProps({
   to: { type: Object, required: true },
   label: { type: String, default: '' },
   count: { type: [Number, String], default: '' },
-  variant: { type: String, default: 'section', validator: (v) => ['section', 'config'].includes(v) },
+  variant: { type: String, default: 'section', validator: (v) => ['section', 'row', 'config'].includes(v) },
   countAsIcon: { type: Boolean, default: false },
   ariaLabel: { type: String, default: '' },
 })
@@ -61,6 +61,24 @@ defineProps({
 
 .counter-card.section .counter-card-count {
   font-size: 1.5rem;
+}
+
+/* row: řádková varianta – popisek vlevo, počet vpravo */
+.counter-card.row {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.counter-card.row .counter-card-count {
+  margin-top: 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* config: větší varianta pro konfiguraci */

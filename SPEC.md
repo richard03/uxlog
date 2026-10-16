@@ -4,7 +4,7 @@
 
 ### Entities (per project)
        
-**Projects** - name, scope (small/medium/large), priority (High/Medium/Low), phase (Research/Design/Development), deadline, notebook. Last-worked date is recorded automatically.
+**Projects** - name, scope (small/medium/large), priority (High/Medium/Low), phase (Research/Design/Development), deadline, notebook history (`notebookHistory`: messages `{ id, createdAt, mode: process|ask, text, answer, status: processing|done|error|saved, error, outcomes[] }`). Last-worked date is recorded automatically. The legacy plain-text `notebook` field is read as the first history message ("original notebook") and moved into the history on the next message.
 
 **Goals** - code, name, description, metrics
 
@@ -47,7 +47,7 @@ Event-driven plugin registrywith capabilities and event bus.
        
 **flexi** - optional sync to Flexi API backend
 
-**openai** - ChatGPT integration (notebook, connection suggestions)
+**openai** - ChatGPT integration (notebook processing `ai:notebook`, notebook questions `ai:ask`, connection suggestions)
 
 **gemini** - Google Gemini AI (same capabilities as OpenAI)
 
@@ -55,6 +55,9 @@ Event-driven plugin registrywith capabilities and event bus.
 
 
 ## Key Features
+Project screens layout: every screen inside a project (project detail, activity detail, artifact lists and artifact details) starts with a full-width header – project colour, breadcrumb navigation (no large page title; on detail screens clicking the last breadcrumb item renames the entity / edits the project), screen actions (Import, Export, menu) aligned right. Project metadata (priority, scope, last activity) is shown only in the project list. Below it the **Notebook** chat taking the left half of the width (sticky while scrolling, same content and behaviour everywhere, unsent draft kept when navigating within the project); the selected screen fills the right half. On narrow screens the chat moves below the content. The right column starts with a column heading styled like "Notebook": entity lists show the plural section name (e.g. "Personas") with the add button aligned right; entity and activity details show "<type> <name>" (e.g. "Persona Jana") with the editable code below it where the entity has one (stakeholders show their strategy badge there).
+Project detail: the right half is split evenly between the **Activities** list (status and checklist progress under each activity name) and the **Artifacts** list (one row per section – personas, scenarios, requirements, … – with counts, linking to each section).
+Notebook chat: the user sends a text message (Ctrl+Enter); every message is kept permanently in the project's notebook history (no editing or deletion). A select left of the send button switches between two modes: **Ask** (button "Send question") – AI only answers in text using the project's data (all entities incl. activities, tasks, bugs, their custom fields, and for every item its connections from **EntityConnections** – items without connections are explicitly marked as having none; legacy ID-list fields such as `scenarioIds` are not used) and earlier notebook messages; it never writes to entities or anywhere else (only the question and answer are kept in the history); requires AI. **Enter information** (button "Process") – the processing flow below. If AI is available, the message is processed and the proposed create/update actions are reviewed in a dialog (confirm / skip each, or all); actions left unconfirmed when the dialog closes count as skipped. The AI reply under the message summarises the outcome (written / skipped per entity). Long messages and replies are shortened to a few lines; clicking them (or "Show all") expands them. The history scrolls without a visible scrollbar and stays at the newest message. Without AI the message is just saved. Failed or interrupted processing can be retried.
 Project list: compact tasks-count tag links to the project’s Tasks section (if any tasks are overdue, URL may include `?overdue=1` to turn on the overdue filter). Tasks list: **by default the “incomplete” filter is on** (only incomplete tasks); **filter and search text persist in memory per project for the browser tab session**, so returning from a task detail restores the same filters. Incomplete overdue items are visually emphasized; “Prošlé” filter matches any task whose due date is in the past. Multi-select list filters (tasks, bugs, requirements, personas, hypotheses, scenarios) use **OR**: an item appears if it matches **at least one** active badge.
 Full-text search across all entity fields
 JSON and YAML export/import with conflict resolution (import preview: collapsed rows with id/title and create vs update; “import all” / “reject entire import”; per-row expand for diff, edit, single import or skip; list closes when nothing remains)

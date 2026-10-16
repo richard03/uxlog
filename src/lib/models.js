@@ -67,6 +67,7 @@ export function createProject(overrides = {}) {
     lastWorkedAt: new Date().toISOString(),
     deadline: '',
     notebook: '',
+    notebookHistory: [],
     sortOrder: 9999,
     color: '',
     ...overrides,

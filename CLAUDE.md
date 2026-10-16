@@ -23,8 +23,9 @@ Before finishing:
 - **No cascading deletion:** Deleting an entity removes only relationship links, not related entities.
 - **All user-facing texts** in `src/i18n/cs.js` - never hardcode Czech strings in components.
 - **Plugins** (`src/lib/plugins/`) for optional features (AI, sync, Figma API). Don't add plugin logic to core.
+- **Obrazovky projektu:** všechny routy `/project/:id/...` jsou potomky `ProjectLayout.vue` (Zápisník `NotebookChat` vlevo, `<router-view>` vpravo). Nové obrazovky projektu přidávejte jako `children` této routy; vlastní `.container` vnořené obrazovky layout zbavuje šířky a odsazení. Hlavičku obrazovky vždy tvořte komponentou `ProjectPageHeader` (teleportuje se přes celou šířku nad Zápisník; slot `#actions`, žádný viditelný h1). Pravý sloupec začíná `ColumnHeading` (seznam: název sekce + tlačítko Přidat ve slotu `#actions`; detail: „Typ název“ + kód ve slotu `#sub`).
 - **Custom CSS design system** with CSS variables in `src/style.css` - no external UI library.
-- **Náhled čekajících změn (AI / import):** společné `pending-review.css` (třídy `pr-*`, načteno v `main.js`) a komponenty `PendingReviewLayout.vue` (horní lišta + scrollovatelný seznam), `PendingReviewRow.vue` (sbalitelný řádek s tlačítky Potvrdit/Přeskočit), `PendingReviewAiFields.vue` (textarea pole z objektu `fields`). Používá `NotebookModal` a `CompetitionAnalysisModal`; `ImportModal` sdílí jen `PendingReviewRow` a v těle řádku vlastní diff + `ImportFieldEditor`.
+- **Náhled čekajících změn (AI / import):** společné `pending-review.css` (třídy `pr-*`, načteno v `main.js`) a komponenty `PendingReviewLayout.vue` (horní lišta + scrollovatelný seznam), `PendingReviewRow.vue` (sbalitelný řádek s tlačítky Potvrdit/Přeskočit), `PendingReviewAiFields.vue` (textarea pole z objektu `fields`). Používá `NotebookModal` (revize návrhů AI ke zprávě ze zápisníku – chat `NotebookChat.vue` + `useNotebookChat`, historie v `lib/notebookChat.js`) a `CompetitionAnalysisModal`; `ImportModal` sdílí jen `PendingReviewRow` a v těle řádku vlastní diff + `ImportFieldEditor`.
 
 ## Versioning
 The app version is stored in `src/lib/version.js` as `APP_VERSION`.

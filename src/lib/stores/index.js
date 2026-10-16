@@ -7,6 +7,7 @@ export { state, initStore, getData, persist, subscribe } from './state.js'
 export {
   getProjects, getProject, addProject, updateProject, deleteProject,
   reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject,
+  getProjectNotebookHistory, addNotebookEntry, updateNotebookEntryInProject,
 } from './projects.js'
 export { getGoals, getGoal, addGoal, updateGoal, deleteGoal } from './goals.js'
 export { getStakeholders, getStakeholder, addStakeholder, updateStakeholder, deleteStakeholder } from './stakeholders.js'

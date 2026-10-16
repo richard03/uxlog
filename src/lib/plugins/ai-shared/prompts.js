@@ -362,3 +362,183 @@ export function parseCompetitionAnalysis(text) {
     }))
   return { actions, residualText: '' }
 }
+
+// ---------------------------------------------------------------------------
+// Zápisník – režim „Zeptat se“ (jen odpovídá, nic nezapisuje)
+// ---------------------------------------------------------------------------
+
+/** Sekce projektu pro kontext dotazu: klíč ve state (= entityType u souvislostí) → [nadpis sekce, označení jedné položky]. */
+const ASK_SECTIONS = [
+  ['goals', 'Cíle', 'Cíl'], ['stakeholders', 'Stakeholdeři', 'Stakeholder'], ['competitions', 'Konkurence', 'Konkurent'],
+  ['hypotheses', 'Hypotézy', 'Hypotéza'], ['personas', 'Persony', 'Persona'], ['scenarios', 'Scénáře', 'Scénář'],
+  ['requirements', 'Požadavky', 'Požadavek'], ['teamMembers', 'Tým', 'Člen týmu'], ['activities', 'Aktivity', 'Aktivita'],
+  ['tasks', 'Úkoly', 'Úkol'], ['bugs', 'Chyby', 'Chyba'],
+]
+
+/**
+ * Technická pole, která do kontextu dotazu nepatří. Vazby se vypisují zvlášť jako „souvislosti“ – jen ze
+ * souvislostí (EntityConnections), které uživatel spravuje v UI. Starší pole ID v entitách (scenarioIds,
+ * personaIds, …) UI nezobrazuje a addScenario je plní automaticky všemi scénáři – do kontextu nepatří.
+ */
+const ASK_SKIPPED_KEYS = new Set([
+  'id', 'projectId', 'sortOrder', 'customFields', 'createdAt', 'updatedAt', 'lastWorkedAt',
+  'checkedItems', 'baseChecklist', 'customChecklist', 'checklistItemTaskIds', 'dismissed', 'notebook', 'notebookHistory',
+  'personaIds', 'scenarioIds', 'requirementIds', 'hypothesisIds', 'stakeholderIds', 'conflictingRequirementIds',
+])
+const ASK_MAX_FIELD_CHARS = 500
+const ASK_MAX_CONTEXT_CHARS = 40000
+const ASK_MAX_NOTES_CHARS = 12000
+
+/**
+ * Zkrátí text na max. délku (s výpustkou).
+ * @param {string} text
+ * @param {number} max
+ * @returns {string}
+ */
+function truncateText(text, max) {
+  const s = String(text ?? '')
+  return s.length > max ? `${s.slice(0, max)}…` : s
+}
+
+/**
+ * Čitelné označení položky pro odkazy mezi záznamy, např. „Persona PER-001 „Jana““.
+ * @param {string} typeLabel
+ * @param {Object} item
+ * @returns {string}
+ */
+function askItemRef(typeLabel, item) {
+  const code = typeof item.code === 'string' && item.code.trim() ? `${item.code.trim()} ` : ''
+  const name = typeof item.name === 'string' && item.name.trim() ? item.name.trim() : '—'
+  return `${typeLabel} ${code}„${name}“`
+}
+
+/** Vyplněná textová / číselná hodnota (nebo null). */
+function askScalar(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+  if (typeof v === 'string' && v.trim()) return v.trim()
+  return null
+}
+
+/**
+ * Sestaví mapu souvislostí ze souvislostí projektu (projectData.connections), obousměrně a bez duplicit.
+ * @param {Object} projectData
+ * @returns {Map<string, Map<string, string>>} klíč položky → (klíč propojené položky → poznámka)
+ */
+function buildAskRelations(projectData) {
+  const relations = new Map()
+  const link = (a, b, note = '') => {
+    if (a === b) return
+    for (const [from, to] of [[a, b], [b, a]]) {
+      if (!relations.has(from)) relations.set(from, new Map())
+      const m = relations.get(from)
+      if (!m.has(to) || (note && !m.get(to))) m.set(to, note)
+    }
+  }
+  for (const c of Array.isArray(projectData?.connections) ? projectData.connections : []) {
+    if (!c?.entityType1 || !c?.entityId1 || !c?.entityType2 || !c?.entityId2) continue
+    link(`${c.entityType1}:${c.entityId1}`, `${c.entityType2}:${c.entityId2}`, typeof c.note === 'string' ? c.note.trim() : '')
+  }
+  return relations
+}
+
+/**
+ * Bohatší kontext projektu pro dotazy: u každé položky všechna vyplněná pole, vlastní atributy
+ * a souvislosti s ostatními položkami.
+ * Odkazy na smazané položky se vynechají.
+ * @param {Object} projectData - { goals, personas, …, tasks, activities, bugs, connections }
+ * @returns {string}
+ */
+export function buildAskContext(projectData) {
+  // Označení všech existujících položek (pro překlad ID v souvislostech)
+  const refs = new Map()
+  for (const [type, , typeLabel] of ASK_SECTIONS) {
+    for (const item of Array.isArray(projectData?.[type]) ? projectData[type] : []) {
+      if (item && typeof item === 'object' && item.id) refs.set(`${type}:${item.id}`, askItemRef(typeLabel, item))
+    }
+  }
+  const relations = buildAskRelations(projectData)
+
+  const lines = []
+  for (const [type, label, typeLabel] of ASK_SECTIONS) {
+    const items = (Array.isArray(projectData?.[type]) ? projectData[type] : []).filter((i) => i && typeof i === 'object')
+    if (!items.length) continue
+    lines.push(`## ${label}`)
+    for (const item of items) {
+      const parts = [askItemRef(typeLabel, item)]
+      for (const [k, v] of Object.entries(item)) {
+        if (ASK_SKIPPED_KEYS.has(k) || k === 'code' || k === 'name') continue
+        const val = askScalar(v)
+        if (val !== null) parts.push(`${k}: ${truncateText(val, ASK_MAX_FIELD_CHARS)}`)
+      }
+      const custom = item.customFields && typeof item.customFields === 'object' ? item.customFields : {}
+      for (const [k, v] of Object.entries(custom)) {
+        const val = askScalar(v)
+        if (val !== null) parts.push(`${k}: ${truncateText(val, ASK_MAX_FIELD_CHARS)}`)
+      }
+      const linked = [...(relations.get(`${type}:${item.id}`) ?? new Map())]
+        .filter(([key]) => refs.has(key))
+        .map(([key, note]) => (note ? `${refs.get(key)} (poznámka: ${truncateText(note, ASK_MAX_FIELD_CHARS)})` : refs.get(key)))
+      parts.push(`souvislosti: ${linked.length ? linked.join('; ') : 'žádné'}`)
+      lines.push(`- ${parts.join(' | ')}`)
+    }
+  }
+  const text = lines.join('\n')
+  return text ? truncateText(text, ASK_MAX_CONTEXT_CHARS) : '(projekt zatím neobsahuje žádné záznamy)'
+}
+
+/**
+ * Předchozí zprávy zápisníku jako kontext (od nejnovějších, v limitu, vypsané chronologicky).
+ * @param {Array<{ mode?: string, text?: string, answer?: string }>} history
+ * @returns {string}
+ */
+export function buildAskNotes(history) {
+  const list = Array.isArray(history) ? history : []
+  const out = []
+  let total = 0
+  for (let i = list.length - 1; i >= 0; i--) {
+    const e = list[i]
+    if (!e?.text?.trim()) continue
+    const block = e.mode === 'ask'
+      ? `Dotaz: ${e.text.trim()}${e.answer?.trim() ? `\nOdpověď: ${e.answer.trim()}` : ''}`
+      : `Poznámka: ${e.text.trim()}`
+    if (total + block.length > ASK_MAX_NOTES_CHARS) break
+    out.unshift(block)
+    total += block.length
+  }
+  return out.join('\n\n') || '(zatím žádné poznámky)'
+}
+
+/**
+ * Prompt pro dotaz nad projektem. AI pouze odpovídá – nenavrhuje ani neprovádí změny.
+ * @param {string} question
+ * @param {string} projectContext - výstup buildAskContext
+ * @param {string} notes - výstup buildAskNotes
+ * @returns {string}
+ */
+export function buildAskPrompt(question, projectContext, notes) {
+  return `Jsi asistent pro UX design týmy. Odpovídáš na dotazy k projektu na základě jeho dat a poznámek ze zápisníku.
+
+## Data projektu:
+${projectContext}
+
+## Předchozí poznámky a dotazy v zápisníku:
+${notes}
+
+## Dotaz:
+${question}
+
+Pravidla:
+1. Odpovídej česky, stručně a věcně, jako prostý text (bez markdownu, bez HTML).
+2. Vycházej z dat projektu a poznámek výše; pokud odpověď nelze z dostupných informací zjistit, řekni to.
+3. U každého záznamu je pole „souvislosti“ se všemi propojenými záznamy (souvislosti jsou obousměrné). Hodnota „žádné“ znamená, že záznam není propojen s ničím – i to je platná informace pro odpověď.
+4. Pouze odpovídej – nenavrhuj JSON, akce ani změny dat.`
+}
+
+/**
+ * Normalizuje odpověď AI na dotaz (prostý text).
+ * @param {*} text
+ * @returns {{ answer: string }}
+ */
+export function parseAskAnswer(text) {
+  return { answer: String(text ?? '').trim() }
+}

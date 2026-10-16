@@ -18,6 +18,9 @@
 
   --breakpoint-md: 900px;
 
+  /* Max. šířka layoutu – sdílí AppHeader i obsah (.container); při změně uprav i @media u .container */
+  --layout-max-width: 1200px;
+
   /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven */
   --bg: #1a1814;
   --bg-elevated: #25221c;
@@ -75,6 +78,8 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  /* Svislý scrollbar vždy viditelný – obsah neposkakuje při přechodu mezi krátkou a dlouhou stránkou */
+  overflow-y: scroll;
 }
 
 body {
@@ -223,9 +228,31 @@ select.form-control {
 
 /* Layout */
 .container {
-  max-width: 900px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
-  padding: var(--space-md);
+  /* Bez vodorovného odsazení – obsah lícuje s vnitřkem AppHeaderu (stejná max. šířka) */
+  padding: var(--space-md) 0;
+}
+
+/* Užší okno než --layout-max-width + okraje (1200 + 2 × 16px): obsah nesmí lepit na hranu okna (AppHeader má stejné odsazení) */
+@media (max-width: 1232px) {
+  .container {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+
+/* Skryté vizuálně, dostupné pro čtečky obrazovky */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .page-header {

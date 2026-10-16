@@ -1,67 +1,52 @@
 <template>
   <div class="container" v-if="project">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-title-row">
-        <h1><ProjectColorTag :color="project.color" />{{ project.name }}</h1>
-        <div class="header-actions">
-          <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-          <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
-          <KebabMenu
-            :items="[{ label: t.common.edit, action: 'edit' }, { label: t.common.delete, action: 'delete', variant: 'danger' }]"
-            @action="(a) => { if (a === 'edit') openForm(); else if (a === 'delete') confirmDelete() }"
-          />
-        </div>
-      </div>
-      <div class="header-meta">
-        <AppBadge>{{ t.project.priority }}: {{ tPath(`priority.${project.priority}`) }}</AppBadge>
-        <AppBadge>{{ t.project.scopeLabel }}: {{ tPath(`scope.${project.scope}`) }}</AppBadge>
-        <AppBadge>{{ t.project.lastActivity }}: {{ formatDate(project.lastWorkedAt) }}</AppBadge>
-      </div>
-    </header>
+    <ProjectPageHeader
+      :breadcrumbs="breadcrumbs"
+      :color="project.color"
+      :title="project.name"
+      :on-edit-title="openForm"
+      :edit-title-label="t.project.edit">
+      <template #actions>
+        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
+        <KebabMenu
+          :items="[{ label: t.common.edit, action: 'edit' }, { label: t.common.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'edit') openForm(); else if (a === 'delete') confirmDelete() }"
+        />
+      </template>
+    </ProjectPageHeader>
 
-    <AppCardGrid aria-label="Sekce projektu">
-      <CounterCard
-        v-for="s in sections"
-        :key="s.id"
-        :to="{ name: s.route, params: { id: projectId } }"
-        :label="tPath(`sections.${s.id}`)"
-        :count="s.count"
-        variant="section"
+    <div class="project-columns">
+      <!-- Activities column -->
+      <ActivitiesPanel
+        class="project-column"
+        :project-id="projectId"
+        @dismiss="(id) => store.updateActivity(id, { dismissed: true })"
+        @move="(id) => { moveActivityTarget = id }"
+        @assign-task="onActivityAssignTask"
       />
-    </AppCardGrid>
 
-    <!-- Notebook card -->
-    <NotebookCard
-      :title="t.notebook.open"
-      :label="t.notebook.title"
-      :preview="notebookPreview"
-      :placeholder="t.notebook.placeholder"
-      @click="showNotebook = true"
-    />
-
-    <!-- Activities panel -->
-    <ActivitiesPanel
-      :project-id="projectId"
-      @dismiss="(id) => store.updateActivity(id, { dismissed: true })"
-      @move="(id) => { moveActivityTarget = id }"
-      @assign-task="onActivityAssignTask"
-    />
+      <!-- Artifacts column -->
+      <section class="project-column" aria-labelledby="artifacts-heading">
+        <h2 id="artifacts-heading" class="project-column-title">{{ t.project.artifactsTitle }}</h2>
+        <AppCardGrid :aria-label="t.project.artifactsTitle" :columns="1">
+          <CounterCard
+            v-for="s in sections"
+            :key="s.id"
+            :to="{ name: s.route, params: { id: projectId } }"
+            :label="tPath(`sections.${s.id}`)"
+            :count="s.count"
+            variant="row"
+          />
+        </AppCardGrid>
+      </section>
+    </div>
 
     <TaskAddModal
       v-model="assignTaskModalOpen"
       :project-id="projectId"
       :preset="assignTaskModalPreset"
       @save="onAssignTaskModalSave"
-    />
-
-    <!-- Notebook modal -->
-    <NotebookModal
-      v-if="showNotebook"
-      :initial-text="notebookText"
-      :project-data="notebookProjectData"
-      @close="closeNotebook"
-      @confirm-action="confirmNotebookAction"
     />
 
     <Modal v-if="showForm" :title="t.project.edit" @close="closeForm">
@@ -125,32 +110,25 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
-import { formatDate } from '../utils/formatDate.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import ColorSwatchPicker from '../components/ColorSwatchPicker.vue'
-import NotebookModal from '../components/NotebookModal.vue'
-import NotebookCard from '../components/NotebookCard.vue'
 import ActivitiesPanel from '../components/ActivitiesPanel.vue'
 import TaskAddModal from '../components/TaskAddModal.vue'
-import ProjectColorTag from '../components/ProjectColorTag.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
-import AppBadge from '../components/AppBadge.vue'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
-import { useEntityHelpers } from '../composables/useEntityHelpers.js'
 
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const { t, tPath } = useI18n()
-const { generateNextCode } = useEntityHelpers()
 
 const showForm = ref(false)
 const showConfirm = ref(false)
@@ -266,82 +244,6 @@ const sections = computed(() => {
 // --- Move activity ---
 const moveActivityTarget = ref(null)
 
-// --- Notebook ---
-const showNotebook = ref(false)
-const notebookText = ref('')
-
-watch(project, (p) => {
-  notebookText.value = p?.notebook || ''
-}, { immediate: true })
-
-const notebookPreview = computed(() => {
-  const text = notebookText.value?.trim()
-  if (!text) return t.notebook.placeholder
-  return text
-})
-
-const notebookProjectData = computed(() => ({
-  goals: store.getGoals(projectId.value),
-  stakeholders: store.getStakeholders(projectId.value),
-  competitions: store.getCompetitions(projectId.value),
-  hypotheses: store.getHypotheses(projectId.value),
-  personas: store.getPersonas(projectId.value),
-  scenarios: store.getScenarios(projectId.value),
-  requirements: store.getRequirements(projectId.value),
-  teamMembers: store.getTeamMembers(projectId.value),
-}))
-
-function closeNotebook(text) {
-  if (project.value) {
-    store.updateProject(project.value.id, { notebook: text })
-    notebookText.value = text
-  }
-  showNotebook.value = false
-}
-
-/** Mapování entity → { prefix kódu, getter pro existující položky } */
-const CODE_ENTITIES = {
-  goal:        { prefix: 'GOL', getter: (pid) => store.getGoals(pid) },
-  hypothesis:  { prefix: 'HYP', getter: (pid) => store.getHypotheses(pid) },
-  persona:     { prefix: 'PER', getter: (pid) => store.getPersonas(pid) },
-  scenario:    { prefix: 'SCN', getter: (pid) => store.getScenarios(pid) },
-  requirement: { prefix: 'REQ', getter: (pid) => store.getRequirements(pid) },
-}
-
-function confirmNotebookAction(action) {
-  const pid = projectId.value
-  const creators = {
-    persona: (f) => store.addPersona(pid, f),
-    requirement: (f) => store.addRequirement(pid, f),
-    goal: (f) => store.addGoal(pid, f),
-    stakeholder: (f) => store.addStakeholder(pid, f),
-    competition: (f) => store.addCompetition(pid, f),
-    hypothesis: (f) => store.addHypothesis(pid, f),
-    scenario: (f) => store.addScenario(pid, f),
-    teamMember: (f) => store.addTeamMember(pid, f),
-  }
-  const updaters = {
-    persona: (id, f) => store.updatePersona(id, f),
-    requirement: (id, f) => store.updateRequirement(id, f),
-    goal: (id, f) => store.updateGoal(id, f),
-    stakeholder: (id, f) => store.updateStakeholder(id, f),
-    competition: (id, f) => store.updateCompetition(id, f),
-    hypothesis: (id, f) => store.updateHypothesis(id, f),
-    scenario: (id, f) => store.updateScenario(id, f),
-    teamMember: (id, f) => store.updateTeamMember(id, f),
-  }
-  let fields = { ...action.fields }
-  if (action.type === 'create') {
-    const codeInfo = CODE_ENTITIES[action.entity]
-    if (codeInfo && !fields.code) {
-      fields.code = generateNextCode(codeInfo.prefix, codeInfo.getter(pid))
-    }
-    creators[action.entity]?.(fields)
-  } else if (action.type === 'update' && action.entityId) {
-    updaters[action.entity]?.(action.entityId, fields)
-  }
-}
-
 function handleImported({ projectId: importedProjectId }) {
   showImport.value = false
   alert(t.import.success)
@@ -352,29 +254,29 @@ function handleImported({ projectId: importedProjectId }) {
 </script>
 
 <style scoped>
-.header-title-row {
+.project-columns {
+  display: grid;
+  /* Aktivity | Artefakty si rovným dílem dělí pravou polovinu; Zápisník je vlevo v ProjectLayout */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+  margin-top: 0;
+}
+
+.project-column-title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  width: 100%;
+  min-height: 2rem;
+  margin: 0 0 var(--space-md);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-.header-title-row h1 {
-  margin: 0;
-  min-width: 0;
+@media (max-width: 800px) {
+  .project-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.header-actions {
-  display: flex;
-  flex-shrink: 0;
-  gap: var(--space-xs);
-}
-
-.header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
 
 </style>
