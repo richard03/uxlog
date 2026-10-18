@@ -2,75 +2,79 @@
   <section class="nb-chat" aria-labelledby="notebook-heading">
     <h2 id="notebook-heading" class="nb-chat-title">{{ t.notebook.title }}</h2>
 
-    <ol ref="historyEl" class="nb-history" :class="{ 'nb-history--more-above': moreAbove }" @scroll="onHistoryScroll" :aria-label="t.notebook.historyLabel" aria-live="polite">
-      <li v-if="!history.length" class="nb-empty">{{ t.notebook.emptyHistory }}</li>
-      <li v-for="entry in history" :key="entry.id" class="nb-entry">
-        <div class="nb-bubble nb-bubble--user">
-          <span v-if="entry.id === legacyId" class="nb-meta">{{ t.notebook.legacyLabel }}</span>
-          <span v-else-if="entry.createdAt" class="nb-meta">
-            <template v-if="entry.mode === 'ask'">{{ t.notebook.askLabel }} · </template>{{ formatStatusBarDateTime(entry.createdAt) }}
-          </span>
-          <ExpandableText>
-            <p class="nb-text">{{ entry.text }}</p>
-          </ExpandableText>
-        </div>
+    <!-- Rámeček s historií a polem pro zprávu (nadpis zůstává nad ním jako u ostatních sloupců) -->
+    <div class="nb-frame">
+      <ol ref="historyEl" class="nb-history" :class="{ 'nb-history--more-above': moreAbove }" @scroll="onHistoryScroll" :aria-label="t.notebook.historyLabel" aria-live="polite">
+        <li v-if="!history.length" class="nb-empty">{{ t.notebook.emptyHistory }}</li>
+        <li v-for="entry in history" :key="entry.id" class="nb-entry">
+          <div class="nb-bubble nb-bubble--user">
+            <span v-if="entry.id === legacyId" class="nb-meta">{{ t.notebook.legacyLabel }}</span>
+            <span v-else-if="entry.createdAt" class="nb-meta">
+              <template v-if="entry.mode === 'ask'">{{ t.notebook.askLabel }} · </template>{{ formatStatusBarDateTime(entry.createdAt) }}
+            </span>
+            <ExpandableText>
+              <p class="nb-text">{{ entry.text }}</p>
+            </ExpandableText>
+          </div>
 
-        <div v-if="entry.id !== legacyId" class="nb-bubble nb-bubble--ai" :class="`nb-bubble--${displayStatus(entry)}`">
-          <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : t.notebook.processing }}</template>
-          <template v-else-if="displayStatus(entry) === 'review'">
-            {{ t.notebook.reviewPending }}
-          </template>
-          <template v-else-if="displayStatus(entry) === 'saved'">{{ t.notebook.savedWithoutAi }}</template>
-          <template v-else-if="displayStatus(entry) === 'error' || displayStatus(entry) === 'interrupted'">
-            <span role="alert">{{ displayStatus(entry) === 'error' ? entry.error : t.notebook.interrupted }}</span>
-            <AppButton v-if="aiAvailable" variant="tertiary" size="sm" @click="retry(entry.id)">{{ t.notebook.retry }}</AppButton>
-          </template>
-          <ExpandableText v-else-if="entry.mode === 'ask'">
-            <p class="nb-text nb-answer">{{ entry.answer || t.notebook.emptyAnswer }}</p>
-          </ExpandableText>
-          <template v-else-if="!entry.outcomes.length">{{ t.notebook.noActions }}</template>
-          <ExpandableText v-else>
-            <span>{{ t.notebook.outcomeSummary(countOutcomes(entry.outcomes)) }}</span>
-            <ul class="nb-outcomes">
-              <li
-                v-for="(o, i) in entry.outcomes"
-                :key="i"
-                :class="o.outcome === 'confirmed' ? 'nb-outcome--confirmed' : 'nb-outcome--skipped'"
-              >
-                {{ o.outcome === 'confirmed' ? t.notebook.actionDone : t.notebook.actionSkipped }}
-                · {{ t.notebook.entityLabels[o.entity] || o.entity }}
-                ({{ o.type === 'update' ? t.notebook.actionUpdate : t.notebook.actionCreate }}):
-                <strong>{{ o.entityName }}</strong>
-              </li>
-            </ul>
-          </ExpandableText>
-        </div>
-      </li>
-    </ol>
+          <div v-if="entry.id !== legacyId" class="nb-bubble nb-bubble--ai" :class="`nb-bubble--${displayStatus(entry)}`">
+            <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : t.notebook.processing }}</template>
+            <template v-else-if="displayStatus(entry) === 'review'">
+              {{ t.notebook.reviewPending }}
+            </template>
+            <template v-else-if="displayStatus(entry) === 'saved'">{{ t.notebook.savedWithoutAi }}</template>
+            <template v-else-if="displayStatus(entry) === 'error' || displayStatus(entry) === 'interrupted'">
+              <span role="alert">{{ displayStatus(entry) === 'error' ? entry.error : t.notebook.interrupted }}</span>
+              <AppButton v-if="aiAvailable" variant="tertiary" size="sm" @click="retry(entry.id)">{{ t.notebook.retry }}</AppButton>
+            </template>
+            <ExpandableText v-else-if="entry.mode === 'ask'">
+              <p class="nb-text nb-answer">{{ entry.answer || t.notebook.emptyAnswer }}</p>
+            </ExpandableText>
+            <template v-else-if="!entry.outcomes.length">{{ t.notebook.noActions }}</template>
+            <ExpandableText v-else>
+              <span>{{ t.notebook.outcomeSummary(countOutcomes(entry.outcomes)) }}</span>
+              <ul class="nb-outcomes">
+                <li
+                  v-for="(o, i) in entry.outcomes"
+                  :key="i"
+                  :class="o.outcome === 'confirmed' ? 'nb-outcome--confirmed' : 'nb-outcome--skipped'"
+                >
+                  {{ o.outcome === 'confirmed' ? t.notebook.actionDone : t.notebook.actionSkipped }}
+                  · {{ t.notebook.entityLabels[o.entity] || o.entity }}
+                  ({{ o.type === 'update' ? t.notebook.actionUpdate : t.notebook.actionCreate }}):
+                  <strong>{{ o.entityName }}</strong>
+                </li>
+              </ul>
+              <p v-if="entry.error" class="nb-warning" role="status">{{ entry.error }}</p>
+            </ExpandableText>
+          </div>
+        </li>
+      </ol>
 
-    <form class="nb-compose" @submit.prevent="submit">
-      <textarea
-        v-model="draft"
-        class="nb-input"
-        rows="4"
-        :placeholder="mode === 'ask' ? t.notebook.askPlaceholder : t.notebook.placeholder"
-        :aria-label="t.notebook.inputLabel"
-        @keydown.enter.ctrl.prevent="submit"
-        @keydown.enter.meta.prevent="submit"
-      ></textarea>
-      <div class="nb-compose-bar">
-        <span class="nb-hint">{{ hint }}</span>
-        <div class="nb-compose-actions">
-          <select v-model="mode" class="nb-mode" :aria-label="t.notebook.modeLabel">
-            <option value="ask">{{ t.notebook.modeAsk }}</option>
-            <option value="process">{{ t.notebook.modeProcess }}</option>
-          </select>
-          <AppButton variant="primary" size="sm" native-type="submit" :disabled="!canSubmit">
-            {{ submitLabel }}
-          </AppButton>
+      <form class="nb-compose" @submit.prevent="submit">
+        <textarea
+          v-model="draft"
+          class="nb-input"
+          rows="4"
+          :placeholder="mode === 'ask' ? t.notebook.askPlaceholder : t.notebook.placeholder"
+          :aria-label="t.notebook.inputLabel"
+          @keydown.enter.ctrl.prevent="submit"
+          @keydown.enter.meta.prevent="submit"
+        ></textarea>
+        <div class="nb-compose-bar">
+          <span class="nb-hint">{{ hint }}</span>
+          <div class="nb-compose-actions">
+            <select v-model="mode" class="nb-mode" :aria-label="t.notebook.modeLabel">
+              <option value="ask">{{ t.notebook.modeAsk }}</option>
+              <option value="process">{{ t.notebook.modeProcess }}</option>
+            </select>
+            <AppButton variant="primary" size="sm" native-type="submit" :disabled="!canSubmit">
+              {{ submitLabel }}
+            </AppButton>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
 
     <NotebookModal
       v-if="currentReview"
@@ -176,16 +180,28 @@ onBeforeUnmount(() => {
 .nb-chat {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+/* Rámeček jako .counter-card (CounterCard.vue) */
+.nb-frame {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: var(--space-sm);
   min-height: 0;
+  padding: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .nb-chat-title {
   display: flex;
   align-items: center;
   min-height: 2rem;
-  /* + gap sekce (space-sm) = space-md jako u ostatních sloupců */
-  margin: 0 0 var(--space-sm);
+  /* stejná mezera pod nadpisem jako u ostatních sloupců */
+  margin: 0 0 var(--space-md);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -242,7 +258,8 @@ onBeforeUnmount(() => {
 .nb-bubble--ai {
   align-self: flex-start;
   max-width: 90%;
-  background: var(--bg-elevated);
+  /* Uvnitř rámečku (bg-elevated) musí být bublina odlišná – použije barvu pozadí stránky */
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-muted);
 }
@@ -289,7 +306,7 @@ onBeforeUnmount(() => {
 .nb-input {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
-  background: var(--bg-elevated);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text);
@@ -332,7 +349,7 @@ onBeforeUnmount(() => {
 
 .nb-mode {
   padding: 3px 8px;
-  background: var(--bg-elevated);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -344,6 +361,11 @@ onBeforeUnmount(() => {
 .nb-mode:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 1px;
+}
+
+.nb-warning {
+  margin: var(--space-xs) 0 0;
+  color: var(--warning);
 }
 
 .nb-answer {

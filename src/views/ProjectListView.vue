@@ -54,6 +54,17 @@
       </EntityCard>
     </ul>
 
+    <section v-if="deletedProjects.length" class="deleted-projects" aria-labelledby="deleted-projects-heading">
+      <h2 id="deleted-projects-heading" class="deleted-projects-title">{{ t.history.deletedProjects }}</h2>
+      <ul class="deleted-projects-list" role="list">
+        <li v-for="d in deletedProjects" :key="d.projectId" class="deleted-projects-item">
+          <span class="deleted-projects-name">{{ d.name || t.project.name }}</span>
+          <span class="deleted-projects-date">{{ t.history.deletedAt(formatStatusBarDateTime(d.at)) }}</span>
+          <AppButton variant="secondary" size="sm" @click="restoreProject(d.projectId)">{{ t.history.restore }}</AppButton>
+        </li>
+      </ul>
+    </section>
+
     <ImportModal
       v-if="showImport"
       @close="showImport = false"
@@ -102,7 +113,8 @@ import { ref, computed } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
-import { formatDate, formatCalendarDate } from '../utils/formatDate.js'
+import { formatDate, formatCalendarDate, formatStatusBarDateTime } from '../utils/formatDate.js'
+import { showToast } from '../composables/useToast.js'
 import { useDeadline } from '../composables/useDeadline.js'
 import { summarizeIncompleteTasksForProjectBadge } from '../lib/tasksDisplay.js'
 import { useRouter } from 'vue-router'
@@ -135,6 +147,13 @@ const form = ref({
 })
 
 const projects = computed(() => store.getProjects())
+
+/** Smazané projekty, které lze obnovit z historie změn. */
+const deletedProjects = computed(() => store.getDeletedProjects())
+
+function restoreProject(projectId) {
+  if (store.restoreDeletedProject(projectId)) showToast(t.history.restored)
+}
 
 /**
  * Projekty s předpočítaným shrnutím úkolů pro štítek (jedna hodnota na kartu).
@@ -235,6 +254,45 @@ function saveProject() {
 </script>
 
 <style scoped>
+.deleted-projects {
+  margin-top: var(--space-xl);
+}
+
+.deleted-projects-title {
+  font-size: 1rem;
+  margin: 0 0 var(--space-sm);
+  color: var(--text-muted);
+}
+
+.deleted-projects-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.deleted-projects-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.deleted-projects-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.deleted-projects-date {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
 .page-header {
   flex-direction: row;
   align-items: center;

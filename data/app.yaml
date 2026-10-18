@@ -1,0 +1,26 @@
+# Obecná konfigurace aplikace – UXLog
+#
+# projectColors        paleta barev projektů (nový projekt dostane první nepoužitou)
+# projectDurationDays  výchozí délka projektu ve dnech podle rozsahu (uživatel ji může změnit v Konfiguraci)
+# recommendations      doporučení dalších aktivit v panelu Aktivity
+#   minRequirementsForPrioritization  od kolika požadavků se stejnou prioritou doporučit prioritizační workshop
+
+projectColors:
+  - "#e05252" # červená
+  - "#e07c4a" # oranžová
+  - "#e0b84a" # jantarová
+  - "#6abd6a" # zelená
+  - "#4aaa8a" # tyrkysová
+  - "#4a90d9" # modrá
+  - "#6e7fdd" # indigo
+  - "#9c6dd0" # fialová
+  - "#d06db0" # růžová
+  - "#8d6e63" # hnědá
+  - "#78909c" # šedomodrá
+  - "#26c6da" # azurová
+projectDurationDays:
+  small: 30
+  medium: 60
+  large: 120
+recommendations:
+  minRequirementsForPrioritization: 5

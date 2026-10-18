@@ -112,7 +112,7 @@ import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 const route = useRoute()
 const store = useStore()
 const { t } = useI18n()
-const { generateNextCode, getBugPriority } = useEntityHelpers()
+const { generateNextCode, getCodePrefix, getBugPriority } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
@@ -164,7 +164,7 @@ function bugPriority(bug) {
 }
 
 function openForm() {
-  form.value = { code: generateNextCode('BUG', bugs.value), name: '', expectedBehavior: '', actualBehavior: '' }
+  form.value = { code: generateNextCode(getCodePrefix('bug'), bugs.value), name: '', expectedBehavior: '', actualBehavior: '' }
   showForm.value = true
 }
 

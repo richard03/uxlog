@@ -12,6 +12,8 @@
 import { reactive, toRaw } from 'vue'
 import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
 import { emit } from '../plugins/registry.js'
+import { diffStates } from '../history.js'
+import { recordChanges, initHistory } from './history.js'
 
 const _initialData = Object.assign(getEmptyData(), loadData())
 export const state = reactive(_initialData)
@@ -23,6 +25,7 @@ export function initStore() {
   const loaded = loadData()
   Object.assign(state, loaded)
   persistedSnapshot = JSON.parse(JSON.stringify(loaded))
+  initHistory()
   console.log('[UXLog] initStore, projektů:', state.projects?.length ?? 0)
 }
 
@@ -68,7 +71,12 @@ function deduplicateState() {
   return changed
 }
 
-export function persist() {
+/**
+ * Uloží stav, orazítkuje změněné záznamy a zapíše změny do historie projektu.
+ * @param {{ history?: boolean }} [options] - history: false pro změny, které uživatel neudělal
+ *   (synchronizace z API) – nezapisují se do historie
+ */
+export function persist({ history = true } = {}) {
   // Odstraň duplikáty vzniklé synchem z API (před snapshotem i uložením)
   deduplicateState()
 
@@ -98,6 +106,8 @@ export function persist() {
       .map((r) => r.id)
     if (deletedIds.length) deletedEntities[key] = deletedIds
   }
+
+  if (history) recordChanges(diffStates(persistedSnapshot, raw, Object.keys(getEmptyData())))
 
   persistedSnapshot = JSON.parse(JSON.stringify(raw))
   saveData(raw)

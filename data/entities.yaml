@@ -1,0 +1,771 @@
+# Typy entit (artefakty projektu) – datová struktura – UXLog
+#
+# entities.<typ>:
+#   codePrefix    prefix automatického kódu (PER-001 …); jen entity s kódem v hlavičce detailu
+#   defaults      výchozí hodnoty nové entity (factory). id, projectId a časová razítka doplňuje kód.
+#                 Při čtení uložených dat se chybějící pole doplní odsud – pole nemažte, jen přidávejte.
+#   fields        atributy zobrazené ve formuláři/detailu (uživatel je může dál upravit v Konfiguraci):
+#                   key        klíč v entitě
+#                   labelKey   cesta k textu v src/i18n/cs.js (texty pro uživatele patří do i18n)
+#                   type       text | textarea | url | select | email | tel | date | number-unit
+#                   sortOrder  pořadí
+#                   searchable true = prohledává se ve fulltextu
+#                   options    pro select: { value, labelKey }
+#                   valueKey / unitKey / units   pro number-unit
+#                   visibleWhen { field, value } – pole se zobrazí jen při dané hodnotě jiného pole
+#   completeness  pole započítaná do skóre úplnosti; { field, when: { field, value } } = jen za podmínky
+
+entities:
+
+  project:
+    defaults:
+      name: ''
+      scope: medium
+      priority: medium
+      phase: research
+      deadline: ''
+      notebook: ''
+      notebookHistory: []
+      sortOrder: 9999
+      color: ''
+
+  goal:
+    codePrefix: GOL
+    defaults:
+      code: ''
+      name: ''
+      description: ''
+      metrics: ''
+      url: ''
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: goal.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: metrics
+        labelKey: goal.metrics
+        type: textarea
+        sortOrder: 20
+        searchable: true
+      - key: url
+        labelKey: goal.url
+        type: url
+        sortOrder: 30
+        searchable: true
+    completeness:
+      - name
+      - description
+      - metrics
+
+  stakeholder:
+    defaults:
+      name: ''
+      description: ''
+      influenceLevel: ''
+      interestLevel: ''
+      attitude: ''
+      commFrequency: ''
+      commChannel: ''
+      commNeeds: ''
+      requirementIds: []
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: stakeholder.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: influenceLevel
+        labelKey: stakeholder.influenceLevel
+        type: select
+        sortOrder: 20
+        searchable: true
+        options:
+          - value: ''
+            labelKey: stakeholderLevel.
+          - value: high
+            labelKey: stakeholderLevel.high
+          - value: medium
+            labelKey: stakeholderLevel.medium
+          - value: low
+            labelKey: stakeholderLevel.low
+      - key: interestLevel
+        labelKey: stakeholder.interestLevel
+        type: select
+        sortOrder: 30
+        searchable: true
+        options:
+          - value: ''
+            labelKey: stakeholderLevel.
+          - value: high
+            labelKey: stakeholderLevel.high
+          - value: medium
+            labelKey: stakeholderLevel.medium
+          - value: low
+            labelKey: stakeholderLevel.low
+      - key: attitude
+        labelKey: stakeholder.attitude
+        type: select
+        sortOrder: 40
+        searchable: true
+        options:
+          - value: ''
+            labelKey: stakeholderAttitude.
+          - value: positive
+            labelKey: stakeholderAttitude.positive
+          - value: neutral
+            labelKey: stakeholderAttitude.neutral
+          - value: negative
+            labelKey: stakeholderAttitude.negative
+      - key: commFrequency
+        labelKey: stakeholder.commFrequency
+        type: text
+        sortOrder: 50
+        searchable: true
+      - key: commChannel
+        labelKey: stakeholder.commChannel
+        type: text
+        sortOrder: 60
+        searchable: true
+      - key: commNeeds
+        labelKey: stakeholder.commNeeds
+        type: textarea
+        sortOrder: 70
+        searchable: true
+    completeness:
+      - name
+      - description
+      - influenceLevel
+      - interestLevel
+
+  competition:
+    defaults:
+      name: ''
+      description: ''
+      strengths: ''
+      weaknesses: ''
+      inspiration: ''
+      competitorType: ''
+      url: ''
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: competition.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: competitorType
+        labelKey: competition.competitorType
+        type: select
+        sortOrder: 15
+        searchable: true
+        options:
+          - value: ''
+            labelKey: competitorType.
+          - value: direct
+            labelKey: competitorType.direct
+          - value: indirect
+            labelKey: competitorType.indirect
+      - key: strengths
+        labelKey: competition.strengths
+        type: textarea
+        sortOrder: 20
+        searchable: true
+      - key: weaknesses
+        labelKey: competition.weaknesses
+        type: textarea
+        sortOrder: 30
+        searchable: true
+      - key: inspiration
+        labelKey: competition.inspiration
+        type: textarea
+        sortOrder: 40
+        searchable: true
+      - key: url
+        labelKey: competition.url
+        type: url
+        sortOrder: 50
+        searchable: true
+    completeness:
+      - name
+      - description
+      - strengths
+      - weaknesses
+      - inspiration
+
+  hypothesis:
+    codePrefix: HYP
+    defaults:
+      code: ''
+      name: ''
+      description: ''
+      status: untested
+      explanation: ''
+      url: ''
+      requirementIds: []
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: hypothesis.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: status
+        labelKey: hypothesis.status
+        type: select
+        sortOrder: 20
+        options:
+          - value: untested
+            labelKey: hypothesisStatus.untested
+          - value: tested
+            labelKey: hypothesisStatus.tested
+          - value: refuted
+            labelKey: hypothesisStatus.refuted
+      - key: explanation
+        labelKey: hypothesis.explanation
+        type: textarea
+        sortOrder: 30
+        searchable: true
+      - key: url
+        labelKey: hypothesis.url
+        type: url
+        sortOrder: 40
+        searchable: true
+    completeness:
+      - name
+      - description
+      - field: explanation
+        when:
+          field: status
+          value: refuted
+
+  risk:
+    codePrefix: RSK
+    defaults:
+      code: ''
+      name: ''
+      description: ''
+      likelihood: ''
+      impact: ''
+      mitigation: ''
+      status: open
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: risk.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: likelihood
+        labelKey: risk.likelihood
+        type: select
+        sortOrder: 20
+        options:
+          - value: ''
+            labelKey: riskLevel.
+          - value: high
+            labelKey: riskLevel.high
+          - value: medium
+            labelKey: riskLevel.medium
+          - value: low
+            labelKey: riskLevel.low
+      - key: impact
+        labelKey: risk.impact
+        type: select
+        sortOrder: 30
+        options:
+          - value: ''
+            labelKey: riskLevel.
+          - value: high
+            labelKey: riskLevel.high
+          - value: medium
+            labelKey: riskLevel.medium
+          - value: low
+            labelKey: riskLevel.low
+      - key: mitigation
+        labelKey: risk.mitigation
+        type: textarea
+        sortOrder: 40
+        searchable: true
+      - key: status
+        labelKey: risk.status
+        type: select
+        sortOrder: 50
+        options:
+          - value: open
+            labelKey: riskStatus.open
+          - value: mitigated
+            labelKey: riskStatus.mitigated
+          - value: occurred
+            labelKey: riskStatus.occurred
+          - value: closed
+            labelKey: riskStatus.closed
+    completeness:
+      - name
+      - description
+      - likelihood
+      - impact
+      - mitigation
+
+  persona:
+    codePrefix: PER
+    defaults:
+      code: ''
+      name: ''
+      status: protopersona
+      description: ''
+      motivation: ''
+      needs: ''
+      problems: ''
+      barriers: ''
+      quote: ''
+      context: ''
+      recruitmentCriteria: ''
+      targetGroupSize: ''
+      targetGroupValue: ''
+      url: ''
+      scenarioIds: []
+      requirementIds: []
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: status
+        labelKey: persona.status
+        type: select
+        sortOrder: 5
+        options:
+          - value: protopersona
+            labelKey: personaStatus.protopersona
+          - value: persona
+            labelKey: personaStatus.persona
+      - key: description
+        labelKey: persona.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: motivation
+        labelKey: persona.motivation
+        type: textarea
+        sortOrder: 20
+        searchable: true
+      - key: needs
+        labelKey: persona.needs
+        type: textarea
+        sortOrder: 30
+        searchable: true
+      - key: problems
+        labelKey: persona.problems
+        type: textarea
+        sortOrder: 40
+        searchable: true
+      - key: barriers
+        labelKey: persona.barriers
+        type: textarea
+        sortOrder: 45
+        searchable: true
+      - key: quote
+        labelKey: persona.quote
+        type: text
+        sortOrder: 47
+        searchable: true
+      - key: context
+        labelKey: persona.context
+        type: textarea
+        sortOrder: 50
+        searchable: true
+      - key: recruitmentCriteria
+        labelKey: persona.recruitmentCriteria
+        type: textarea
+        sortOrder: 60
+        searchable: true
+      - key: targetGroupSize
+        labelKey: persona.targetGroupSize
+        type: text
+        sortOrder: 70
+        searchable: true
+      - key: targetGroupValue
+        labelKey: persona.targetGroupValue
+        type: text
+        sortOrder: 80
+        searchable: true
+      - key: url
+        labelKey: persona.url
+        type: url
+        sortOrder: 90
+        searchable: true
+    completeness:
+      - name
+      - description
+      - motivation
+      - needs
+      - problems
+      - context
+      - recruitmentCriteria
+      - targetGroupSize
+      - targetGroupValue
+
+  scenario:
+    codePrefix: SCN
+    defaults:
+      code: ''
+      name: ''
+      type: main
+      description: ''
+      trigger: ''
+      outcome: ''
+      frequencyValue: ''
+      frequencyUnit: daily
+      valueAmount: ''
+      valueUnit: daily
+      userCount: ''
+      userCountUnit: daily
+      priority: could
+      url: ''
+      personaIds: []
+      hypothesisIds: []
+      requirementIds: []
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: scenario.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: trigger
+        labelKey: scenario.trigger
+        type: textarea
+        sortOrder: 12
+        searchable: true
+      - key: outcome
+        labelKey: scenario.outcome
+        type: textarea
+        sortOrder: 14
+        searchable: true
+      - key: type
+        labelKey: scenario.type
+        type: select
+        sortOrder: 20
+        searchable: true
+        options:
+          - value: main
+            labelKey: scenario.scenarioType.main
+          - value: secondary
+            labelKey: scenario.scenarioType.secondary
+          - value: error
+            labelKey: scenario.scenarioType.error
+      - key: priority
+        labelKey: scenario.priority
+        type: select
+        sortOrder: 30
+        options:
+          - value: must
+            labelKey: moscow.must
+          - value: should
+            labelKey: moscow.should
+          - value: could
+            labelKey: moscow.could
+          - value: wont
+            labelKey: moscow.wont
+      - key: userCount
+        labelKey: scenario.userCount
+        type: number-unit
+        sortOrder: 40
+        valueKey: userCount
+        unitKey: userCountUnit
+        units:
+          - value: daily
+            labelKey: scenario.unit.daily
+          - value: monthly
+            labelKey: scenario.unit.monthly
+          - value: yearly
+            labelKey: scenario.unit.yearly
+      - key: frequency
+        labelKey: scenario.frequency
+        type: number-unit
+        sortOrder: 50
+        searchable: true
+        valueKey: frequencyValue
+        unitKey: frequencyUnit
+        units:
+          - value: daily
+            labelKey: scenario.unit.daily
+          - value: monthly
+            labelKey: scenario.unit.monthly
+          - value: yearly
+            labelKey: scenario.unit.yearly
+      - key: value
+        labelKey: scenario.value
+        type: number-unit
+        sortOrder: 60
+        searchable: true
+        valueKey: valueAmount
+        unitKey: valueUnit
+        units:
+          - value: daily
+            labelKey: scenario.unit.daily
+          - value: monthly
+            labelKey: scenario.unit.monthly
+          - value: yearly
+            labelKey: scenario.unit.yearly
+      - key: url
+        labelKey: scenario.url
+        type: url
+        sortOrder: 70
+        searchable: true
+    completeness:
+      - name
+      - description
+      - frequencyValue
+      - valueAmount
+      - userCount
+
+  requirement:
+    codePrefix: REQ
+    defaults:
+      code: ''
+      name: ''
+      description: ''
+      motivation: ''
+      category: ''
+      priority: could
+      url: ''
+      wontHaveExplanation: ''
+      conflictingRequirementIds: []
+      scenarioIds: []
+      stakeholderIds: []
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: requirement.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: motivation
+        labelKey: requirement.motivation
+        type: textarea
+        sortOrder: 20
+        searchable: true
+      - key: category
+        labelKey: requirement.category
+        type: select
+        sortOrder: 25
+        searchable: true
+        options:
+          - value: ''
+            labelKey: requirementCategory.
+          - value: data
+            labelKey: requirementCategory.data
+          - value: function
+            labelKey: requirementCategory.function
+          - value: quality
+            labelKey: requirementCategory.quality
+          - value: constraint
+            labelKey: requirementCategory.constraint
+      - key: priority
+        labelKey: requirement.priority
+        type: select
+        sortOrder: 30
+        options:
+          - value: must
+            labelKey: moscow.must
+          - value: should
+            labelKey: moscow.should
+          - value: could
+            labelKey: moscow.could
+          - value: wont
+            labelKey: moscow.wont
+      - key: wontHaveExplanation
+        labelKey: requirement.wontHaveExplanation
+        type: textarea
+        sortOrder: 40
+        searchable: true
+        visibleWhen:
+          field: priority
+          value: wont
+      - key: url
+        labelKey: requirement.url
+        type: url
+        sortOrder: 50
+        searchable: true
+    completeness:
+      - name
+      - description
+      - motivation
+      - field: wontHaveExplanation
+        when:
+          field: priority
+          value: wont
+
+  activity:
+    defaults:
+      typeKey: null
+      name: ''
+      description: ''
+      status: pending
+      dismissed: false
+      deadline: ''
+      sortOrder: 9999
+      checkedItems: []
+      checklistLabels: {}
+      customChecklistItems: []
+      removedChecklistItems: []
+      baseChecklist: null
+      checklistItemTaskIds: {}
+
+  teamMember:
+    defaults:
+      name: ''
+      role: ''
+      email: ''
+      phone: ''
+      note: ''
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: role
+        labelKey: teamMember.role
+        type: text
+        sortOrder: 10
+        searchable: true
+      - key: email
+        labelKey: teamMember.email
+        type: email
+        sortOrder: 20
+        searchable: true
+      - key: phone
+        labelKey: teamMember.phone
+        type: tel
+        sortOrder: 30
+        searchable: true
+      - key: note
+        labelKey: teamMember.note
+        type: textarea
+        sortOrder: 40
+        searchable: true
+    completeness:
+      - name
+      - role
+      - email
+
+  task:
+    codePrefix: TSK
+    defaults:
+      code: ''
+      name: ''
+      description: ''
+      dueDate: ''
+      assignee: ''
+      status: incomplete
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: description
+        labelKey: task.description
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: dueDate
+        labelKey: task.dueDate
+        type: date
+        sortOrder: 20
+      - key: assignee
+        labelKey: task.assignee
+        type: select
+        sortOrder: 30
+        searchable: true
+        options: []
+      - key: status
+        labelKey: task.status
+        type: select
+        sortOrder: 40
+        options:
+          - value: incomplete
+            labelKey: task.statusOptions.incomplete
+          - value: done
+            labelKey: task.statusOptions.done
+          - value: cancelled
+            labelKey: task.statusOptions.cancelled
+
+  bug:
+    codePrefix: BUG
+    defaults:
+      code: ''
+      name: ''
+      expectedBehavior: ''
+      actualBehavior: ''
+      stepsToReproduce: ''
+      severity: ''
+      impact: ''
+      url: ''
+      status: zadano
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: expectedBehavior
+        labelKey: bug.expectedBehavior
+        type: textarea
+        sortOrder: 10
+        searchable: true
+      - key: actualBehavior
+        labelKey: bug.actualBehavior
+        type: textarea
+        sortOrder: 20
+        searchable: true
+      - key: stepsToReproduce
+        labelKey: bug.stepsToReproduce
+        type: textarea
+        sortOrder: 30
+        searchable: true
+      - key: severity
+        labelKey: bug.severity
+        type: select
+        sortOrder: 40
+        options:
+          - value: ''
+            labelKey: bug.severityOptions.
+          - value: critical
+            labelKey: bug.severityOptions.critical
+          - value: high
+            labelKey: bug.severityOptions.high
+          - value: medium
+            labelKey: bug.severityOptions.medium
+          - value: low
+            labelKey: bug.severityOptions.low
+      - key: impact
+        labelKey: bug.impact
+        type: select
+        sortOrder: 50
+        options:
+          - value: ''
+            labelKey: bug.impactOptions.
+          - value: high
+            labelKey: bug.impactOptions.high
+          - value: medium
+            labelKey: bug.impactOptions.medium
+          - value: low
+            labelKey: bug.impactOptions.low
+      - key: url
+        labelKey: bug.url
+        type: url
+        sortOrder: 60
+        searchable: true
+      - key: status
+        labelKey: bug.status
+        type: select
+        sortOrder: 70
+        options:
+          - value: zadano
+            labelKey: bug.statusOptions.zadano
+          - value: neopravime
+            labelKey: bug.statusOptions.neopravime
+          - value: opraveno
+            labelKey: bug.statusOptions.opraveno

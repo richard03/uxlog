@@ -10,15 +10,17 @@ import { useStore } from './useStore.js'
 import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 import { useEntityHelpers } from './useEntityHelpers.js'
 import { useI18n } from './useI18n.js'
+import { useConfig } from './useConfig.js'
 import { buildOutcomes, countOutcomes, LEGACY_ENTRY_ID } from '../lib/notebookChat.js'
 
-/** Mapování entity → { prefix kódu, getter pro existující položky } */
+/** Entity s automatickým kódem → getter pro existující položky (prefix kódu je v data/entities.yaml). */
 const CODE_ENTITIES = {
-  goal: { prefix: 'GOL', getter: 'getGoals' },
-  hypothesis: { prefix: 'HYP', getter: 'getHypotheses' },
-  persona: { prefix: 'PER', getter: 'getPersonas' },
-  scenario: { prefix: 'SCN', getter: 'getScenarios' },
-  requirement: { prefix: 'REQ', getter: 'getRequirements' },
+  goal: 'getGoals',
+  hypothesis: 'getHypotheses',
+  persona: 'getPersonas',
+  scenario: 'getScenarios',
+  requirement: 'getRequirements',
+  risk: 'getRisks',
 }
 
 /** Entita → [název metody pro vytvoření, název metody pro úpravu] ve store */
@@ -31,6 +33,7 @@ const ENTITY_METHODS = {
   hypothesis: ['addHypothesis', 'updateHypothesis'],
   scenario: ['addScenario', 'updateScenario'],
   teamMember: ['addTeamMember', 'updateTeamMember'],
+  risk: ['addRisk', 'updateRisk'],
 }
 
 /** Id záznamů, které se zpracovávají v tomto běhu aplikace (sdílené napříč instancemi). */
@@ -44,8 +47,9 @@ const reviewQueue = ref([])
  */
 export function useNotebookChat(projectIdRef) {
   const store = useStore()
-  const { generateNextCode } = useEntityHelpers()
+  const { generateNextCode, getCodePrefix } = useEntityHelpers()
   const { t } = useI18n()
+  const { getTemplate } = useConfig()
 
   const projectId = computed(() => toValue(projectIdRef))
   const history = computed(() => store.getProjectNotebookHistory(projectId.value))
@@ -78,6 +82,7 @@ export function useNotebookChat(projectIdRef) {
     return {
       // Navíc pro dotazy (ai:notebook je ignoruje)
       activities: store.getActivities(pid),
+      methodology: store.getActivities(pid).map((a) => ({ name: a.name, guide: a.typeKey ? getTemplate(a.typeKey)?.guide : null })),
       tasks: store.getTasks(pid),
       bugs: store.getBugs(pid),
       connections: store.getConnections(pid),
@@ -89,6 +94,7 @@ export function useNotebookChat(projectIdRef) {
       scenarios: store.getScenarios(pid),
       requirements: store.getRequirements(pid),
       teamMembers: store.getTeamMembers(pid),
+      risks: store.getRisks(pid),
     }
   }
 
@@ -101,8 +107,12 @@ export function useNotebookChat(projectIdRef) {
     setInFlight(entry.id, true)
     store.updateNotebookEntryInProject(pid, entry.id, { status: 'processing', error: '' })
     try {
-      const { actions } = await callCapability('ai:notebook', entry.text, buildProjectData(pid))
+      const { actions, failedParts = 0, totalParts = 1 } = await callCapability('ai:notebook', entry.text, buildProjectData(pid))
       const list = Array.isArray(actions) ? actions : []
+      // Dlouhý text se zpracovává po částech – nezpracované části uživateli nezamlčíme
+      if (failedParts > 0) {
+        store.updateNotebookEntryInProject(pid, entry.id, { error: t.notebook.partialFailure(failedParts, totalParts) })
+      }
       if (list.length === 0) {
         store.updateNotebookEntryInProject(pid, entry.id, { status: 'done', outcomes: [] })
       } else {
@@ -179,9 +189,10 @@ export function useNotebookChat(projectIdRef) {
     if (!pid || !methods) return
     const fields = { ...action.fields }
     if (action.type === 'create') {
-      const codeInfo = CODE_ENTITIES[action.entity]
-      if (codeInfo && !fields.code) {
-        fields.code = generateNextCode(codeInfo.prefix, store[codeInfo.getter](pid))
+      const getter = CODE_ENTITIES[action.entity]
+      const prefix = getCodePrefix(action.entity)
+      if (getter && prefix && !fields.code) {
+        fields.code = generateNextCode(prefix, store[getter](pid))
       }
       store[methods[0]](pid, fields)
     } else if (action.type === 'update' && action.entityId) {

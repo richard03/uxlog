@@ -7,6 +7,7 @@ import { generateNextCode } from '../lib/code.js'
 import { getEntityCompleteness } from '../lib/completeness.js'
 import { getBugPriority, getStakeholderStrategy } from '../lib/models.js'
 import { generateId } from '../lib/id.js'
+import { getCodePrefix } from '../lib/dataConfig.js'
 
 export function useEntityHelpers() {
   return {
@@ -15,5 +16,7 @@ export function useEntityHelpers() {
     getBugPriority,
     getStakeholderStrategy,
     generateId,
+    /** Prefix kódu entity z data/entities.yaml (např. getCodePrefix('persona') → 'PER'). */
+    getCodePrefix,
   }
 }

@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project.color"
-      :title="project.name"
-      :on-edit-title="openForm"
-      :edit-title-label="t.project.edit">
+      :title="project.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
@@ -232,6 +230,7 @@ const sections = computed(() => {
     { id: 'scenarios', route: 'scenarios', count: store.getScenarios(pid).length },
     { id: 'requirements', route: 'requirements', count: store.getRequirements(pid).length },
     { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },
+    { id: 'risks', route: 'risks', count: store.getRisks(pid).filter(r => (r.status || 'open') === 'open').length },
     { id: 'bugs', route: 'bugs', count: store.getBugs(pid).filter(b => b.status === 'zadano').length },
     { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
     { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
@@ -256,7 +255,7 @@ function handleImported({ projectId: importedProjectId }) {
 <style scoped>
 .project-columns {
   display: grid;
-  /* Aktivity | Artefakty si rovným dílem dělí pravou polovinu; Zápisník je vlevo v ProjectLayout */
+  /* Aktivity | Artefakty si rovným dílem dělí levou polovinu; Zápisník je vpravo v ProjectLayout */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-lg);
   align-items: start;

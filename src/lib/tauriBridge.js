@@ -17,6 +17,7 @@ export const isTauri =
  */
 const MIRRORED_KEYS = [
   'uxlog_data',
+  'uxlog_history',
   'uxlog_config',
   'uxlog_plugins',
   'uxlog_ai_keys',

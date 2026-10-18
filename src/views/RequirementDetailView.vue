@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="item.name || t.requirement.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.requirement.name}`">
+      :title="item.name || t.requirement.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
@@ -16,7 +14,10 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.requirement.label} ${item.name || ''}`.trim()">
+    <ColumnHeading
+      :title="`${t.requirement.label} ${item.name || ''}`.trim()"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.requirement.name}`">
       <template #sub>
         <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.requirement.code}`">
         <span>{{ item.code || '–' }}</span>

@@ -6,10 +6,10 @@
  */
 
 import {
-  buildProjectContext, buildNotebookPrompt, parseActions,
+  buildProjectContext, processNotebookInParts,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
-  buildAskContext, buildAskNotes, buildAskPrompt, parseAskAnswer,
+  buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
 
@@ -21,16 +21,17 @@ const DEFAULT_MODEL = 'gemini-1.5-flash-latest'
  * @param {string} apiKey
  * @param {string} prompt
  * @param {string} model
+ * @param {{ json?: boolean }} [options] - json: odpověď jako JSON (responseMimeType)
  * @returns {Promise<string>}
  */
-async function callGemini(apiKey, prompt, model) {
+async function callGemini(apiKey, prompt, model, { json = false } = {}) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1 },
+      generationConfig: { temperature: 0.1, ...(json ? { responseMimeType: 'application/json' } : {}) },
     }),
   })
   if (!res.ok) {
@@ -52,10 +53,8 @@ function getModel() {
 async function processNotebook(notebookText, projectData) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('Gemini API klíč není nastaven. Přejděte do nastavení.')
-  const context = buildProjectContext(projectData)
-  const prompt = buildNotebookPrompt(notebookText, context)
-  const responseText = await callGemini(apiKey, prompt, getModel())
-  return parseActions(responseText)
+  const model = getModel()
+  return processNotebookInParts(notebookText, buildProjectContext(projectData), (prompt) => callGemini(apiKey, prompt, model, { json: true }))
 }
 
 /**
@@ -68,7 +67,7 @@ async function processNotebook(notebookText, projectData) {
 async function askProject(question, projectData, history) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('Gemini API klíč není nastaven. Přejděte do nastavení.')
-  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history))
+  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history), buildAskMethodology(projectData?.methodology))
   const responseText = await callGemini(apiKey, prompt, getModel())
   return parseAskAnswer(responseText)
 }

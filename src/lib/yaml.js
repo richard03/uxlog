@@ -134,9 +134,42 @@ function normalizeFigmaValue(value) {
     .replace(/[\u2022\u2023\u25CF\u25E6\u25AA\u00B7]\s*/g, '- ')
 }
 
-export function parseYaml(text) {
+/**
+ * Odstraní z řádku YAML komentář: celý řádek začínající `#`, nebo ` # …` za hodnotou mimo uvozovky.
+ * @param {string} line
+ * @returns {string}
+ */
+export function stripYamlComment(line) {
+  if (line.trimStart().startsWith('#')) return ''
+  let quote = null
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (quote) {
+      if (ch === '\\' && quote === '"') i++
+      else if (ch === quote) quote = null
+    } else if (ch === '"' || ch === "'") {
+      // Uvozovka otevírá řetězec jen na začátku hodnoty (po „:“, „-“ nebo na začátku řádku)
+      const before = line.slice(0, i).trimEnd()
+      if (before === '' || before.endsWith(':') || before.endsWith('-')) quote = ch
+    } else if (ch === '#' && i > 0 && /\s/.test(line[i - 1])) {
+      return line.slice(0, i).trimEnd()
+    }
+  }
+  return line
+}
+
+/**
+ * Parsuje YAML (podmnožina: mapy, seznamy, skaláry, víceřádkové pokračování hodnot).
+ * @param {string} text
+ * @param {{ config?: boolean }} [options] - config: true pro konfigurační soubory (/data) –
+ *   navíc povolí komentáře `#` a řetězce v jednoduchých uvozovkách. Import uživatelských dat
+ *   tuto volbu nepoužívá, aby se text typu „Krok #2“ nezkrátil.
+ * @returns {*}
+ */
+export function parseYaml(text, { config = false } = {}) {
   const normalized = normalizeParseInput(text)
-  const lines = normalized.split('\n')
+  let lines = normalized.split('\n')
+  if (config) lines = lines.map(stripYamlComment)
   let pos = 0
 
   function skipBlank() {
@@ -154,6 +187,9 @@ export function parseYaml(text) {
     if (raw === 'false') return false
     if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw)
     if (raw === "''") return ''
+    if (config && raw.length >= 2 && raw.startsWith("'") && raw.endsWith("'")) {
+      return raw.slice(1, -1).replace(/''/g, "'")
+    }
     if (raw.startsWith('"') && raw.endsWith('"')) {
       return normalizeFigmaValue(
         raw

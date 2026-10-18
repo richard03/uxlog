@@ -28,7 +28,7 @@ export function pickNewer(a, b) {
 /** Klíče entit, které patří projektu přes projectId. */
 const PROJECT_ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
-  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'connections',
+  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'risks', 'connections',
 ]
 
 /**
@@ -130,6 +130,38 @@ export function getEmptyData() {
     teamMembers: [],
     tasks: [],
     bugs: [],
+    risks: [],
     connections: [],
+  }
+}
+
+const HISTORY_STORAGE_KEY = 'uxlog_history'
+
+/**
+ * Načte uloženou historii změn projektů (surová data, normalizuje volající).
+ * @returns {unknown}
+ */
+export function loadHistoryData() {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch (e) {
+    console.error('loadHistoryData failed:', e)
+    return {}
+  }
+}
+
+/**
+ * Uloží historii změn projektů do localStorage a zrcadlí ji do Tauri storage.
+ * Chyba (např. plné úložiště) historii jen neuloží – nesmí zablokovat práci s daty.
+ * @param {Object} history
+ */
+export async function saveHistoryData(history) {
+  try {
+    const json = JSON.stringify(history)
+    localStorage.setItem(HISTORY_STORAGE_KEY, json)
+    await mirrorToTauri(HISTORY_STORAGE_KEY, json)
+  } catch (e) {
+    console.error('saveHistoryData failed:', e)
   }
 }

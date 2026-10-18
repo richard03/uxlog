@@ -2,7 +2,8 @@ import { state, getData, persist } from './state.js'
 import { updateProject } from './projects.js'
 import { createActivity } from '../models.js'
 import { ACTIVITY_TYPES } from '../activityTypes.js'
-import { getTemplate } from './config.js'
+import { getTemplate, getEffectiveTemplates } from './config.js'
+import { getActivityRecommendations } from '../activityRecommendations.js'
 import { getActivityDeadlineDefault } from '../deadline.js'
 import { generateId } from '../id.js'
 import { addTask, getTask } from './tasks.js'
@@ -33,6 +34,28 @@ export function getActivities(projectId) {
 
 export function getAllActivities(projectId) {
   return (getData().activities || []).filter((a) => a.projectId === projectId)
+}
+
+/**
+ * Doporučené další aktivity projektu podle stavu artefaktů (jen z dostupných šablon).
+ * @param {string} projectId
+ * @returns {Array<{ typeKey: string, reasonKey: string, count: number, name: string }>}
+ */
+export function getRecommendedActivities(projectId) {
+  const data = getData()
+  const of = (key) => (data[key] || []).filter((x) => x?.projectId === projectId)
+  const templates = new Map(getEffectiveTemplates().map((t) => [t.key, t]))
+  return getActivityRecommendations({
+    activities: of('activities'),
+    stakeholders: of('stakeholders'),
+    competitions: of('competitions'),
+    personas: of('personas'),
+    scenarios: of('scenarios'),
+    requirements: of('requirements'),
+    hypotheses: of('hypotheses'),
+    risks: of('risks'),
+    connections: of('connections'),
+  }, [...templates.keys()]).map((r) => ({ ...r, name: templates.get(r.typeKey)?.name || r.typeKey }))
 }
 
 export function getActivity(id) {

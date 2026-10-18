@@ -32,12 +32,30 @@
       <span class="text-muted">{{ t.activity.emptyStateHint }}</span>
     </p>
 
+    <section v-if="recommendations.length" class="activity-recs" aria-labelledby="activity-recs-heading">
+      <h3 id="activity-recs-heading" class="activity-recs-title">{{ t.activity.recommendations.title }}</h3>
+      <ul class="activity-recs-list" role="list">
+        <li v-for="rec in recommendations" :key="rec.typeKey" class="activity-rec">
+          <div class="activity-rec-text">
+            <span class="activity-rec-name">{{ rec.name }}</span>
+            <span class="activity-rec-reason">{{ t.activity.recommendations.reasons[rec.reasonKey]?.(rec.count) }}</span>
+          </div>
+          <AppButton
+            variant="secondary"
+            size="sm"
+            :aria-label="t.activity.recommendations.addLabel(rec.name)"
+            @click="addRecommended(rec.typeKey)"
+          >{{ t.activity.recommendations.add }}</AppButton>
+        </li>
+      </ul>
+    </section>
+
     <!-- Add activity modal -->
     <Modal v-if="showAdd" :title="t.activity.add" @close="closeAdd">
       <form @submit.prevent="saveActivity">
         <FormSelect v-model="typeKey" :label="t.activity.label" control-id="activity-type">
           <optgroup v-for="group in activityGroups" :key="group.key" :label="group.label">
-            <option v-for="type in group.types" :key="type.key" :value="type.key">{{ type.defaultName }}</option>
+            <option v-for="type in group.types" :key="type.key" :value="type.key">{{ type.name }}</option>
           </optgroup>
           <optgroup :label="t.activity.addCustom">
             <option value="custom">{{ t.activity.customName }}</option>
@@ -59,7 +77,6 @@ import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import { useConfig } from '../composables/useConfig.js'
 import { useDraggableList } from '../composables/useDraggableList.js'
-import { ACTIVITY_TYPES, getActivityType } from '../lib/activityTypes.js'
 import { getEffectiveActivityChecklist } from '../lib/activityChecklistLinks.js'
 import Modal from './Modal.vue'
 import KebabMenu from './KebabMenu.vue'
@@ -77,9 +94,11 @@ const emit = defineEmits(['dismiss', 'move', 'assign-task'])
 
 const { t } = useI18n()
 const store = useStore()
-const { getTemplate } = useConfig()
+const { getTemplate, getEffectiveTemplates } = useConfig()
 
 const activities = computed(() => store.getActivities(props.projectId))
+/** Nejvýš tři doporučené aktivity podle stavu artefaktů projektu. */
+const recommendations = computed(() => store.getRecommendedActivities(props.projectId).slice(0, 3))
 const dnd = useDraggableList(() => activities.value, (orderedIds) => store.reorderEntities('activities', props.projectId, orderedIds))
 
 /**
@@ -89,9 +108,7 @@ const dnd = useDraggableList(() => activities.value, (orderedIds) => store.reord
  */
 function templateChecklistFor(activity) {
   if (!activity?.typeKey) return []
-  const cfg = getTemplate(activity.typeKey)?.checklist
-  if (cfg !== undefined && cfg !== null) return cfg
-  return ACTIVITY_TYPES.find((x) => x.key === activity.typeKey)?.checklist || []
+  return getTemplate(activity.typeKey)?.checklist || []
 }
 
 /**
@@ -139,11 +156,17 @@ function onActivityCardAction(action, activityId) {
   else if (action === 'assign-task') emit('assign-task', activityId)
 }
 
-const activityGroups = computed(() => [
-  { key: 'project', label: t.activity.groupProject, types: ACTIVITY_TYPES.filter((type) => type.group === 'project') },
-  { key: 'research', label: t.activity.groupResearch, types: ACTIVITY_TYPES.filter((type) => type.group === 'research') },
-  { key: 'design', label: t.activity.groupDesign, types: ACTIVITY_TYPES.filter((type) => type.group === 'design') },
-])
+/** Šablony z konfigurace (vestavěné bez smazaných + vlastní), seskupené podle skupiny. */
+const activityGroups = computed(() => {
+  const templates = getEffectiveTemplates()
+  return [
+    { key: 'project', label: t.activity.groupProject },
+    { key: 'research', label: t.activity.groupResearch },
+    { key: 'design', label: t.activity.groupDesign },
+  ]
+    .map((g) => ({ ...g, types: templates.filter((type) => type.group === g.key) }))
+    .filter((g) => g.types.length)
+})
 
 const showAdd = ref(false)
 const typeKey = ref('')
@@ -159,15 +182,24 @@ function closeAdd() {
   showAdd.value = false
 }
 
+/**
+ * Přidá doporučenou aktivitu ze šablony.
+ * @param {string} key
+ */
+function addRecommended(key) {
+  const type = getTemplate(key)
+  if (type) store.addActivity(props.projectId, { typeKey: type.key, name: type.name, sortOrder: type.sortOrder })
+}
+
 function saveActivity() {
   if (typeKey.value === 'custom') {
     const name = customName.value.trim()
     if (!name) return
     store.addActivity(props.projectId, { name, sortOrder: 9999 })
   } else {
-    const type = getActivityType(typeKey.value)
+    const type = getTemplate(typeKey.value)
     if (!type) return
-    store.addActivity(props.projectId, { typeKey: type.key, name: type.defaultName, sortOrder: type.sortOrder })
+    store.addActivity(props.projectId, { typeKey: type.key, name: type.name, sortOrder: type.sortOrder })
   }
   closeAdd()
 }
@@ -234,5 +266,50 @@ function saveActivity() {
   font-size: 0.9rem;
   text-align: center;
   padding: var(--space-md) 0;
+}
+
+.activity-recs {
+  margin-top: var(--space-lg);
+}
+
+.activity-recs-title {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.activity-recs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-rec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.activity-rec-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.activity-rec-name {
+  font-size: 0.9375rem;
+}
+
+.activity-rec-reason {
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 </style>

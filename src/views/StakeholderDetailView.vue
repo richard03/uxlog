@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="item.name || t.stakeholder.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.stakeholder.name}`">
+      :title="item.name || t.stakeholder.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('stakeholders', item?.id)" :filename="item?.name || t.stakeholder.label" />
@@ -16,7 +14,10 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.stakeholder.label} ${item.name || ''}`.trim()">
+    <ColumnHeading
+      :title="`${t.stakeholder.label} ${item.name || ''}`.trim()"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.stakeholder.name}`">
       <template #sub>
         <AppBadge v-if="strategy" :variant="`strategy-${strategy}`">{{ t.stakeholderStrategy[strategy] }}</AppBadge>
       </template>

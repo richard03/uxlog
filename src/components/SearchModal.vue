@@ -68,6 +68,14 @@
               @close="showSearch = false"
             />
             <SearchResultsSection
+              v-if="results.riskIds?.length"
+              :title="t.risk.label"
+              :items="riskItems"
+              section="risks"
+              :projectId="(r) => r.projectId"
+              @close="showSearch = false"
+            />
+            <SearchResultsSection
               v-if="results.personaIds.length"
               :title="t.persona.label"
               :items="personaItems"
@@ -130,7 +138,7 @@ const hasResults = computed(() => {
   const r = results.value
   return r.projectIds.length || r.goalIds.length || r.stakeholderIds.length ||
     r.competitionIds.length || r.hypothesisIds.length || r.personaIds.length ||
-    r.scenarioIds.length || r.requirementIds.length || r.teamMemberIds?.length
+    r.scenarioIds.length || r.requirementIds.length || r.teamMemberIds?.length || r.riskIds?.length
 })
 
 const projectItems = computed(() =>
@@ -147,6 +155,9 @@ const competitionItems = computed(() =>
 )
 const hypothesisItems = computed(() =>
   (results.value?.hypothesisIds || []).map((id) => store.getHypothesis(id)).filter(Boolean)
+)
+const riskItems = computed(() =>
+  (results.value?.riskIds || []).map((id) => store.getRisk(id)).filter(Boolean)
 )
 const personaItems = computed(() =>
   (results.value?.personaIds || []).map((id) => store.getPersona(id)).filter(Boolean)

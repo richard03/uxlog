@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { toYaml, parseYaml } from './yaml.js'
+import { toYaml, parseYaml, stripYamlComment } from './yaml.js'
 
 describe('toYaml', () => {
   it('serializuje primitiva', () => {
@@ -184,5 +184,41 @@ describe('parseYaml', () => {
     const yaml = 'personas:\n  - id: p1\n    needs: \u2022 Rychlé rozhraní\u2028\u2022 Tmavý režim\u2028\u2022 Export dat'
     const parsed = parseYaml(yaml)
     expect(parsed.personas[0].needs).toBe('- Rychlé rozhraní\n- Tmavý režim\n- Export dat')
+  })
+})
+
+describe('parseYaml – konfigurační režim (config: true)', () => {
+  it('ignoruje řádkové komentáře a komentáře za hodnotou', () => {
+    const text = [
+      '# Hlavička souboru',
+      'items:',
+      '  # komentář v seznamu',
+      '  - key: a # vysvětlivka',
+      '    label: "Text # uvnitř uvozovek"',
+      '  - key: b',
+      'color: "#e05252" # barva',
+    ].join('\n')
+    expect(parseYaml(text, { config: true })).toEqual({
+      items: [{ key: 'a', label: 'Text # uvnitř uvozovek' }, { key: 'b' }],
+      color: '#e05252',
+    })
+  })
+
+  it('podporuje jednoduché uvozovky včetně zdvojeného apostrofu', () => {
+    expect(parseYaml("a: 'it''s: ok'\nb: 'x # y'", { config: true })).toEqual({ a: "it's: ok", b: 'x # y' })
+  })
+
+  it('bez config režimu se # ani jednoduché uvozovky nezpracovávají (import uživatelských dat)', () => {
+    expect(parseYaml("a: Krok #2\nb: 'x'")).toEqual({ a: 'Krok #2', b: "'x'" })
+  })
+})
+
+describe('stripYamlComment', () => {
+  it('odstraní komentář jen mimo uvozovky a jen za mezerou', () => {
+    expect(stripYamlComment('  # celý řádek')).toBe('')
+    expect(stripYamlComment('a: b # c')).toBe('a: b')
+    expect(stripYamlComment('a: b#c')).toBe('a: b#c')
+    expect(stripYamlComment('a: "b # c"')).toBe('a: "b # c"')
+    expect(stripYamlComment("- 'b # c' # d")).toBe("- 'b # c'")
   })
 })

@@ -16,8 +16,9 @@ export { getHypotheses, getHypothesis, addHypothesis, updateHypothesis, deleteHy
 export { getPersonas, getPersona, addPersona, updatePersona, deletePersona } from './personas.js'
 export { getScenarios, getScenario, addScenario, updateScenario, deleteScenario } from './scenarios.js'
 export { getRequirements, getRequirement, addRequirement, updateRequirement, deleteRequirement } from './requirements.js'
+export { getRisks, getRisk, addRisk, updateRisk, deleteRisk } from './risks.js'
 export {
-  getActivities, getAllActivities, getActivity, addActivity, updateActivity, deleteActivity,
+  getActivities, getAllActivities, getActivity, getRecommendedActivities, addActivity, updateActivity, deleteActivity,
   toggleChecklistItem, addCustomChecklistItem, removeChecklistItem, updateChecklistLabel,
   createTaskFromChecklistItem, addTaskLinkedToActivity,
 } from './activities.js'
@@ -40,6 +41,9 @@ export {
   exportData, exportSectionData, exportEntityData, exportProjectData,
   importProjectData, buildImport,
 } from './exportImport.js'
+export {
+  getProjectHistory, revertHistoryEntry, getDeletedProjects, restoreDeletedProject,
+} from './history.js'
 export {
   getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,
 } from './connections.js'

@@ -71,7 +71,7 @@ async function runSync() {
   try {
     await callCapability('sync:run', toRaw(getData()), (updates) => {
       Object.assign(state, updates)
-      persist()
+      persist({ history: false })
       // Po persist aktualizuj snapshot, aby diffAndSync neviděl updatedAt jako změnu
       if (hasCapability('sync:set-snapshot')) {
         callCapability('sync:set-snapshot', toRaw(getData()))

@@ -21,16 +21,17 @@
   /* Max. šířka layoutu – sdílí AppHeader i obsah (.container); při změně uprav i @media u .container */
   --layout-max-width: 1200px;
 
-  /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven */
-  --bg: #1a1814;
-  --bg-elevated: #25221c;
-  --bg-muted: #322e27;
-  --text: #f5f2ed;
-  --text-muted: #9a9489;
+  /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven.
+     Neutrální odstíny jsou studené (navy), akcent oranžový. */
+  --bg: #0f1724;
+  --bg-elevated: #172234;
+  --bg-muted: #213047;
+  --text: #eef2f7;
+  --text-muted: #8d9bb0;
   --accent: #e07d4a;
   --accent-hover: #f0936a;
-  --accent-muted: #3d3028;
-  --border: #3d3830;
+  --accent-muted: #2b3d57;
+  --border: #2a3850;
   --border-focus: #e07d4a;
   --success: #40916c;
   --warning: #d4a017;
@@ -38,15 +39,15 @@
 }
 
 [data-theme="light"] {
-  --bg: #f8f6f3;
+  --bg: #f4f6f9;
   --bg-elevated: #ffffff;
-  --bg-muted: #ebe7e1;
-  --text: #1a1814;
-  --text-muted: #5c564d;
+  --bg-muted: #e6ebf2;
+  --text: #0f1724;
+  --text-muted: #51607a;
   --accent: #c45c2a;
   --accent-hover: #a84d22;
-  --accent-muted: #e8d5cc;
-  --border: #d9d4cc;
+  --accent-muted: #fbe1d3;
+  --border: #d3dbe6;
   --border-focus: #c45c2a;
   --success: #2d6a4f;
   --warning: #b8860b;
@@ -54,15 +55,15 @@
 }
 
 [data-theme="dark"] {
-  --bg: #1a1814;
-  --bg-elevated: #25221c;
-  --bg-muted: #322e27;
-  --text: #f5f2ed;
-  --text-muted: #9a9489;
+  --bg: #0f1724;
+  --bg-elevated: #172234;
+  --bg-muted: #213047;
+  --text: #eef2f7;
+  --text-muted: #8d9bb0;
   --accent: #e07d4a;
   --accent-hover: #f0936a;
-  --accent-muted: #3d3028;
-  --border: #3d3830;
+  --accent-muted: #2b3d57;
+  --border: #2a3850;
   --border-focus: #e07d4a;
   --success: #40916c;
   --warning: #d4a017;

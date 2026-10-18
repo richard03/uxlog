@@ -2,20 +2,10 @@
  * Paleta barev pro projekty a logika přiřazování unikátních barev.
  */
 
-export const PROJECT_COLORS = [
-  '#e05252', // červená
-  '#e07c4a', // oranžová
-  '#e0b84a', // jantarová
-  '#6abd6a', // zelená
-  '#4aaa8a', // tyrkysová
-  '#4a90d9', // modrá
-  '#6e7fdd', // indigo
-  '#9c6dd0', // fialová
-  '#d06db0', // růžová
-  '#8d6e63', // hnědá
-  '#78909c', // šedě-modrá
-  '#26c6da', // cyan
-]
+import { APP_CONFIG } from './dataConfig.js'
+
+/** Paleta z data/app.yaml (projectColors). */
+export const PROJECT_COLORS = APP_CONFIG.projectColors
 
 /**
  * Vybere výchozí barvu pro nový projekt, která ještě není použita.

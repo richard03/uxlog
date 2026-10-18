@@ -208,7 +208,7 @@ const lastEffectiveProjectId = ref(null)
 const ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses',
   'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
-  'tasks', 'bugs',
+  'tasks', 'bugs', 'risks',
 ]
 
 const existingProjects = computed(() => store.state.projects || [])
@@ -225,6 +225,7 @@ const sectionDefs = computed(() => [
   { key: 'activities', label: t.activity.panelTitle },
   { key: 'tasks', label: t.sections.tasks },
   { key: 'bugs', label: t.sections.bugs },
+  { key: 'risks', label: t.sections.risks },
 ])
 
 /** Rozbalení řádků entit (index ↔ stav). */

@@ -1,9 +1,11 @@
 /**
  * Definice modelů a továrních funkcí pro entity.
  * Čisté funkce bez side effects - vhodné pro unit testy.
+ * Výchozí hodnoty polí jsou v data/entities.yaml (entities.<typ>.defaults).
  */
 
 import { generateId } from './id.js'
+import { getEntityDefaults } from './dataConfig.js'
 
 /**
  * Vytvoří novou souvislost mezi dvěma entitami.
@@ -57,19 +59,12 @@ export function getStakeholderStrategy(influenceLevel, interestLevel) {
  * @returns {Object}
  */
 export function createProject(overrides = {}) {
+  const now = new Date().toISOString()
   return {
     id: generateId(),
-    name: '',
-    scope: 'medium',
-    priority: 'medium',
-    phase: 'research',
-    createdAt: new Date().toISOString(),
-    lastWorkedAt: new Date().toISOString(),
-    deadline: '',
-    notebook: '',
-    notebookHistory: [],
-    sortOrder: 9999,
-    color: '',
+    ...getEntityDefaults('project'),
+    createdAt: now,
+    lastWorkedAt: now,
     ...overrides,
   }
 }
@@ -84,13 +79,7 @@ export function createGoal(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    description: '',
-    metrics: '',
-    url: '',
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('goal'),
     ...overrides,
   }
 }
@@ -105,13 +94,7 @@ export function createStakeholder(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    name: '',
-    description: '',
-    influenceLevel: '',
-    interestLevel: '',
-    requirementIds: [],
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('stakeholder'),
     ...overrides,
   }
 }
@@ -126,14 +109,7 @@ export function createCompetition(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    name: '',
-    description: '',
-    strengths: '',
-    weaknesses: '',
-    inspiration: '',
-    url: '',
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('competition'),
     ...overrides,
   }
 }
@@ -148,15 +124,24 @@ export function createHypothesis(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    description: '',
-    status: 'untested',
-    explanation: '',
-    url: '',
-    requirementIds: [],
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('hypothesis'),
+    ...overrides,
+  }
+}
+
+/** @typedef {'open'|'mitigated'|'occurred'|'closed'} RiskStatus */
+
+/**
+ * Vytvoří nové riziko projektu (z kick-offu, pre-mortemu nebo rozhovorů).
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createRisk(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    ...getEntityDefaults('risk'),
     ...overrides,
   }
 }
@@ -171,22 +156,7 @@ export function createPersona(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    status: 'protopersona',
-    description: '',
-    motivation: '',
-    needs: '',
-    problems: '',
-    context: '',
-    recruitmentCriteria: '',
-    targetGroupSize: '',
-    targetGroupValue: '',
-    url: '',
-    scenarioIds: [],
-    requirementIds: [],
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('persona'),
     ...overrides,
   }
 }
@@ -201,23 +171,7 @@ export function createScenario(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    type: 'main',
-    description: '',
-    frequencyValue: '',
-    frequencyUnit: 'daily',
-    valueAmount: '',
-    valueUnit: 'daily',
-    userCount: '',
-    userCountUnit: 'daily',
-    priority: 'could',
-    url: '',
-    personaIds: [],
-    hypothesisIds: [],
-    requirementIds: [],
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('scenario'),
     ...overrides,
   }
 }
@@ -232,20 +186,7 @@ export function createActivity(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    typeKey: null,
-    name: '',
-    description: '',
-    status: 'pending',
-    dismissed: false,
-    deadline: '',
-    sortOrder: 9999,
-    checkedItems: [],
-    checklistLabels: {},
-    customChecklistItems: [],
-    removedChecklistItems: [],
-    baseChecklist: null,
-    /** @type {Object.<string, string>} id položky checklistu → id úkolu vytvořeného z položky */
-    checklistItemTaskIds: {},
+    ...getEntityDefaults('activity'),
     ...overrides,
   }
 }
@@ -260,13 +201,7 @@ export function createTeamMember(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    name: '',
-    role: '',
-    email: '',
-    phone: '',
-    note: '',
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('teamMember'),
     ...overrides,
   }
 }
@@ -281,18 +216,7 @@ export function createRequirement(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    description: '',
-    motivation: '',
-    priority: 'could',
-    url: '',
-    wontHaveExplanation: '',
-    conflictingRequirementIds: [],
-    scenarioIds: [],
-    stakeholderIds: [],
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('requirement'),
     ...overrides,
   }
 }
@@ -307,14 +231,7 @@ export function createTask(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    description: '',
-    dueDate: '',
-    assignee: '',
-    status: 'incomplete',
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('task'),
     ...overrides,
   }
 }
@@ -356,17 +273,7 @@ export function createBug(projectId, overrides = {}) {
   return {
     id: generateId(),
     projectId,
-    code: '',
-    name: '',
-    expectedBehavior: '',
-    actualBehavior: '',
-    stepsToReproduce: '',
-    severity: '',
-    impact: '',
-    url: '',
-    status: 'zadano',
-    sortOrder: 9999,
-    customFields: {},
+    ...getEntityDefaults('bug'),
     ...overrides,
   }
 }

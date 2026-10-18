@@ -6,9 +6,15 @@
       <div class="pph-row">
         <div class="pph-crumbs">
           <ProjectColorTag :color="color" />
-          <Breadcrumb :items="crumbs" />
+          <Breadcrumb :items="breadcrumbs" />
         </div>
-        <div v-if="$slots.actions" class="pph-actions">
+        <div class="pph-actions">
+          <!-- Historie změn projektu je dostupná z každé obrazovky projektu (před akcemi, menu „…“ zůstává poslední) -->
+          <router-link
+            v-if="projectId && route.name !== 'projectHistory'"
+            class="btn btn-ghost"
+            :to="{ name: 'projectHistory', params: { id: projectId } }"
+          >{{ t.history.open }}</router-link>
           <slot name="actions" />
         </div>
       </div>
@@ -23,8 +29,14 @@ export const PROJECT_HEADER_TARGET_ID = 'project-header'
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Breadcrumb from './Breadcrumb.vue'
 import ProjectColorTag from './ProjectColorTag.vue'
+import { useI18n } from '../composables/useI18n.js'
+
+const route = useRoute()
+const { t } = useI18n()
+const projectId = computed(() => route.params.id)
 
 /**
  * Jednotná hlavička obrazovek projektu: barva projektu + drobková navigace a akce vpravo (slot #actions).
@@ -33,24 +45,13 @@ import ProjectColorTag from './ProjectColorTag.vue'
  * @prop {Array} breadcrumbs - položky drobkové navigace
  * @prop {string} color - barva projektu
  * @prop {string} title - text skrytého h1 (název obrazovky / entity)
- * @prop {Function} onEditTitle - je-li zadán, poslední položka navigace je klikatelná (přejmenování)
- * @prop {string} editTitleLabel - aria-label pro přejmenování
+ * Vpravo před akcemi je vždy odkaz na historii změn projektu.
+ * Přejmenování entity je v nadpisu sloupce (ColumnHeading, prop onEdit), ne v drobkové navigaci.
  */
-const props = defineProps({
+defineProps({
   breadcrumbs: { type: Array, required: true },
   color: { type: String, default: '' },
   title: { type: String, default: '' },
-  onEditTitle: { type: Function, default: null },
-  editTitleLabel: { type: String, default: '' },
-})
-
-const crumbs = computed(() => {
-  if (!props.onEditTitle || !props.breadcrumbs.length) return props.breadcrumbs
-  const last = props.breadcrumbs[props.breadcrumbs.length - 1]
-  return [
-    ...props.breadcrumbs.slice(0, -1),
-    { ...last, onClick: props.onEditTitle, ariaLabel: props.editTitleLabel || last.label },
-  ]
 })
 </script>
 

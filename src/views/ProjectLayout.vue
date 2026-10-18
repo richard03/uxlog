@@ -2,13 +2,14 @@
   <div class="project-layout container" :style="{ '--project-header-height': `${headerHeight}px` }">
     <!-- Hlavička aktuální obrazovky (ProjectPageHeader ji sem teleportuje) – přes celou šířku -->
     <div :id="PROJECT_HEADER_TARGET_ID" ref="headerEl" class="project-layout-header"></div>
-    <!-- Zápisník (chat) – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci -->
-    <aside v-if="project" class="project-layout-chat">
-      <NotebookChat :project-id="projectId" />
-    </aside>
+    <!-- Obsah obrazovky vlevo -->
     <div class="project-layout-content">
       <router-view />
     </div>
+    <!-- Zápisník (chat) vpravo – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci -->
+    <aside v-if="project" class="project-layout-chat">
+      <NotebookChat :project-id="projectId" />
+    </aside>
   </div>
 </template>
 
@@ -44,7 +45,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 <style scoped>
 .project-layout {
   display: grid;
-  /* Zápisník = polovina šířky, druhá polovina patří obrazovce vpravo */
+  /* Obrazovka vlevo, Zápisník vpravo – každý polovinu šířky */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: var(--space-lg);
   align-items: start;
@@ -58,7 +59,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
   display: none;
 }
 
-/* Chat zůstává na očích i při scrollování dlouhého obsahu vpravo */
+/* Chat zůstává na očích i při scrollování dlouhého obsahu vlevo */
 .project-layout-chat {
   position: sticky;
   top: var(--space-md);
@@ -91,7 +92,6 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 
   .project-layout-chat {
     position: static;
-    order: 1;
     max-height: none;
   }
 }

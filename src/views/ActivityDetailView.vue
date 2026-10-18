@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="item.name || t.activity.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.activity.name}`">
+      :title="item.name || t.activity.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
@@ -16,7 +14,13 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.activity.label} ${item.name || ''}`.trim()" />
+    <ColumnHeading
+      :title="item.name ? `${t.activity.label}: ${item.name}` : t.activity.label"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.activity.name}`" />
+
+    <p v-if="activityType?.description" class="activity-type-desc">{{ activityType.description }}</p>
+    <ActivityGuide v-if="activityType" :guide="activityType.guide" part="intro" />
 
     <section class="detail-section">
       <dl class="detail-list">
@@ -54,6 +58,10 @@
       </dl>
     </section>
 
+    <SectionCard v-if="activityType?.guide?.steps?.length || activityType?.guide?.outputs?.length" :aria-label="t.activity.typeInfo">
+      <ActivityGuide :guide="activityType.guide" part="steps" />
+    </SectionCard>
+
     <ActivityChecklist
       v-if="activityType || activityItem?.customChecklistItems?.length"
       :title="t.activity.checklist"
@@ -81,10 +89,6 @@
       @create-task-from-item="onCreateTaskFromChecklistItem"
       @open-linked-task="onOpenChecklistLinkedTask"
     />
-
-    <SectionCard v-if="activityType" :title="t.activity.typeInfo" :aria-label="t.activity.typeInfo">
-      <p class="section-card-desc">{{ activityType.description }}</p>
-    </SectionCard>
 
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveFieldModal">
@@ -136,6 +140,7 @@ import InlineEditableDetailField from '../components/InlineEditableDetailField.v
 import { FormGroup, FormInput, FormActions } from '../components/form'
 import ActivityChecklist from '../components/ActivityChecklist.vue'
 import SectionCard from '../components/SectionCard.vue'
+import ActivityGuide from '../components/ActivityGuide.vue'
 import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
 import TaskAddModal from '../components/TaskAddModal.vue'
@@ -321,6 +326,12 @@ function doDelete() {
 </script>
 
 <style scoped>
+.activity-type-desc {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .deadline-overdue {
   color: var(--error);
   font-weight: 600;

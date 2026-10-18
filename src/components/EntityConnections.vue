@@ -198,7 +198,7 @@ const { t } = useI18n()
 // Klíče store entit, které se mohou propojovat
 const ALL_ENTITY_TYPES = [
   'goals', 'stakeholders', 'competitions', 'hypotheses',
-  'personas', 'scenarios', 'requirements', 'tasks', 'bugs',
+  'personas', 'scenarios', 'requirements', 'tasks', 'bugs', 'risks',
   'teamMembers', 'activities',
 ]
 
@@ -278,6 +278,7 @@ const ROUTE_MAP = {
   requirements: 'requirementDetail',
   tasks: 'taskDetail',
   bugs: 'bugDetail',
+  risks: 'riskDetail',
   teamMembers: 'teamMemberDetail',
   activities: 'activityDetail',
 }
@@ -292,6 +293,7 @@ const PARAM_MAP = {
   requirements: 'requirementId',
   tasks: 'taskId',
   bugs: 'bugId',
+  risks: 'riskId',
   teamMembers: 'memberId',
   activities: 'activityId',
 }

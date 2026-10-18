@@ -92,7 +92,7 @@ export function updateNotebookEntryInProject(projectId, entryId, updates) {
 
 const PROJECT_ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
-  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'connections',
+  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'risks', 'connections',
 ]
 
 export function deleteProject(id) {

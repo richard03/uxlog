@@ -123,7 +123,7 @@ import { filterByAnyActiveBranch } from '../lib/listFilters.js'
 const route = useRoute()
 const store = useStore()
 const { t, tPath } = useI18n()
-const { generateNextCode, getEntityCompleteness } = useEntityHelpers()
+const { generateNextCode, getCodePrefix, getEntityCompleteness } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
@@ -176,7 +176,7 @@ function confirmMoveItem(id) { moveTarget.value = id }
  */
 function openForm() {
   form.value = {
-    code: generateNextCode('SCN', items.value),
+    code: generateNextCode(getCodePrefix('scenario'), items.value),
     name: '',
     type: 'main',
     description: '',

@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="item.name || t.competition.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.competition.name}`">
+      :title="item.name || t.competition.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('competitions', item?.id)" :filename="item?.name || t.competition.label" />
@@ -16,7 +14,10 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.competition.label} ${item.name || ''}`.trim()" />
+    <ColumnHeading
+      :title="`${t.competition.label} ${item.name || ''}`.trim()"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.competition.name}`" />
 
     <section class="detail-section">
       <dl class="detail-list">

@@ -6,10 +6,10 @@
  */
 
 import {
-  buildProjectContext, buildNotebookPrompt, parseActions,
+  buildProjectContext, processNotebookInParts,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
-  buildAskContext, buildAskNotes, buildAskPrompt, parseAskAnswer,
+  buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
 
@@ -21,9 +21,10 @@ const DEFAULT_MODEL = 'gpt-4o-mini'
  * @param {string} apiKey
  * @param {string} prompt
  * @param {string} model
+ * @param {{ json?: boolean }} [options] - json: odpověď jako validní JSON objekt (JSON mode)
  * @returns {Promise<string>}
  */
-async function callOpenAI(apiKey, prompt, model) {
+async function callOpenAI(apiKey, prompt, model, { json = false } = {}) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -34,6 +35,7 @@ async function callOpenAI(apiKey, prompt, model) {
       model,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
+      ...(json ? { response_format: { type: 'json_object' } } : {}),
     }),
   })
   if (!res.ok) {
@@ -55,10 +57,8 @@ function getModel() {
 async function processNotebook(notebookText, projectData) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
-  const context = buildProjectContext(projectData)
-  const prompt = buildNotebookPrompt(notebookText, context)
-  const responseText = await callOpenAI(apiKey, prompt, getModel())
-  return parseActions(responseText)
+  const model = getModel()
+  return processNotebookInParts(notebookText, buildProjectContext(projectData), (prompt) => callOpenAI(apiKey, prompt, model, { json: true }))
 }
 
 /**
@@ -71,7 +71,7 @@ async function processNotebook(notebookText, projectData) {
 async function askProject(question, projectData, history) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
-  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history))
+  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history), buildAskMethodology(projectData?.methodology))
   const responseText = await callOpenAI(apiKey, prompt, getModel())
   return parseAskAnswer(responseText)
 }

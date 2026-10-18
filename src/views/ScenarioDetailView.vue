@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="scenario.name || t.scenario.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.scenario.name}`">
+      :title="scenario.name || t.scenario.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('scenarios', scenario?.id)" :filename="scenario?.name || t.scenario.label" />
@@ -16,7 +14,10 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.scenario.label} ${scenario.name || ''}`.trim()">
+    <ColumnHeading
+      :title="`${t.scenario.label} ${scenario.name || ''}`.trim()"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.scenario.name}`">
       <template #sub>
         <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.scenario.code}`">
         <span>{{ scenario.code || '–' }}</span>

@@ -62,6 +62,7 @@ export function buildProjectContext(projectData) {
     { key: 'scenarios', label: 'Scénáře', fields: (s) => `ID:${s.id} Kód:${s.code || '—'} Název:${s.name}` },
     { key: 'requirements', label: 'Požadavky', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Priorita:${r.priority}` },
     { key: 'teamMembers', label: 'Tým', fields: (m) => `ID:${m.id} Jméno:${m.name} Role:${m.role}` },
+    { key: 'risks', label: 'Rizika', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Stav:${r.status || 'open'}` },
   ]
 
   for (const { key, label, fields } of sections) {
@@ -76,40 +77,62 @@ export function buildProjectContext(projectData) {
 }
 
 /**
+ * Metodická pravidla pro formulaci záznamů (převyprávěno z knihovny technik design týmu).
+ * Pravidla upravují jen PODOBU navržených polí – nové akce kvůli nim nevznikají.
+ */
+export const NOTEBOOK_METHOD_RULES = `Metodika formulace (použij, pokud z poznámek vzniká daný typ záznamu):
+- requirement: popisuj potřebu uživatele či byznysu, ne konkrétní řešení (např. „uživatel musí mít přístup bez instalace“ místo „musí to být webová aplikace“). Pokud to z textu plyne, vyplň category: data = co uživatel potřebuje vidět, function = co potřebuje dělat, quality = jaké to má být, constraint = omezení (termín, rozpočet, technologie, regulace).
+- hypothesis: formuluj jako ověřitelné tvrzení ve tvaru „Myslím si, že …, protože …“.
+- scenario: popisuj z pohledu uživatele bez technických řešení; spouštěč (kdy potřeba vzniká) dej do trigger a moment uspokojení potřeby do outcome.
+- stakeholder: postoj k projektu zapisuj do attitude, domluvenou komunikaci do commFrequency / commChannel / commNeeds.
+- competition: rozliš přímého a nepřímého konkurenta v competitorType.
+- risk: popiš, co se může stát a proč; opatření (jak riziku předejít nebo zmírnit dopad) dej do mitigation.`
+
+/** Max. délka citace zdroje u akce – odpověď AI musí zůstat krátká i u dlouhých poznámek. */
+const NOTEBOOK_SOURCE_MAX_CHARS = 200
+
+/**
  * Sestaví prompt pro zpracování zápisníku.
  * @param {string} notebookText
  * @param {string} projectContext
+ * @param {{ index: number, total: number }} [part] - u dlouhých poznámek zpracovávaných po částech
  * @returns {string}
  */
-export function buildNotebookPrompt(notebookText, projectContext) {
+export function buildNotebookPrompt(notebookText, projectContext, part = null) {
+  const partNote = part && part.total > 1
+    ? `\n(Toto je část ${part.index} z ${part.total} delších poznámek – zpracuj jen tuto část.)\n`
+    : ''
   return `Jsi asistent pro UX design týmy. Analyzuješ nestrukturované poznámky z projektu a extrahuješ z nich konkrétní akce pro aktualizaci projektové databáze.
 
 ## Existující záznamy projektu:
 ${projectContext}
 
-## Poznámky ze zápisníku:
+## Poznámky ze zápisníku:${partNote}
 ${notebookText}
 
 ## Tvůj úkol:
 Analyzuj poznámky a navrhni seznam konkrétních akcí pro vytvoření nebo úpravu záznamů v projektové databázi.
 
 Podporované typy entit a jejich pole:
-- persona: code, name, status (protopersona/persona), description, motivation, needs, problems, context, recruitmentCriteria, targetGroupSize, targetGroupValue, url
-- requirement: code, name, description, motivation, priority (must/should/could/wont), wontHaveExplanation, url
+- persona: code, name, status (protopersona/persona), description, motivation, needs, problems, barriers, quote, context, recruitmentCriteria, targetGroupSize, targetGroupValue, url
+- requirement: code, name, description, motivation, category (data/function/quality/constraint), priority (must/should/could/wont), wontHaveExplanation, url
 - goal: code, name, description, metrics, url
-- stakeholder: name, description, influenceLevel (high/medium/low), interestLevel (high/medium/low)
-- competition: name, description, strengths, weaknesses, inspiration, url
+- stakeholder: name, description, influenceLevel (high/medium/low), interestLevel (high/medium/low), attitude (positive/neutral/negative), commFrequency, commChannel, commNeeds
+- competition: name, description, competitorType (direct/indirect), strengths, weaknesses, inspiration, url
 - hypothesis: code, name, description, status (untested/tested/refuted), explanation, url
-- scenario: code, name, type (main/secondary/error), description, url
+- scenario: code, name, type (main/secondary/error), description, trigger, outcome, url
 - teamMember: name, role, email, phone, note
+- risk: code, name, description, likelihood (high/medium/low), impact (high/medium/low), mitigation, status (open/mitigated/occurred/closed)
+
+${NOTEBOOK_METHOD_RULES}
 
 Pravidla:
 1. Navrhuj POUZE akce, které jsou přímo a jednoznačně odvoditelné z textu.
 2. Pro úpravu existujícího záznamu použij "update" a příslušné ID z přehledu výše.
 3. Pro nový záznam použij "create" a entityId nastav na null.
-4. "sourceText" musí být přesná citace části textu z poznámek (bez jakýchkoli úprav).
-5. Do "fields" zahrň POUZE pole, která text skutečně zmiňuje.
-6. Do "residualText" zahrň veškerý text z poznámek, který nebyl základem žádné akce — doslova zkopírovaný bez úprav. Pokud byl celý text zpracován, nastav "residualText" na prázdný řetězec.
+4. "sourceText" je krátká doslovná citace z poznámek, ze které akce vychází – nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
+5. Do "fields" zahrň POUZE pole, která text skutečně zmiňuje; texty piš stručně, poznámky neopisuj celé.
+6. Jeden záznam navrhni jen jednou – všechny informace o něm dej do jedné akce.
 
 Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
 {
@@ -120,27 +143,75 @@ Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
       "entityId": null,
       "entityName": "Jméno nebo kód entity",
       "fields": { "name": "...", "description": "..." },
-      "sourceText": "přesná citace z poznámek"
+      "sourceText": "krátká citace z poznámek"
     }
-  ],
-  "residualText": "text který nebyl základem žádné akce"
+  ]
 }
 
-Pokud z poznámek nevyplývají žádné konkrétní akce, vrať: { "actions": [], "residualText": "<celý text poznámek>" }`
+Pokud z poznámek nevyplývají žádné konkrétní akce, vrať: { "actions": [] }`
 }
 
 /**
- * Parsuje JSON z odpovědi LLM (odolné vůči markdown wrapperům).
+ * Z (případně useknutého) JSONu odpovědi vytáhne všechny kompletní objekty pole "actions".
+ * Používá se, když odpověď AI skončí uprostřed (limit délky výstupu) – kompletní akce se neztratí.
  * @param {string} text
- * @returns {{ actions: Array, residualText: string }}
+ * @returns {Array<Object>}
+ */
+export function salvageActions(text) {
+  const s = String(text ?? '')
+  const key = s.search(/"actions"\s*:\s*\[/)
+  const start = key >= 0 ? s.indexOf('[', key) : s.indexOf('[')
+  if (start < 0) return []
+  const out = []
+  let depth = 0
+  let objStart = -1
+  let inString = false
+  for (let i = start + 1; i < s.length; i++) {
+    const ch = s[i]
+    if (inString) {
+      if (ch === '\\') i++
+      else if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') inString = true
+    else if (ch === '{') {
+      if (depth === 0) objStart = i
+      depth++
+    } else if (ch === '}') {
+      depth--
+      if (depth === 0 && objStart >= 0) {
+        try { out.push(JSON.parse(s.slice(objStart, i + 1))) } catch { /* poškozený objekt přeskočíme */ }
+        objStart = -1
+      }
+    } else if (ch === ']' && depth === 0) break
+  }
+  return out
+}
+
+/**
+ * Parsuje JSON z odpovědi LLM (odolné vůči markdown wrapperům i useknuté odpovědi).
+ * @param {string} text
+ * @returns {{ actions: Array, residualText: string, truncated: boolean }}
+ * @throws {Error} jen pokud z odpovědi nejde získat ani jedna akce ani prázdný seznam
  */
 export function parseActions(text) {
-  const cleaned = text
+  const cleaned = String(text ?? '')
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```\s*$/, '')
     .trim()
-  const parsed = JSON.parse(cleaned)
-  const rawActions = Array.isArray(parsed) ? parsed : (parsed?.actions ?? [])
+  let parsed
+  let truncated = false
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch (e) {
+    const salvaged = salvageActions(cleaned)
+    if (!salvaged.length) {
+      throw new Error('AI vrátila neúplnou nebo neplatnou odpověď. Zkuste zprávu zpracovat znovu, případně ji rozdělte na kratší části.')
+    }
+    parsed = { actions: salvaged }
+    truncated = true
+  }
+  const rawActions = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.actions) ? parsed.actions : [])
   const residualText = typeof parsed?.residualText === 'string' ? parsed.residualText : ''
   const actions = rawActions
     .filter(
@@ -154,8 +225,120 @@ export function parseActions(text) {
     .map((a) => ({
       ...a,
       fields: normalizeActionFields(a.fields),
+      sourceText: typeof a.sourceText === 'string' ? truncateText(a.sourceText, NOTEBOOK_SOURCE_MAX_CHARS) : '',
     }))
-  return { actions, residualText }
+  return { actions, residualText, truncated }
+}
+
+/** Výchozí max. délka jedné části poznámek posílané AI (znaky). */
+export const NOTEBOOK_CHUNK_CHARS = 6000
+
+/**
+ * Rozdělí dlouhé poznámky na části do max. délky – přednostně po odstavcích, pak po řádcích/větách,
+ * v nejhorším případě natvrdo. Krátký text vrátí jako jedinou část.
+ * @param {string} text
+ * @param {number} [maxChars]
+ * @returns {string[]}
+ */
+export function splitNotebookText(text, maxChars = NOTEBOOK_CHUNK_CHARS) {
+  const src = String(text ?? '').replace(/\r\n?/g, '\n').trim()
+  if (!src) return []
+  if (src.length <= maxChars) return [src]
+
+  // Jednotky: odstavce; příliš dlouhé odstavce dál po řádcích, věty, nakonec natvrdo
+  const pieces = []
+  const pushPiece = (p) => {
+    if (p.length <= maxChars) { pieces.push(p); return }
+    const lines = p.split('\n')
+    if (lines.length > 1) { lines.forEach(pushPiece); return }
+    const sentences = p.match(/[^.!?…]+[.!?…]*\s*/g) || [p]
+    if (sentences.length > 1) { sentences.forEach((x) => pushPiece(x.trim())); return }
+    for (let i = 0; i < p.length; i += maxChars) pieces.push(p.slice(i, i + maxChars))
+  }
+  src.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).forEach(pushPiece)
+
+  const chunks = []
+  let current = ''
+  for (const p of pieces) {
+    if (current && current.length + 2 + p.length > maxChars) {
+      chunks.push(current)
+      current = p
+    } else {
+      current = current ? `${current}\n\n${p}` : p
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}
+
+/**
+ * Sloučí akce navržené pro jednotlivé části poznámek: stejný záznam (create se stejnou entitou
+ * a názvem, nebo update stejného entityId) se spojí do jedné akce. Pole se doplní; rozdílné
+ * texty téhož pole se spojí za sebe.
+ * @param {Array<Array<Object>>} lists
+ * @returns {Array<Object>}
+ */
+export function mergeActions(lists) {
+  const out = []
+  const index = new Map()
+  const norm = (v) => String(v ?? '').trim().toLowerCase()
+  for (const list of Array.isArray(lists) ? lists : []) {
+    for (const a of Array.isArray(list) ? list : []) {
+      if (!a || typeof a !== 'object') continue
+      const name = norm(a.entityName || a.fields?.name)
+      const key = a.type === 'update' && a.entityId
+        ? `update:${a.entity}:${a.entityId}`
+        : name ? `create:${a.entity}:${name}` : null
+      const existing = key ? index.get(key) : null
+      if (!existing) {
+        const copy = { ...a, fields: { ...(a.fields || {}) } }
+        out.push(copy)
+        if (key) index.set(key, copy)
+        continue
+      }
+      for (const [k, v] of Object.entries(a.fields || {})) {
+        const prev = existing.fields[k]
+        if (!prev) existing.fields[k] = v
+        else if (v && norm(prev) !== norm(v) && !norm(prev).includes(norm(v))) existing.fields[k] = `${prev}\n\n${v}`
+      }
+      if (!existing.sourceText && a.sourceText) existing.sourceText = a.sourceText
+    }
+  }
+  return out
+}
+
+/**
+ * Zpracuje poznámky zápisníku pomocí AI – dlouhý text po částech, výsledky sloučí.
+ * Neúspěšná část se jednou zopakuje; pokud selže i tak, zpracování pokračuje dalšími částmi
+ * a výsledek nese počet nezpracovaných částí (UI na ně upozorní). Chyba se vyhodí, jen když
+ * se nepodařilo získat žádnou akci.
+ * @param {string} notebookText
+ * @param {string} projectContext - výstup buildProjectContext
+ * @param {(prompt: string) => Promise<string>} callModel - volání konkrétního LLM
+ * @param {number} [maxChars]
+ * @returns {Promise<{ actions: Array<Object>, residualText: string, failedParts: number, totalParts: number }>}
+ */
+export async function processNotebookInParts(notebookText, projectContext, callModel, maxChars = NOTEBOOK_CHUNK_CHARS) {
+  const parts = splitNotebookText(notebookText, maxChars)
+  const results = []
+  let firstError = null
+  let failedParts = 0
+  for (let i = 0; i < parts.length; i++) {
+    const prompt = buildNotebookPrompt(parts[i], projectContext, { index: i + 1, total: parts.length })
+    let done = false
+    for (let attempt = 0; attempt < 2 && !done; attempt++) {
+      try {
+        results.push(parseActions(await callModel(prompt)).actions)
+        done = true
+      } catch (e) {
+        firstError = firstError || e
+      }
+    }
+    if (!done) failedParts++
+  }
+  const actions = mergeActions(results)
+  if (failedParts && !actions.length) throw firstError
+  return { actions, residualText: '', failedParts, totalParts: parts.length }
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +384,7 @@ export function buildConnectionsContext(projectData, excludeType, excludeId) {
     { key: 'activities', label: 'Aktivity', fields: (a) => `ID:${a.id} Název:${a.name}${desc(a.description)}` },
     { key: 'tasks', label: 'Úkoly', fields: (t) => `ID:${t.id} Název:${t.name}${desc(t.description)}` },
     { key: 'bugs', label: 'Chyby', fields: (b) => `ID:${b.id} Název:${b.name}${desc(b.description)}` },
+    { key: 'risks', label: 'Rizika', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name}${desc(r.description)}` },
   ]
 
   for (const { key, label, fields } of sections) {
@@ -228,7 +412,7 @@ export function buildConnectionsPrompt(entity, entityType, context) {
     goals: 'Cíl', stakeholders: 'Stakeholder', competitions: 'Konkurence',
     hypotheses: 'Hypotéza', personas: 'Persona', scenarios: 'Scénář',
     requirements: 'Požadavek', teamMembers: 'Člen týmu', activities: 'Aktivita',
-    tasks: 'Úkol', bugs: 'Chyba',
+    tasks: 'Úkol', bugs: 'Chyba', risks: 'Riziko',
   }
   const typeLabel = TYPE_LABELS[entityType] || entityType
   const entityDesc = buildEntityDescription(entity)
@@ -372,7 +556,7 @@ const ASK_SECTIONS = [
   ['goals', 'Cíle', 'Cíl'], ['stakeholders', 'Stakeholdeři', 'Stakeholder'], ['competitions', 'Konkurence', 'Konkurent'],
   ['hypotheses', 'Hypotézy', 'Hypotéza'], ['personas', 'Persony', 'Persona'], ['scenarios', 'Scénáře', 'Scénář'],
   ['requirements', 'Požadavky', 'Požadavek'], ['teamMembers', 'Tým', 'Člen týmu'], ['activities', 'Aktivity', 'Aktivita'],
-  ['tasks', 'Úkoly', 'Úkol'], ['bugs', 'Chyby', 'Chyba'],
+  ['tasks', 'Úkoly', 'Úkol'], ['bugs', 'Chyby', 'Chyba'], ['risks', 'Rizika', 'Riziko'],
 ]
 
 /**
@@ -388,6 +572,7 @@ const ASK_SKIPPED_KEYS = new Set([
 const ASK_MAX_FIELD_CHARS = 500
 const ASK_MAX_CONTEXT_CHARS = 40000
 const ASK_MAX_NOTES_CHARS = 12000
+const ASK_MAX_METHODOLOGY_CHARS = 12000
 
 /**
  * Zkrátí text na max. délku (s výpustkou).
@@ -509,17 +694,53 @@ export function buildAskNotes(history) {
 }
 
 /**
+ * Metodika aktivit projektu jako kontext dotazu (postupy technik z katalogu aktivit).
+ * @param {Array<{ name?: string, guide?: Object }>} methodology - aktivity projektu s metodikou typu
+ * @returns {string}
+ */
+export function buildAskMethodology(methodology) {
+  const list = Array.isArray(methodology) ? methodology : []
+  const blocks = []
+  const seen = new Set()
+  for (const m of list) {
+    const g = m?.guide
+    const name = typeof m?.name === 'string' ? m.name.trim() : ''
+    if (!name || !g || typeof g !== 'object' || seen.has(name)) continue
+    seen.add(name)
+    const lines = [`### ${name}`]
+    const text = (label, v) => { if (typeof v === 'string' && v.trim()) lines.push(`${label}: ${v.trim()}`) }
+    const items = (label, v) => {
+      const arr = Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()) : []
+      if (arr.length) lines.push(`${label}:\n${arr.map((x, i) => `${i + 1}. ${x.trim()}`).join('\n')}`)
+    }
+    text('Proč', g.why)
+    text('Kdy', g.when)
+    text('Jak dlouho', g.duration)
+    text('Koho potřebuji', g.who)
+    items('Postup', g.steps)
+    items('Výstupy', g.outputs)
+    if (lines.length > 1) blocks.push(lines.join('\n'))
+  }
+  const out = blocks.join('\n\n')
+  return out ? truncateText(out, ASK_MAX_METHODOLOGY_CHARS) : '(projekt nemá aktivity s metodikou)'
+}
+
+/**
  * Prompt pro dotaz nad projektem. AI pouze odpovídá – nenavrhuje ani neprovádí změny.
  * @param {string} question
  * @param {string} projectContext - výstup buildAskContext
  * @param {string} notes - výstup buildAskNotes
+ * @param {string} [methodology] - výstup buildAskMethodology
  * @returns {string}
  */
-export function buildAskPrompt(question, projectContext, notes) {
+export function buildAskPrompt(question, projectContext, notes, methodology = '(projekt nemá aktivity s metodikou)') {
   return `Jsi asistent pro UX design týmy. Odpovídáš na dotazy k projektu na základě jeho dat a poznámek ze zápisníku.
 
 ## Data projektu:
 ${projectContext}
+
+## Metodika aktivit projektu:
+${methodology}
 
 ## Předchozí poznámky a dotazy v zápisníku:
 ${notes}
@@ -531,7 +752,8 @@ Pravidla:
 1. Odpovídej česky, stručně a věcně, jako prostý text (bez markdownu, bez HTML).
 2. Vycházej z dat projektu a poznámek výše; pokud odpověď nelze z dostupných informací zjistit, řekni to.
 3. U každého záznamu je pole „souvislosti“ se všemi propojenými záznamy (souvislosti jsou obousměrné). Hodnota „žádné“ znamená, že záznam není propojen s ničím – i to je platná informace pro odpověď.
-4. Pouze odpovídej – nenavrhuj JSON, akce ani změny dat.`
+4. Na metodické otázky (jak postupovat, co připravit, kdo se má účastnit, co je výstupem) odpovídej podle sekce „Metodika aktivit projektu“; pokud tam technika není, odpověz podle obecné UX praxe a uveď, že nejde o postup z metodiky projektu.
+5. Pouze odpovídej – nenavrhuj JSON, akce ani změny dat.`
 }
 
 /**

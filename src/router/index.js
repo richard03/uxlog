@@ -12,7 +12,7 @@ const routes = [
     meta: { title: 'Projekty' },
   },
   {
-    // Všechny obrazovky projektu sdílí layout se Zápisníkem (chat) vlevo
+    // Všechny obrazovky projektu sdílí layout se Zápisníkem (chat) vpravo
     path: '/project/:id',
     component: () => import('../views/ProjectLayout.vue'),
     children: [
@@ -83,6 +83,18 @@ const routes = [
         meta: { title: 'Hypotéza' },
       },
       {
+        path: 'risks',
+        name: 'risks',
+        component: () => import('../views/RisksView.vue'),
+        meta: { title: 'Rizika' },
+      },
+      {
+        path: 'risks/:riskId',
+        name: 'riskDetail',
+        component: () => import('../views/RiskDetailView.vue'),
+        meta: { title: 'Riziko' },
+      },
+      {
         path: 'personas',
         name: 'personas',
         component: () => import('../views/PersonasView.vue'),
@@ -135,6 +147,12 @@ const routes = [
         name: 'taskDetail',
         component: () => import('../views/TaskDetailView.vue'),
         meta: { title: 'Úkol' },
+      },
+      {
+        path: 'history',
+        name: 'projectHistory',
+        component: () => import('../views/ProjectHistoryView.vue'),
+        meta: { title: 'Historie změn' },
       },
       {
         path: 'bugs',

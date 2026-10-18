@@ -1,0 +1,1096 @@
+# Typy aktivit (katalog UX technik) – UXLog
+#
+# groups: povolené skupiny aktivit (texty skupin jsou v src/i18n/cs.js: activity.groupProject …)
+# types: seznam typů aktivit v pořadí UX procesu
+#   key                 unikátní klíč typu (ukládá se do aktivit jako typeKey – neměnit)
+#   group               skupina z groups
+#   defaultName         výchozí název nové aktivity
+#   defaultDescription  krátký popis zobrazený pod názvem v detailu aktivity
+#   sortOrder           pořadí v procesu (unikátní číslo)
+#   defaultDurationDays výchozí délka ve dnech (počítá se z ní termín)
+#   createOnNewProject  true = aktivita se založí automaticky u nového projektu
+#   checklist           položky { id, label }; id NEMĚNIT – odkazují na ně uložené aktivity
+#                       (odškrtnutí, vazby na úkoly). Položky jdou ve stejném pořadí jako guide.steps.
+#   guide               metodika „Jak na to“: why, when, duration, who (text), steps, outputs (seznamy)
+#                       Jen obecný postup – bez jmen, klientů a odkazů (hlídá test).
+#
+# Uživatel může šablony dál upravit v aplikaci (Konfigurace); tento soubor určuje výchozí stav.
+
+groups:
+  - project
+  - research
+  - design
+types:
+
+  - key: kickoff
+    group: project
+    defaultName: Kick-off meeting
+    defaultDescription: "Úvodní setkání týmu k nastavení záměrů, cílů a způsobu spolupráce na projektu."
+    sortOrder: 10
+    defaultDurationDays: 1
+    createOnNewProject: true
+    checklist:
+      - id: team
+        label: Máme seznam všech členů teamu a kontakty na ně
+      - id: roles
+        label: Rozdělili jsme role a odpovědnosti v týmu
+      - id: stakeholders
+        label: Máme seznam klíčových stakeholderů
+      - id: expectations
+        label: Sjednotili jsme cíle a očekávání
+      - id: risks
+        label: Sepsali jsme rizika projektu
+      - id: scope
+        label: Odsouhlasili jsme rozsah projektu
+      - id: timeline
+        label: Odsouhlasili jsme harmonogram a milníky
+      - id: collaboration
+        label: Dohodli jsme rytmus schůzek, komunikační kanály a reakční dobu
+      - id: nextsteps
+        label: Dohodli jsme kdo co má udělat a určili termíny
+    guide:
+      why: "Sjednotí očekávání týmu i zadavatele, odhalí rizika a jasně ohraničí, co se na projektu dělá a co ne."
+      when: "Úplně na začátku spolupráce – první společná schůzka s týmem zadavatele."
+      duration: "Příprava 1–2 h, workshop 1,5–3 h, syntéza 1–2 h."
+      who: "Klíčoví stakeholdeři zadavatele (vlastník tématu, rozhodovatel, lidé s vlivem) a dva designéři – jeden vede, druhý zapisuje."
+      steps:
+        - "S kontaktní osobou zadavatele vyber účastníky workshopu. Pozvi je alespoň tři dny předem, do pozvánky dej agendu."
+        - "Úvodní kolečko: každý se představí, řekne svou roli a odpovědnost na projektu."
+        - "Cíle a očekávání: postupně se ptej každého účastníka a vše zapisuj."
+        - "Rizika: pár minut samostatně psát, co může projekt ohrozit, pak společně projít (tzv. pre-mortem)."
+        - "Rozsah: co funguje a chceme zachovat, co chybí, co nefunguje."
+        - "Cílová skupina: kdo jí je a kdo ne, co o ní víme, co nevíme a jestli k ní máme přístup."
+        - "Spolupráce: rytmus schůzek, komunikační kanály a reakční doba."
+        - "Další kroky: rozdělte si úkoly z tohoto workshopu a zapište kdo co do kdy má dodat."
+      outputs:
+        - Zápis ze schůzky jako základ pro další práci
+        - Seznam rizik a příležitostí
+        - Jasně ohraničený rozsah projektu
+        - Dohodnutý způsob komunikace a pravidelné schůzky
+
+  - key: deep_dive
+    group: research
+    defaultName: Deep Dive
+    defaultDescription: Analýza stávajícího stavu. Detailní průchod stávajícím produktem či procesem s experty a uživateli.
+    sortOrder: 12
+    defaultDurationDays: 2
+    createOnNewProject: false
+    checklist:
+      - id: prepared
+        label: Máme potřebné přístupy do systémů
+      - id: expert
+        label: Prošli jsme produkt / proces s expertem nebo power userem. Máme popsané scénáře. Máme screenshoty nebo videozáznam obrazovky.
+      - id: vocabulary
+        label: "Máme slovník používané terminologie."
+      - id: newcomer
+        label: "Prošli jsme produkt s nováčkem s neotřelým pohledem. Zaznamenali jsme problémy, máme jasnou předsavu o jeho mentálního modelu."
+      - id: synthesis
+        label: "Sepsali jsme, co funguje, co ne a příležitosti ke zlepšení"
+    guide:
+      why: "Rychle získáš expertní znalost složitého nebo nepřehledného tématu a zmapuješ aktuální stav produktu, služby či procesu."
+      when: "Discovery fáze, ideálně hned vedle kick-offu."
+      duration: "2–3 h na jedno sezení, zhruba 3 h na syntézu."
+      who: "Expert nebo power user, nový uživatel s nezaujatým pohledem, dva designéři."
+      steps:
+        - "Připrav si otázky, zajisti přístupy do systémů a možnost nahrávat obrazovku."
+        - Na začátku vysvětli cíl setkání.
+        - "Nech experta provést tě produktem krok za krokem, doptávej se na důvody a výjimky."
+        - "Zapisuj, jak se o věcech mluví a co je označováno za fungující či problematické."
+        - Zopakuj s méně zkušeným uživatelem a porovnej pohledy.
+        - Výstupy roztřiď do témat a pojmenuj příležitosti.
+      outputs:
+        - Mapa aktuálního stavu
+        - Slovník pojmů
+        - Seznam problémů a příležitostí
+
+  - key: pre_mortem
+    group: project
+    defaultName: Pre-mortem
+    defaultDescription: Krátké cvičení k odhalení rizik projektu ještě před jeho začátkem.
+    sortOrder: 14
+    defaultDurationDays: 1
+    createOnNewProject: false
+    checklist:
+      - id: risks
+        label: "Sepsali jsme, proč by projekt mohl selhat"
+      - id: causes
+        label: U každého rizika známe jeho příčinu
+      - id: mitigation
+        label: Ke každému riziku máme opatření
+      - id: owners
+        label: Opatření jsme převedli na úkoly s odpovědnými lidmi
+      - id: recorded
+        label: Rizika a opatření jsme zapsali do sekce Rizika
+    guide:
+      why: "Lidé snáz najdou problémy v představě, že projekt už selhal. Z vágních obav vzniknou konkrétní rizika a plán, jak jim předejít."
+      when: Na začátku projektu nebo nové fáze; často jako součást kick-offu. Hodí se hlavně u rizikovějších projektů.
+      duration: 15–45 minut podle počtu účastníků.
+      who: Klíčoví stakeholdeři a lidé se vhledem do všech podstatných oblastí projektu.
+      steps:
+        - "Polož otázku: „Představ si, že projekt selhal. Co k tomu vedlo?“"
+        - Nech každého chvíli samostatně psát.
+        - "Postupně sdílejte; když není jasná příčina, doptávej se."
+        - "U každého rizika se domluvte, jak snížit jeho pravděpodobnost nebo dopad."
+        - Opatření převeď na úkoly s odpovědnými lidmi a rizika zapiš do sekce Rizika.
+      outputs:
+        - Seznam rizik a opatření
+        - Úkoly pro konkrétní lidi
+
+  - key: goals_metrics
+    group: project
+    defaultName: Definování cílů a metrik
+    defaultDescription: Stanovení měřitelných cílů projektu a KPI pro vyhodnocení úspěchu.
+    sortOrder: 20
+    defaultDurationDays: 3
+    createOnNewProject: true
+    checklist:
+      - id: collected
+        label: "Sepsali jsme byznysové, uživatelské a značkové cíle"
+      - id: smart
+        label: Definovali jsme měřitelné cíle (SMART)
+      - id: kpi
+        label: Stanovili jsme KPI pro každý cíl
+      - id: baseline
+        label: Zdokumentovali jsme výchozí hodnoty metrik (baseline)
+      - id: stakeholder_approval
+        label: Odsouhlasili jsme cíle se stakeholdery
+    guide:
+      why: "Bez měřitelných cílů nelze poznat, jestli projekt uspěl, a chybí opora pro rozhodování o prioritách."
+      when: "Na začátku projektu, navazuje na kick-off."
+      duration: Několik hodin práce a jedno až dvě kola revize se stakeholdery.
+      who: "Designér, product owner a rozhodovatel na straně zadavatele."
+      steps:
+        - "Sepiš byznysové, uživatelské a značkové cíle z kick-offu a rozhovorů."
+        - "Každý cíl přeformuluj tak, aby byl konkrétní a měřitelný."
+        - Ke každému cíli urči metriku a zjisti její současnou hodnotu.
+        - Odsouhlas cíle a metriky se stakeholdery.
+      outputs:
+        - Seznam cílů s metrikami a výchozími hodnotami
+
+  - key: desk_research
+    group: research
+    defaultName: Desk research (rešerše)
+    defaultDescription: "Sběr informací ze sekundárních zdrojů – existující data, studie, řešení na trhu."
+    sortOrder: 25
+    defaultDurationDays: 2
+    createOnNewProject: false
+    checklist:
+      - id: question
+        label: "Víme, na jaké otázky rešerše hledá odpověď"
+      - id: internal
+        label: Prošli jsme interní materiály a dřívější výzkumy zadavatele
+      - id: external
+        label: "Prošli jsme externí zdroje (statistiky, studie, odborné zprávy)"
+      - id: state_of_art
+        label: Zmapovali jsme nejlepší existující řešení na dané platformě
+      - id: summary
+        label: Shrnuli jsme zjištění a co dál potřebujeme zjistit
+    guide:
+      why: "Levně a rychle zjistíš, co už je známo, a nevymýšlíš vymyšlené. Pomůže vždy, i u zdánlivě unikátního zadání."
+      when: "Před projektem nebo hned na jeho začátku; pomůže rozhodnout, co dál zkoumat."
+      duration: Od půl dne po několik dní podle rozsahu a složitosti tématu.
+      who: Designér nebo výzkumník; zadavatel dodá interní podklady.
+      steps:
+        - "Formuluj otázky, na které hledáš odpověď."
+        - "Shromáždi interní materiály, dřívější výzkumy a analytiku."
+        - "Projdi veřejné zdroje: statistiky, studie, odborné články, legislativu."
+        - Prozkoumej nejlepší rozhraní na dané platformě a řešení konkurence.
+        - "Zjištění shrň a označ, co zbývá ověřit vlastním výzkumem."
+      outputs:
+        - Shrnutí zjištění se zdroji
+        - Seznam otevřených otázek pro další výzkum
+
+  - key: stakeholder_interviews
+    group: research
+    defaultName: Rozhovory se stakeholdery
+    defaultDescription: "Individuální rozhovory s lidmi, kteří ovlivňují zadání a rozhodují o výstupech."
+    sortOrder: 28
+    defaultDurationDays: 5
+    createOnNewProject: false
+    checklist:
+      - id: mapped
+        label: "Zmapovali jsme, kdo ovlivňuje vstupy a rozhoduje o výstupech"
+      - id: guide
+        label: Připravili jsme okruhy otázek
+      - id: conducted
+        label: Provedli jsme rozhovory se všemi klíčovými stakeholdery
+      - id: agreement
+        label: "Víme, na čem se stakeholdeři shodují a kde se rozcházejí"
+      - id: risks
+        label: "Sepsali jsme rizika, která stakeholdeři zmínili"
+      - id: decision_maker
+        label: "Víme, kdo má finální slovo při neshodě"
+      - id: shared
+        label: Představili jsme shrnutí týmu a zadavateli
+    guide:
+      why: "Zjistíš, co se do zadání nedostalo, jaká jsou očekávání lidí s vlivem a kdo nakonec rozhoduje. Zároveň budeš budovat důvěru."
+      when: Na začátku nové spolupráce.
+      duration: "Hodinu mapování lidí, až hodinu na jeden rozhovor, až 3 h syntéza."
+      who: "Vlastník tématu, rozhodovatel, lidé s politickým vlivem a ti, kdo mohou výsledek na konci zvrátit."
+      steps:
+        - "Sepiš všechny, kdo ovlivňují vstupy nebo rozhodují o výstupech."
+        - "Připrav okruhy: cíle, očekávání, obavy, konkurence, úspěch projektu."
+        - "Veď rozhovory jednotlivě, zapisuj i slova, kterými lidé popisují svá očekávání."
+        - "V syntéze hledej shody, rozpory a zmíněná rizika a zjisti, kdo má při neshodě finální slovo."
+        - Výsledky krátce představ na společné schůzce.
+      outputs:
+        - Shody a rozpory mezi stakeholdery
+        - Rizika z pohledu stakeholderů
+        - Známý rozhodovatel
+
+  - key: stakeholder_analysis
+    group: research
+    defaultName: Analýza stakeholderů
+    defaultDescription: Identifikace a analýza klíčových zainteresovaných stran projektu.
+    sortOrder: 30
+    defaultDurationDays: 5
+    createOnNewProject: true
+    checklist:
+      - id: identified
+        label: Identifikovali jsme všechny relevantní stakeholdery
+      - id: matrix
+        label: Známe úroveň vlivu a zájmu každého stakeholdera
+      - id: strategy
+        label: Pro každý kvadrant máme strategii
+      - id: needs
+        label: Zmapovali jsme potřeby a očekávání stakeholderů
+      - id: attitude
+        label: "Známe postoj stakeholderů k projektu (pozitivní, neutrální, negativní)"
+      - id: skeptics
+        label: "Máme strategii pro vlivné stakeholdery, kteří jsou k projektu skeptičtí"
+      - id: comm_plan
+        label: Máme komunikační plán pro každou skupinu stakeholderů
+    guide:
+      why: "Ukáže, s kým budeš spolupracovat, odkud může přijít podpora nebo odpor a jestli jsi na někoho důležitého nezapomněl."
+      when: Na začátku projektu; mapa je živý dokument a během projektu se aktualizuje.
+      duration: "1–2 h u menších projektů, půl dne až den u větších."
+      who: "Tým a ideálně někdo, kdo dobře zná organizaci zadavatele."
+      steps:
+        - Sepiš všechny interní i externí stakeholdery.
+        - Umísti je do matice vliv × zájem.
+        - "Vysoký vliv i zájem: řiď úzce (pravidelné 1:1, aktivní zapojení)."
+        - "Vysoký vliv, nízký zájem: udržuj spokojené, konzultuj zásadní rozhodnutí."
+        - "Nízký vliv, vysoký zájem: průběžně informuj a sbírej podněty."
+        - "Nízký vliv i zájem: sleduj a poskytuj základní informace."
+        - Ke každému zapiš potřeby a očekávání (z rozhovorů).
+        - "U každého zaznamenej postoj a komunikační plán: jak často, jakou formou a co potřebuje vědět."
+      outputs:
+        - Mapa vlivu a zájmu
+        - Postoje stakeholderů
+        - Komunikační plán
+
+  - key: competitive_analysis
+    group: research
+    defaultName: Analýza konkurence
+    defaultDescription: "Zmapování konkurenčních řešení – silné stránky, slabiny a inspirace."
+    sortOrder: 40
+    defaultDurationDays: 5
+    createOnNewProject: true
+    checklist:
+      - id: identified
+        label: Identifikovali jsme přímé i nepřímé konkurenty
+      - id: strengths
+        label: Zmapovali jsme silné a slabé stránky konkurence
+      - id: client_preferences
+        label: "Zjistili jsme, co se zadavateli na konkurenci líbí a nelíbí"
+      - id: inspiration
+        label: Zaznamenali jsme inspiraci pro náš projekt
+      - id: advantage
+        label: Identifikovali jsme naši konkurenční výhodu
+    guide:
+      why: "Získáš přehled o trhu a o očekáváních zadavatele, abys mohl v designu navrhnout něco odlišného."
+      when: Na začátku nové spolupráce.
+      duration: "4–6 h rešerše, příprava úkolu pro stakeholdery, workshop 1,5–3 h."
+      who: "Stakeholdeři (dodají jména konkurentů a hodnotí), dva designéři."
+      steps:
+        - Zjisti od stakeholderů přímé i nepřímé konkurenty.
+        - "Projdi jejich weby a další kanály, nasnímej klíčové stránky."
+        - "Nech stakeholdery samostatně označit, co se jim líbí a co ne."
+        - Na workshopu se zaměř na rozporuplná místa a ptej se na důvody.
+        - Shrň preference zadavatele a inspiraci pro návrh.
+        - "Pojmenuj, čím se od konkurence odlišíme."
+      outputs:
+        - Přehled konkurentů se silnými a slabými stránkami
+        - Seznam preferencí zadavatele
+        - Inspirace
+
+  - key: heuristic_analysis
+    group: research
+    defaultName: Heuristická analýza
+    defaultDescription: Expertní hodnocení stávajícího rozhraní podle principů použitelnosti.
+    sortOrder: 45
+    defaultDurationDays: 3
+    createOnNewProject: false
+    checklist:
+      - id: access
+        label: Máme přístupy do všech částí řešení
+      - id: screens
+        label: Nasnímali jsme všechny obrazovky
+      - id: evaluated
+        label: Prošli jsme obrazovky podle heuristik použitelnosti
+      - id: severity
+        label: Problémy jsme ohodnotili podle závažnosti
+      - id: recommendations
+        label: Ke klíčovým problémům máme doporučení
+    guide:
+      why: "Rychle odhalí, co na stávajícím řešení nefunguje – hlavně když zadavatel sám neumí říct, co je špatně."
+      when: "Discovery fáze, před redesignem."
+      duration: Podle velikosti řešení a dohodnutého rozsahu.
+      who: Designér; zadavatel zajistí přístupy i do neveřejných částí.
+      steps:
+        - Zajisti přístupy do všech částí řešení.
+        - Nasnímej a uspořádej všechny obrazovky.
+        - "Projdi je podle heuristik: viditelnost stavu, srozumitelný jazyk, kontrola a možnost návratu, konzistence, prevence chyb, rozpoznání místo vzpomínání, efektivita, minimalismus, pomoc při chybách, nápověda."
+        - "U každého nálezu zapiš heuristiku, místo a závažnost."
+        - Seskup nálezy a doplň doporučení.
+      outputs:
+        - Seznam problémů použitelnosti se závažností
+        - Doporučení
+
+  - key: content_audit
+    group: research
+    defaultName: Obsahový audit a inventura
+    defaultDescription: Soupis existujícího obsahu webu či aplikace a zhodnocení jeho kvality.
+    sortOrder: 48
+    defaultDurationDays: 5
+    createOnNewProject: false
+    checklist:
+      - id: scope
+        label: "Určili jsme rozsah auditu (celý web, sekce, journey)"
+      - id: inventory
+        label: Sepsali jsme inventuru obsahu
+      - id: criteria
+        label: Stanovili jsme kritéria hodnocení
+      - id: audit
+        label: "Ohodnotili jsme obsah (ponechat, upravit, sloučit, odstranit)"
+      - id: gaps
+        label: Identifikovali jsme chybějící obsah
+    guide:
+      why: "Na informace od stakeholderů se nedá spolehnout – audit ukáže, co na webu skutečně je, co je zastaralé, duplicitní nebo chybí."
+      when: Na začátku redesignu či migrace a před prací na informační architektuře.
+      duration: "Dny u menší sekce, týdny u rozsáhlého webu."
+      who: "Designér nebo obsahový specialista, vlastníci obsahu u zadavatele."
+      steps:
+        - "Zvol rozsah: celý web, část, nebo obsah podél jedné cesty uživatele."
+        - Vytvoř inventuru – stránky či assety s jejich vlastnostmi.
+        - "Stanov kritéria kvality (aktuálnost, přesnost, užitečnost, vlastník)."
+        - "U každé položky rozhodni: ponechat, upravit, sloučit, odstranit."
+        - Zapiš mezery v obsahu.
+      outputs:
+        - Inventura obsahu
+        - Hodnocení a doporučení
+        - Podklad pro informační architekturu
+
+  - key: screener
+    group: research
+    defaultName: Screener a nábor respondentů
+    defaultDescription: "Sada otázek k ověření, že respondenti odpovídají cílové skupině výzkumu."
+    sortOrder: 52
+    defaultDurationDays: 3
+    createOnNewProject: false
+    checklist:
+      - id: criteria
+        label: Definovali jsme kritéria výběru respondentů
+      - id: questions
+        label: Připravili jsme otázky screeneru
+      - id: distributed
+        label: Rozeslali jsme screener
+      - id: selected
+        label: Vybrali jsme respondenty a domluvili termíny
+    guide:
+      why: "Zabrání tomu, aby se do výzkumu dostali lidé, kteří neodpovídají cílové skupině a znehodnotí data."
+      when: "Před sběrem dat, jakmile je definovaná cílová skupina."
+      duration: "1–3 h příprava, hodiny až dny sběr odpovědí, hodina až dvě výběr."
+      who: Výzkumník; zadavatel nebo panel dodá kontakty.
+      steps:
+        - "Popiš ideálního respondenta: demografie, chování, zkušenost s produktem či problémem."
+        - "Připrav otázky, které nenapovídají „správnou“ odpověď, a vylučovací otázky."
+        - Rozešli screener vhodným kanálem.
+        - "Vyhodnoť odpovědi, vyber respondenty a náhradníky."
+      outputs:
+        - Screener
+        - Seznam vybraných respondentů
+
+  - key: personas
+    group: research
+    defaultName: Tvorba person
+    defaultDescription: Vytvoření reprezentativních profilů cílových uživatelů na základě výzkumu.
+    sortOrder: 60
+    defaultDurationDays: 5
+    createOnNewProject: true
+    checklist:
+      - id: proto_personas
+        label: Vytvořili jsme protopersony podle cílových skupin
+      - id: assumptions
+        label: Domněnky v personách jsou označené k ověření
+      - id: goals_needs
+        label: "Zdokumentovali jsme cíle, potřeby a frustrace protoperson"
+      - id: recruitment
+        label: Definovali jsme rekrutační kriteria a odsouhlasili se stakeholdery
+      - id: barriers_motivators
+        label: "Persony mají bariéry, motivátory a charakteristický citát"
+      - id: updated
+        label: Aktualizovali jsme persony podle výsledků výzkumu
+    guide:
+      why: Persony dávají segmentům uživatelů lidskou tvář a udrží design i vývoj zaměřený na skutečné potřeby. Často je vhodné doplnit je kontextovými scénáři.
+      when: U nových produktů a služeb po výzkumu a segmentaci; protopersony už na začátku jako hypotézy.
+      duration: "Ad hoc protopersony za den, persony podložené daty 1–2 týdny (většinu času zabere sběr dat)."
+      who: Designér nebo výzkumník; vizuální zpracování může připravit UI designér.
+      steps:
+        - Zjisti byznysové cíle a dostupná data o uživatelích.
+        - "Vytvoř protopersony; co nevíš jistě, označ jako domněnku."
+        - Z protoperson odvoď rekrutační kritéria pro výzkum a odsouhlas je.
+        - "Zpracuj data z rozhovorů a segmentace – činnosti, potřeby, bariéry, motivátory."
+        - "Z opakujících se vzorců postav kostry person, vyhodnoť je a slouč překryvy (obvykle 3–5 person)."
+        - "Doplň jméno, citát, atributy, bariéry a motivátory a uživatelský scénář."
+        - Ověř persony se stakeholdery a aktualizuj je podle výzkumu.
+      outputs:
+        - Persony
+        - Rekrutační kritéria pro další výzkum
+
+  - key: user_interviews
+    group: research
+    defaultName: Rozhovory s uživateli
+    defaultDescription: Kvalitativní výzkum formou polostrukturovaných rozhovorů s cílovými uživateli.
+    sortOrder: 70
+    defaultDurationDays: 14
+    createOnNewProject: true
+    checklist:
+      - id: research_goals
+        label: Stanovili jsme cíle výzkumu
+      - id: guide
+        label: Připravili jsme diskuzní scénář (discussion guide)
+      - id: recruited
+        label: Zajistili jsme respondenty a souhlas s nahráváním
+      - id: conducted
+        label: Provedli jsme alespoň 5 rozhovorů s uživateli
+      - id: analyzed
+        label: Analyzovali jsme záznamy a přepisy rozhovorů
+      - id: coded
+        label: "Zakódovali jsme poznatky (citace, potřeby, bariéry, motivátory)"
+      - id: patterns
+        label: Identifikovali jsme opakující se vzorce a témata
+      - id: shared
+        label: Sdíleli jsme výstupy s týmem
+    guide:
+      why: "Odhalí chování, postoje, motivátory a bariéry, které nezjistíš od zadavatele. Podklad pro segmentaci, persony a scénáře."
+      when: Kdykoliv chybí znalost o uživatelích – typicky v discovery fázi.
+      duration: "Pro 10 respondentů zhruba 2 dny rozhovorů, 1–2 dny přepis a 1–3 dny syntéza; nábor zvlášť."
+      who: Moderátor a zapisovatel; respondenti z cílové skupiny.
+      steps:
+        - Stanov cíle výzkumu a podle nich připrav scénář s otevřenými otázkami.
+        - Zajisti nábor (screener) a souhlas s nahráváním.
+        - "Veď rozhovory, ptej se na konkrétní zkušenosti, ne na názory na budoucnost."
+        - Pořiď přepisy a zakóduj poznatky.
+        - "Hledej opakující se vzorce a témata, sdílej je s týmem."
+      outputs:
+        - Záznamy a přepisy
+        - Zakódované poznatky
+        - Vzorce chování a potřeby
+
+  - key: survey
+    group: research
+    defaultName: Uživatelský dotazník
+    defaultDescription: "Kvantitativní ověření potřeb, preferencí a chování širšího vzorku uživatelů."
+    sortOrder: 72
+    defaultDurationDays: 7
+    createOnNewProject: false
+    checklist:
+      - id: goals
+        label: "Stanovili jsme, co chceme dotazníkem zjistit"
+      - id: questions
+        label: Připravili jsme a s klientem odsouhlasili otázky
+      - id: piloted
+        label: Otestovali jsme dotazník na pár lidech
+      - id: distributed
+        label: Rozeslali jsme dotazník
+      - id: analyzed
+        label: Vyhodnotili jsme odpovědi a segmenty
+    guide:
+      why: "Strukturovaně a na větším vzorku ověří potřeby, preference a spokojenost uživatelů; doplňuje rozhovory."
+      when: "Na začátku spolupráce vedle rozhovorů, nebo k ověření hypotéz z kvalitativního výzkumu."
+      duration: "Až 3 h příprava otázek, až 2 h tvorba a rozeslání, sběr odpovědí, až 2 h syntéza."
+      who: Designér nebo výzkumník; zadavatel dodá kontakty na uživatele.
+      steps:
+        - "Urči cíle a hypotézy, které chceš ověřit."
+        - "Napiš krátké a nenávodné otázky, odsouhlas je se zadavatelem."
+        - Otestuj dotazník na pár lidech a rozešli ho.
+        - "Vyhodnoť odpovědi, hledej segmenty a příležitosti."
+      outputs:
+        - Vyhodnocení odpovědí
+        - Segmenty uživatelů
+        - Seznam problémů a příležitostí
+
+  - key: behavioral_segmentation
+    group: research
+    defaultName: Behaviorální segmentace
+    defaultDescription: Rozdělení respondentů podle vzorců chování a postojů jako základ pro persony.
+    sortOrder: 75
+    defaultDurationDays: 3
+    createOnNewProject: false
+    checklist:
+      - id: roles
+        label: Rozdělili jsme respondenty podle rolí (pokud dává smysl)
+      - id: attributes
+        label: Identifikovali jsme behaviorální a demografické atributy
+      - id: mapped
+        label: Umístili jsme respondenty na škály atributů
+      - id: patterns
+        label: Pojmenovali jsme vzorce chování (základ protoperson)
+    guide:
+      why: Odliší skutečné vzorce chování od demografie a dá personám pevný základ místo domněnek.
+      when: "Během vyhodnocování rozhovorů či pozorování, před tvorbou person. Nedělá se z paměti, ale z přepisů."
+      duration: 1–3 dny podle počtu rozhovorů.
+      who: Designér a kolega na konzultaci výstupu.
+      steps:
+        - "Rozděl respondenty podle rolí, pokud je to relevantní."
+        - "Z přepisů vypiš atributy chování a postojů (např. frekvence, motivace, zkušenost)."
+        - Každý atribut převeď na škálu a umísti na ni respondenty.
+        - "Hledej skupiny respondentů, kteří se opakovaně objevují pohromadě – to jsou vzorce."
+        - Vzorce pojmenuj a použij jako základ person.
+      outputs:
+        - Atributy a škály
+        - Vzorce chování
+        - Podklad pro persony
+
+  - key: value_proposition_canvas
+    group: research
+    defaultName: Value Proposition Canvas
+    defaultDescription: "Ověření souladu mezi potřebami zákazníka a hodnotou, kterou produkt nabízí."
+    sortOrder: 78
+    defaultDurationDays: 1
+    createOnNewProject: false
+    checklist:
+      - id: segment
+        label: Vybrali jsme zákaznický segment
+      - id: profile
+        label: "Vyplnili jsme úkoly, bolesti a přínosy zákazníka"
+      - id: value_map
+        label: "Vyplnili jsme produkty, řešení bolestí a tvůrce přínosů"
+      - id: fit
+        label: Ověřili jsme soulad a pojmenovali mezery
+    guide:
+      why: "Ukáže, jestli produkt opravdu řeší problémy a potřeby zákazníka, a kde je nabídka slabá."
+      when: "Při návrhu nového produktu, v rané fázi definice potřeb nebo při ověřování směru."
+      duration: Workshop 2–4 h.
+      who: "Produktový manažer, marketing, designéři; ideálně zástupce zákazníka nebo data z výzkumu."
+      steps:
+        - Vyber segment zákazníků.
+        - "Profil zákazníka: jeho úkoly, bolesti a očekávané přínosy."
+        - "Mapa hodnoty: produkty a služby, jak tlumí bolesti a jak vytvářejí přínosy."
+        - "Porovnej obě strany a pojmenuj, co chybí nebo přebývá."
+      outputs:
+        - Vyplněný canvas
+        - Seznam mezer v hodnotové nabídce
+
+  - key: top_tasks
+    group: research
+    defaultName: Top Tasks
+    defaultDescription: "Identifikace nejdůležitějších úkolů, které uživatelé chtějí splnit."
+    sortOrder: 80
+    defaultDurationDays: 14
+    createOnNewProject: false
+    checklist:
+      - id: longlist
+        label: "Sestavili jsme vstupní seznam úkolů z analytiky, vyhledávání a materiálů"
+      - id: shortlist
+        label: Se zadavatelem jsme se shodli na zkráceném seznamu
+      - id: survey
+        label: Uživatelé vybrali své nejdůležitější úkoly v dotazníku
+      - id: results
+        label: Vyhodnotili jsme výsledky a představili je
+    guide:
+      why: "Daty podložené pořadí toho, co je pro uživatele důležité. Pomůže zbavit se zbytečného obsahu a postavit strukturu na reálných potřebách."
+      when: "U velkých webů a aplikací, kde obsah nekontrolovaně roste nebo chybí shoda na prioritách; před redesignem."
+      duration: "Týdny: analýzy, shortlist, týden dotazník, 1–2 dny vyhodnocení."
+      who: "Pracovní skupina zadavatele, stakeholdeři z různých oddělení, reální uživatelé."
+      steps:
+        - "Sestav dlouhý seznam úkolů z analytiky, vyhledávání, konkurence a interních materiálů."
+        - Se zadavatelem ho zkrať a sjednoť formulace.
+        - Nech uživatele v dotazníku vybrat několik nejdůležitějších úkolů.
+        - Vyhodnoť pořadí – malý počet úkolů obvykle získá většinu hlasů.
+      outputs:
+        - Seřazený seznam úkolů uživatelů
+
+  - key: journey_mapping
+    group: research
+    defaultName: User Journey Mapping
+    defaultDescription: "Vizualizace cesty uživatele k cíli – kroky, myšlenky, emoce a problematická místa."
+    sortOrder: 85
+    defaultDurationDays: 4
+    createOnNewProject: false
+    checklist:
+      - id: persona
+        label: Zvolili jsme personu a cíl cesty
+      - id: phases
+        label: Popsali jsme fáze a akce uživatele
+      - id: emotions
+        label: "Doplnili jsme myšlenky, emoce a kontaktní body"
+      - id: pain_points
+        label: Označili jsme problematická místa a příležitosti
+      - id: shared
+        label: Sdíleli jsme mapu s týmem a stakeholdery
+    guide:
+      why: "Ukáže celou cestu uživatele, místa frustrace a jak produkt zapadá do širší zkušenosti; sjednotí pohled oddělení."
+      when: "Na začátku projektu, když víme, pro koho stavíme, nebo při optimalizaci existující služby."
+      duration: "1–2 dny příprava dat, 2–4 h workshop, 1–2 dny zpracování."
+      who: Tým a stakeholdeři z různých oddělení; data z výzkumu a analytiky.
+      steps:
+        - "Urči personu a cíl, ke kterému cesta vede."
+        - Popiš fáze cesty a v každé konkrétní akce.
+        - "Doplň myšlenky, emoce a kontaktní body (kanály)."
+        - Označ problematická místa a příležitosti ke zlepšení.
+        - Zpracuj přehlednou vizualizaci a sdílej ji.
+      outputs:
+        - Journey mapa
+        - Seznam problematických míst a příležitostí
+
+  - key: requirements
+    group: research
+    defaultName: Sběr požadavků
+    defaultDescription: Specifikace funkčních a nefunkčních požadavků na produkt či službu.
+    sortOrder: 90
+    defaultDurationDays: 7
+    createOnNewProject: true
+    checklist:
+      - id: business
+        label: Zmapovali jsme požadavky byznysu
+      - id: legal
+        label: Zmapovali jsme právní požadavky
+      - id: security
+        label: Zmapovali jsme bezpečnostní požadavky
+      - id: technical
+        label: Zmapovali jsme technické požadavky
+      - id: nonfunctional
+        label: Zmapovali jsme nefunkcionální požadavky
+      - id: categories
+        label: "Požadavky jsou rozdělené na datové, funkční, kvalitativní a omezení"
+      - id: needs_not_solutions
+        label: "Požadavky popisují potřeby, ne konkrétní řešení"
+      - id: motivation
+        label: Každý požadavek má zdůvodnění (co se stane když nebude splněn)
+      - id: conflicts
+        label: Vyřešili jsme konflikty požadavků
+      - id: priority
+        label: Každý požadavek má určenou prioritu
+      - id: approved
+        label: Odsouhlasili jsme požadavky se stakeholdery
+    guide:
+      why: "Propojí výzkum s designem: definuje, co produkt musí umět, dřív než se začne navrhovat řešení, a sjednotí představy všech stran."
+      when: "Hned po výzkumu, kdy jsou k dispozici persony a scénáře; před navrhováním."
+      duration: "1–2 dny u jednoduchého produktu, zhruba týden u složitějších; revize se stakeholdery zvlášť."
+      who: "Design tým, product owner, stakeholdeři, odborníci na danou oblast, technický lead."
+      steps:
+        - "Shromáždi vstupy (rešerše, rozhovory se stakeholdery, výzkum) podle zdrojů: byznys, právo, bezpečnost, technika a nefunkční požadavky."
+        - Vyjdi z kontextových scénářů (aktivita Definování scénářů); pro každou personu popisují ideální použití.
+        - "Ze scénářů vypiš požadavky ve čtyřech kategoriích: datové (co uživatel potřebuje vidět), funkční (co potřebuje dělat), kvalitativní (jaké to má být) a omezení."
+        - Řešení přeformuluj na potřeby – ptej se „jaký problém tím řešíme?“.
+        - "Ke každému požadavku zapiš zdůvodnění – co se stane, když nebude splněn."
+        - Vyřeš konflikty mezi požadavky.
+        - "Seřaď požadavky podle důležitosti pro uživatele, četnosti, byznysové hodnoty a náročnosti."
+        - Projdi je se stakeholdery a získej souhlas s prioritami.
+      outputs:
+        - "Seznam požadavků s kategorií, zdůvodněním a prioritou"
+
+  - key: scenarios
+    group: research
+    defaultName: Definování scénářů
+    defaultDescription: "Popis typických situací, ve kterých uživatelé produkt nebo službu využívají."
+    sortOrder: 88
+    defaultDurationDays: 5
+    createOnNewProject: true
+    checklist:
+      - id: main_scenarios
+        label: definovali jsme všechny hlavní scénáře
+      - id: secondary_scenarios
+        label: "Definovali jsme všechny vedlejší scénáře, které chceme implementovat"
+      - id: error_scenarios
+        label: Zmapovali jsme všechny chybové scénáře
+      - id: trigger_outcome
+        label: "Každý scénář má spouštěč a moment, kdy je potřeba uspokojena"
+      - id: quantitative
+        label: "Doplnili jsme kvantitativní data scénářů (počet uživatelů, četnost spuštění, hodnotu)"
+      - id: stakeholders_review
+        label: Představili jsme scénáře stakeholderům
+      - id: validated
+        label: Ověřili jsme scénáře se zástupci cílové skupiny
+    guide:
+      why: Kontextový scénář převede první nápady do příběhu z pohledu uživatele. Dá se ověřit s cílovou skupinou a designéři podle něj navrhují.
+      when: "Discovery fáze, když se začíná navrhovat; během designu se k němu vracej a kontroluj, že se od něj návrh nevzdaluje."
+      duration: Hodiny až dny podle počtu aktivit cílové skupiny.
+      who: "Tým (každý napíše vlastní verzi, pak vyberte to nejlepší) a zástupci cílové skupiny pro ověření."
+      steps:
+        - "Sepiš hlavní aktivity primární cílové skupiny; souběžné spoj do jednoho scénáře, zvaž sekundární skupinu."
+        - "Rozliš hlavní, vedlejší a chybové scénáře."
+        - Každý scénář začni spouštěčem (vznik potřeby) a ukonči uspokojením potřeby.
+        - "Odpověz na kdo, co, kde, kdy, jak a proč; popisuj jen to, co uživatel vidí a dělá."
+        - "Nespecifikuj nástroje ani technická řešení („dozví se“, ne „dostane notifikaci“)."
+        - "Buď mírně optimistický, ale věrný cílové skupině."
+        - "Doplň kvantitativní data (počet uživatelů, četnost, hodnota)."
+        - Představ scénáře stakeholderům a ověř je s cílovou skupinou.
+      outputs:
+        - "Kontextové scénáře (hlavní, vedlejší, chybové)"
+        - Podklad pro požadavky
+
+  - key: prioritization_workshop
+    group: design
+    defaultName: Prioritizační workshop
+    defaultDescription: Společné určení důležitosti a pořadí implementace požadavků se stakeholdery.
+    sortOrder: 105
+    defaultDurationDays: 2
+    createOnNewProject: false
+    checklist:
+      - id: prepared
+        label: "Připravili jsme přehled požadavků, journey a struktury"
+      - id: importance
+        label: Účastníci ohodnotili důležitost každého požadavku
+      - id: disagreements
+        label: "Prodiskutovali jsme místa, kde se účastníci neshodli"
+      - id: effort
+        label: Umístili jsme požadavky do matice hodnota × náročnost
+      - id: releases
+        label: "Každý požadavek má přiřazenou fázi či verzi (MVP, v1…)"
+      - id: recorded
+        label: Priority a verze jsme zapsali k požadavkům
+    guide:
+      why: Sladí všechny strany na důležitosti požadavků a pořadí jejich implementace; nejcennější jsou diskuze nad neshodami.
+      when: "Když jsou požadavky sesbírané a utříděné, před vývojem."
+      duration: "Zhruba 3 h workshopu (ideálně ve dvou částech), hodina příprava, hodina syntéza."
+      who: "Dva designéři, vlastník tématu, zástupci zapojených týmů a rozhodovatel."
+      steps:
+        - "Připrav přehled: utříděné požadavky, náčrt journey a strukturu."
+        - "Nech účastníky zkontrolovat, jestli něco nechybí."
+        - Každý samostatně označí důležitost každého požadavku.
+        - Projděte výsledky a zastavte se u neshod.
+        - Ve druhé části rozmístěte požadavky do matice hodnota × náročnost.
+        - Každému požadavku přiřaďte fázi nebo verzi a zapiš je k požadavkům.
+      outputs:
+        - Seřazený seznam požadavků
+        - "Rozdělení do verzí (MVP, další fáze)"
+
+  - key: card_sorting
+    group: design
+    defaultName: Card sorting
+    defaultDescription: "Výzkum, jak uživatelé sami třídí a pojmenovávají obsah."
+    sortOrder: 108
+    defaultDurationDays: 3
+    createOnNewProject: false
+    checklist:
+      - id: scope
+        label: "Určili jsme oblast, kterou zkoumáme"
+      - id: cards
+        label: Připravili jsme srozumitelné karty (ideálně do 50)
+      - id: type
+        label: "Zvolili jsme otevřený, uzavřený nebo hybridní typ"
+      - id: conducted
+        label: Provedli jsme třídění s dostatkem účastníků
+      - id: analyzed
+        label: Vyhodnotili jsme skupiny a pojmenování
+    guide:
+      why: "Místo navrhování struktury od stolu ukáže, jak uživatelé o obsahu přemýšlejí a jak ho pojmenovávají."
+      when: Před wireframy u nových projektů; u existujících při redesignu navigace nebo když lidé nemohou obsah najít.
+      duration: Celkem 2–3 dny včetně přípravy a vyhodnocení.
+      who: "15–20 účastníků pro kvantitativní data nebo 5–10 pro kvalitativní, moderátor, stakeholdeři schválí obsah."
+      steps:
+        - "Vymez oblast (navigace, kategorie produktů, struktura aplikace)."
+        - Připrav karty s pojmy srozumitelnými pro uživatele.
+        - "Zvol typ: otevřený (skupiny tvoří a pojmenují uživatelé), uzavřený (do daných kategorií), nebo hybridní."
+        - Proveď třídění online nebo s kartičkami.
+        - "Vyhodnoť, které karty se opakovaně objevují spolu a jak lidé skupiny pojmenovali."
+      outputs:
+        - Návrh skupin a pojmenování
+        - Podklad pro informační architekturu
+
+  - key: information_architecture
+    group: design
+    defaultName: Informační architektura
+    defaultDescription: "Návrh struktury obsahu, navigace a organizace informací."
+    sortOrder: 110
+    defaultDurationDays: 7
+    createOnNewProject: true
+    checklist:
+      - id: data_model
+        label: Zmapovali jsme pojmy a entity (datový model)
+      - id: card_sorting
+        label: Provedli jsme výzkum IA (cardsorting apod.) s uživateli
+      - id: navigation
+        label: "Navrhli jsme IA (struktura aplikace, navigace)"
+      - id: tested
+        label: "Otestovali jsme informační architekturu s uživateli (usability testing, tree testing)"
+    guide:
+      why: "Dobře uspořádaný obsah a navigace jsou základ toho, aby uživatelé našli, co hledají."
+      when: "Po požadavcích a scénářích, před wireframy."
+      duration: Několik dní až týdny podle rozsahu.
+      who: "Designér, vlastníci obsahu, uživatelé pro výzkum a testování."
+      steps:
+        - Zmapuj pojmy a entity a vztahy mezi nimi.
+        - "Využij obsahový audit, top tasks a card sorting."
+        - Navrhni strukturu a navigaci (sitemapu).
+        - Ověř ji tree testingem nebo testem použitelnosti.
+      outputs:
+        - Datový model
+        - Sitemapa a návrh navigace
+
+  - key: tree_testing
+    group: design
+    defaultName: Tree testing
+    defaultDescription: Ověření navigační struktury na textové hierarchii bez vizuálního designu.
+    sortOrder: 115
+    defaultDurationDays: 5
+    createOnNewProject: false
+    checklist:
+      - id: tree
+        label: Převedli jsme strukturu do textové hierarchie
+      - id: tasks
+        label: Připravili jsme úkoly hledání
+      - id: participants
+        label: Zajistili jsme respondenty
+      - id: results
+        label: "Vyhodnotili jsme úspěšnost a místa, kde lidé bloudí"
+    guide:
+      why: "Ověří logiku navigace dřív, než se začne pracovat na UI, a ukáže problematické kategorie."
+      when: "Po návrhu informační architektury, před UI designem; hlavně u složitých struktur."
+      duration: "Příprava hodiny, sběr dat dny, vyhodnocení hodiny."
+      who: Designér a respondenti (nemoderovaný test online).
+      steps:
+        - Vytvoř textovou stromovou strukturu navigace.
+        - "Napiš úkoly typu „kde byste hledali…“, nenapovídej pojmy z menu."
+        - Spusť test v nástroji a rozešli odkaz respondentům.
+        - "Vyhodnoť úspěšnost, přímost cest a místa, kde lidé zabloudili."
+      outputs:
+        - Úspěšnost úkolů
+        - Seznam problematických kategorií a úprav
+
+  - key: design_studio
+    group: design
+    defaultName: Design Studio
+    defaultDescription: "Workshop rychlého skicování, který zapojí stakeholdery do návrhu klíčových částí."
+    sortOrder: 117
+    defaultDurationDays: 1
+    createOnNewProject: false
+    checklist:
+      - id: scope
+        label: "Vymezili jsme, které části budeme řešit"
+      - id: materials
+        label: "Připravili jsme podklady (persony, scénáře, struktura, inspirace)"
+      - id: sketching
+        label: Účastníci skicovali a prezentovali varianty
+      - id: converged
+        label: Shodli jsme se na směru pro klíčové části
+    guide:
+      why: Získá nápady a hlavně vtáhne do návrhu různé zájmové skupiny zadavatele; funguje i s desítkami lidí.
+      when: "Na začátku designové fáze, zvlášť když se očekávají různé názory na rozvržení či obsah."
+      duration: "Půl dne až den, plus čas na organizaci."
+      who: "Stakeholdeři z různých oddělení rozdělení do skupin, facilitátor."
+      steps:
+        - "Vymez několik klíčových částí, které se budou řešit."
+        - "Vystav podklady: persony, scénáře, strukturu, inspiraci."
+        - "Každý rychle skicuje několik variant, pak je skupiny prezentují a kritizují."
+        - Skupina spojí nejlepší nápady do jednoho návrhu.
+        - Návrhy skupin porovnejte a shodněte se na směru.
+      outputs:
+        - Skici a společný směr pro klíčové části
+
+  - key: lofi_prototyping
+    group: design
+    defaultName: Low-fi prototypování
+    defaultDescription: Rychlé a levné náčrty rozhraní k ověření konceptu a struktury.
+    sortOrder: 118
+    defaultDurationDays: 3
+    createOnNewProject: false
+    checklist:
+      - id: scenario
+        label: "Víme, jaký scénář prototyp ověřuje"
+      - id: variants
+        label: Připravili jsme jednu nebo více variant
+      - id: feedback
+        label: Získali jsme zpětnou vazbu od uživatelů nebo stakeholderů
+      - id: decision
+        label: "Rozhodli jsme, kterou variantu rozpracovat"
+    guide:
+      why: "Umožní rychle porovnat koncepty a ověřit strukturu; lidé se nebojí kritizovat funkčnost, protože nejde o vizuál."
+      when: "Na začátku návrhové fáze, po definici požadavků a před detailním designem."
+      duration: Desítky minut až pár hodin na jeden tok.
+      who: Designér; volitelně stakeholdeři a uživatelé pro zpětnou vazbu.
+      steps:
+        - "Vyber scénář nebo úkol, který prototyp pokryje."
+        - Nakresli potřebné obrazovky a stavy na papír nebo v jednoduchém nástroji.
+        - Připrav případně více variant pro porovnání.
+        - Projdi prototyp s uživateli či stakeholdery a sbírej zpětnou vazbu.
+        - "Rozhodni, co rozpracovat do wireframů."
+      outputs:
+        - Low-fi prototyp
+        - Zpětná vazba a rozhodnutí o směru
+
+  - key: wireframing
+    group: design
+    defaultName: Wireframing
+    defaultDescription: Tvorba drátěných modelů obrazovek zachycujících rozvržení a funkce bez vizuálního designu.
+    sortOrder: 120
+    defaultDurationDays: 14
+    createOnNewProject: true
+    checklist:
+      - id: main_flows
+        label: Navrhli jsme všechny obrazovky hlavních flows
+      - id: secondary_flows
+        label: Navrhli jsme všechny obrazovky vedlejších flows
+      - id: error_flows
+        label: Navrhli jsme všechny potřebné obrazovky chybových flows
+      - id: variants
+        label: "Navrhli jsme všechny potřebné varianty (prázdné seznamy, nastavené filtry atd.)"
+      - id: iterated
+        label: Aktualizovali jsme WF podle připomínek a zjištění z výzkumu a testů
+      - id: approved
+        label: Odsouhlasili jsem WF se stakeholdery
+    guide:
+      why: "Zachytí rozvržení a funkce všech obrazovek bez rozptylování vizuálem; slouží k diskuzi, testování a jako podklad pro UI."
+      when: Po informační architektuře a low-fi konceptu.
+      duration: Týdny podle počtu flows.
+      who: Designér; stakeholdeři a vývojáři pro připomínky.
+      steps:
+        - "Navrhni obrazovky hlavních scénářů, pak vedlejších a chybových."
+        - "Doplň varianty stavů (prázdné stavy, chyby, načítání, filtry)."
+        - Ověř je testem použitelnosti a zapracuj zjištění.
+        - Odsouhlas je se stakeholdery.
+      outputs:
+        - Wireframy všech flows a stavů
+
+  - key: usability_testing
+    group: design
+    defaultName: Usability testing
+    defaultDescription: Testování použitelnosti s reálnými uživateli k odhalení problémů v rozhraní.
+    sortOrder: 140
+    defaultDurationDays: 14
+    createOnNewProject: true
+    checklist:
+      - id: hypotheses
+        label: Formulovali jsme hypotézy
+      - id: tasks
+        label: Definovali jsme testovací scénáře a úkoly
+      - id: prototype
+        label: Připravili jsme prototyp
+      - id: recruitment_criteria
+        label: Sepsali jsme rekrutační kriteria
+      - id: stakeholder_approval
+        label: Odsouhlasili jsme zadání testu se stakeholdery
+      - id: recruited
+        label: Provedli jsme rekrutaci a domluvili místo a termíny testů
+      - id: conducted
+        label: Provedli jsme testy
+      - id: insights
+        label: Sepsali jsme insighty z uživatelských testů
+      - id: hypotheses_evaluated
+        label: "U každé hypotézy víme, zda se potvrdila nebo vyvrátila"
+      - id: issues
+        label: Identifikovali jsme problémy a navrhli řešení
+      - id: iterated
+        label: Zanesli jsme dohodnutá řešení do návrhu (wireframe)
+      - id: shared
+        label: Seznámili jsme stakeholdery s provedenými změnami
+    guide:
+      why: "Ověří návrh s reálnými uživateli a odhalí problémy dřív, než se promítnou do vývoje. Hypotézy dávají testu jasný směr."
+      when: "Na prototypu nebo wireframech, případně na existujícím produktu."
+      duration: "Zhruba 2 týdny včetně přípravy, náboru, testů a vyhodnocení."
+      who: "Moderátor, zapisovatel, respondenti z cílové skupiny, stakeholdeři jako pozorovatelé."
+      steps:
+        - "Formuluj hypotézy jako ověřitelná tvrzení: „Myslím si, že uživatelé…, protože…“."
+        - Z hypotéz odvoď úkoly – realistické situace bez návodných slov z rozhraní.
+        - "Připrav prototyp, rekrutační kritéria a odsouhlas zadání."
+        - Proveď nábor a domluv místo a termíny.
+        - "Proveď testy, nech respondenty přemýšlet nahlas a nenapovídej."
+        - "Sepiš poznatky, vyhodnoť hypotézy a navrhni řešení problémů."
+        - Zapracuj změny do návrhu a seznam s nimi stakeholdery.
+      outputs:
+        - Vyhodnocené hypotézy
+        - Seznam problémů se závažností a návrhy řešení
+
+  - key: functional_spec
+    group: design
+    defaultName: Funkční specifikace
+    defaultDescription: "Popis chování systému jako most mezi designem, vývojem a testováním."
+    sortOrder: 145
+    defaultDurationDays: 5
+    createOnNewProject: false
+    checklist:
+      - id: decisions
+        label: Sepsali jsme rozhodnutí o funkčnosti z průběhu projektu
+      - id: behavior
+        label: "Popsali jsme chování obrazovek, stavů a validací"
+      - id: dev_review
+        label: Vývojář dal ke specifikaci zpětnou vazbu
+      - id: approved
+        label: Zadavatel specifikaci schválil
+    guide:
+      why: "Zadavatel si ověří, že byl pochopen, vývoj má jasné zadání, tester referenci a celý tým společný zdroj pravdy."
+      when: "Na konci designové fáze před předáním do vývoje, případně po discovery jako podklad pro odhad."
+      duration: Podle počtu funkcí a obrazovek.
+      who: "Designér (píše), produktový manažer zadavatele (schvaluje), vývojář (připomínkuje)."
+      steps:
+        - Sepiš rozhodnutí o funkčnosti a technice z průběhu projektu.
+        - "Ke každé obrazovce popiš chování, stavy, validace a chybové situace."
+        - "Specifikaci umísti vedle návrhů, aby byla dohledatelná."
+        - Projdi ji s vývojářem a nech ji schválit zadavatelem.
+      outputs:
+        - Funkční specifikace
+
+  - key: design_handoff
+    group: design
+    defaultName: Předání výstupů
+    defaultDescription: Finalizace a předání podkladů vývojářskému týmu včetně specifikací a assetů.
+    sortOrder: 150
+    defaultDurationDays: 3
+    createOnNewProject: true
+    checklist:
+      - id: specs
+        label: Finalizovali jsme designové specifikace
+      - id: assets
+        label: Připravili jsme assety pro vývojáře
+      - id: interactions
+        label: Zdokumentovali jsme interakce a animace
+      - id: review
+        label: Provedli jsme design review s vývojáři
+    guide:
+      why: Kvalitní předání minimalizuje nedorozumění a dotazy během vývoje.
+      when: Na konci designové fáze.
+      duration: Několik dní.
+      who: Designér a vývojový tým.
+      steps:
+        - Dokonči specifikace a zkontroluj všechny stavy obrazovek.
+        - Připrav assety a popiš interakce a animace.
+        - Projdi návrhy s vývojáři a zodpověz otázky.
+      outputs:
+        - "Předané návrhy, specifikace a assety"
+
+  - key: retrospective
+    group: project
+    defaultName: Retrospektiva
+    defaultDescription: Zpětné hodnocení průběhu projektu a identifikace příležitostí ke zlepšení.
+    sortOrder: 160
+    defaultDurationDays: 1
+    createOnNewProject: true
+    checklist:
+      - id: positives
+        label: "Zhodnotili jsme, co fungovalo dobře"
+      - id: improvements
+        label: Identifikovali jsme oblasti ke zlepšení
+      - id: expectations
+        label: Porovnali jsme očekávání se skutečností
+      - id: actions
+        label: Navrhli jsme konkrétní akční kroky
+      - id: documented
+        label: Zdokumentovali jsme poznatky pro příští projekty
+    guide:
+      why: "Bezpečný prostor pro sdílení dobrých i špatných zkušeností, který končí konkrétními kroky, ne jen ventilováním."
+      when: "Do týdne po dokončení projektu či milníku, dokud jsou zkušenosti čerstvé."
+      duration: 45–90 minut podle velikosti týmu.
+      who: "Celý projektový tým, facilitátor."
+      steps:
+        - "Vysvětli metaforu (např. plachetnice: vítr = co nás pohánělo, kotvy = co brzdilo, útesy = rizika, ostrov = cíl)."
+        - Každý samostatně píše lístečky do jednotlivých oblastí.
+        - Porovnejte očekávání se skutečností.
+        - "Sdílejte a diskutujte, seskupte podobná témata."
+        - Vyberte nejdůležitější témata a domluvte konkrétní kroky s odpovědnými lidmi.
+        - Zapiš poznatky pro další projekty.
+      outputs:
+        - Seznam poznatků
+        - Akční kroky pro příští projekty

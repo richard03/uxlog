@@ -1,7 +1,10 @@
 /**
  * Výpočet dokončenosti (vyplněnosti polí) pro entity.
  * Čisté funkce bez side effects – vhodné pro unit testy.
+ * Sledovaná pole jsou v data/entities.yaml (entities.<typ>.completeness).
  */
+
+import { ENTITY_CONFIG } from './dataConfig.js'
 
 /**
  * Vrátí true, pokud je hodnota pole vyplněna.
@@ -14,48 +17,28 @@ function isFilled(val) {
 }
 
 /**
- * Definice sledovaných polí pro každý typ entity.
- * Vrátí pole boolean hodnot (splněno/nesplněno) pro každé pole.
- * @type {Object.<string, (entity: Object) => boolean[]>}
+ * Vrátí výsledky kontrol (splněno/nesplněno) podle definice úplnosti.
+ * Položka s podmínkou `when` se započítá jen tehdy, když má jiné pole entity danou hodnotu.
+ * @param {Object} entity
+ * @param {Array<{ field: string, when: { field: string, value: * } | null }>} checks
+ * @returns {boolean[]}
  */
-const ENTITY_FIELD_CHECKS = {
-  goal: (e) => ['name', 'description', 'metrics'].map(f => isFilled(e[f])),
-
-  stakeholder: (e) => ['name', 'description', 'influenceLevel', 'interestLevel'].map(f => isFilled(e[f])),
-
-  competition: (e) => ['name', 'description', 'strengths', 'weaknesses', 'inspiration'].map(f => isFilled(e[f])),
-
-  hypothesis: (e) => {
-    const checks = ['name', 'description'].map(f => isFilled(e[f]))
-    if (e.status === 'refuted') checks.push(isFilled(e.explanation))
-    return checks
-  },
-
-  persona: (e) => [
-    'name', 'description', 'motivation', 'needs', 'problems',
-    'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue',
-  ].map(f => isFilled(e[f])),
-
-  scenario: (e) => ['name', 'description', 'frequencyValue', 'valueAmount', 'userCount'].map(f => isFilled(e[f])),
-
-  requirement: (e) => {
-    const checks = ['name', 'description', 'motivation'].map(f => isFilled(e[f]))
-    if (e.priority === 'wont') checks.push(isFilled(e.wontHaveExplanation))
-    return checks
-  },
-
-  teamMember: (e) => ['name', 'role', 'email'].map(f => isFilled(e[f])),
+export function evaluateCompleteness(entity, checks) {
+  const e = entity && typeof entity === 'object' ? entity : {}
+  return (Array.isArray(checks) ? checks : [])
+    .filter((c) => !c.when || e[c.when.field] === c.when.value)
+    .map((c) => isFilled(e[c.field]))
 }
 
 /**
  * Vrátí počet vyplněných a celkový počet sledovaných polí entity.
  * @param {Object} entity
- * @param {string} entityType - 'goal' | 'stakeholder' | 'competition' | 'hypothesis' | 'persona' | 'scenario' | 'requirement' | 'teamMember'
+ * @param {string} entityType - 'goal' | 'stakeholder' | 'competition' | 'hypothesis' | 'persona' | 'scenario' | 'requirement' | 'teamMember' | 'risk'
  * @returns {{ filled: number, total: number } | null}
  */
 export function getEntityCompleteness(entity, entityType) {
-  const getChecks = ENTITY_FIELD_CHECKS[entityType]
-  if (!getChecks) return null
-  const checks = getChecks(entity)
+  const definition = ENTITY_CONFIG[entityType]?.completeness
+  if (!definition) return null
+  const checks = evaluateCompleteness(entity, definition)
   return { filled: checks.filter(Boolean).length, total: checks.length }
 }

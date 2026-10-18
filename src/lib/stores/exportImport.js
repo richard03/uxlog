@@ -5,7 +5,7 @@ import { buildImportData } from '../importLogic.js'
 import {
   getGoals, getStakeholders, getCompetitions, getHypotheses,
   getPersonas, getScenarios, getRequirements, getTeamMembers,
-  getTasks, getBugs,
+  getTasks, getBugs, getRisks,
 } from './index.js'
 import { getAllActivities } from './activities.js'
 
@@ -27,6 +27,7 @@ export function exportSectionData(projectId, storeKey) {
     teamMembers: getTeamMembers,
     tasks: getTasks,
     bugs: getBugs,
+    risks: getRisks,
   }
   const getter = getters[storeKey]
   if (!getter) return toYaml({ [storeKey]: [] })
@@ -55,6 +56,7 @@ export function exportProjectData(projectId) {
     teamMembers: (data.teamMembers || []).filter((m) => m.projectId === projectId),
     tasks: (data.tasks || []).filter((t) => t.projectId === projectId),
     bugs: (data.bugs || []).filter((b) => b.projectId === projectId),
+    risks: (data.risks || []).filter((r) => r.projectId === projectId),
   })
 }
 
@@ -80,7 +82,7 @@ export function importProjectData(importData) {
   const entityKeys = [
     'goals', 'stakeholders', 'competitions', 'hypotheses',
     'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
-    'tasks', 'bugs',
+    'tasks', 'bugs', 'risks',
   ]
   let totalUpserted = 0
   for (const key of entityKeys) {

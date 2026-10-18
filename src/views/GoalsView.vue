@@ -92,7 +92,7 @@ import AppButton from '../components/AppButton.vue'
 const route = useRoute()
 const store = useStore()
 const { t } = useI18n()
-const { generateNextCode, getEntityCompleteness } = useEntityHelpers()
+const { generateNextCode, getCodePrefix, getEntityCompleteness } = useEntityHelpers()
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
@@ -124,7 +124,7 @@ function confirmMoveItem(id) { moveTarget.value = id }
 
 
 function openForm() {
-  form.value = { code: generateNextCode('GOL', goals.value), name: '', description: '', metrics: '' }
+  form.value = { code: generateNextCode(getCodePrefix('goal'), goals.value), name: '', description: '', metrics: '' }
   showForm.value = true
 }
 

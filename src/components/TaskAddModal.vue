@@ -30,7 +30,7 @@ const emit = defineEmits(['update:modelValue', 'save'])
 
 const store = useStore()
 const { t } = useI18n()
-const { generateNextCode } = useEntityHelpers()
+const { generateNextCode, getCodePrefix } = useEntityHelpers()
 
 const form = reactive({ code: '', name: '', description: '' })
 
@@ -41,7 +41,7 @@ function resetFormFromPreset() {
   const tasks = store.getTasks(props.projectId)
   const p = props.preset || {}
   const presetCode = p.code !== undefined && String(p.code).trim() !== '' ? String(p.code).trim() : ''
-  form.code = presetCode || generateNextCode('TSK', tasks)
+  form.code = presetCode || generateNextCode(getCodePrefix('task'), tasks)
   form.name = p.name ?? ''
   form.description = p.description ?? ''
 }

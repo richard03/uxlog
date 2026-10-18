@@ -3,9 +3,7 @@
     <ProjectPageHeader
       :breadcrumbs="breadcrumbs"
       :color="project?.color"
-      :title="item.name || t.hypothesis.name"
-      :on-edit-title="() => openEdit('name')"
-      :edit-title-label="`${t.common.edit} – ${t.hypothesis.name}`">
+      :title="item.name || t.hypothesis.name">
       <template #actions>
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportEntityData('hypotheses', item?.id)" :filename="item?.name || t.hypothesis.label" />
@@ -16,7 +14,10 @@
       </template>
     </ProjectPageHeader>
 
-    <ColumnHeading :title="`${t.hypothesis.label} ${item.name || ''}`.trim()">
+    <ColumnHeading
+      :title="`${t.hypothesis.label} ${item.name || ''}`.trim()"
+      :on-edit="() => openEdit('name')"
+      :edit-label="`${t.common.edit} – ${t.hypothesis.name}`">
       <template #sub>
         <button class="editable-code" @click="openEdit('code')" :aria-label="`${t.common.edit} – ${t.hypothesis.code}`"><span>{{ item.code || '–' }}</span><svg class="pencil" aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </template>

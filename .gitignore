@@ -16,3 +16,6 @@ api/config.example.php
 /src-tauri/target
 /src-tauri/gen
 /src-tauri/Cargo.lock
+
+# Interní knihovna technik (lokální podklad, obsahuje interní data)
+/knowledge

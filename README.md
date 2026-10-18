@@ -10,9 +10,10 @@ Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Fu
 - **Konkurence** - silné/slabé stránky, inspirace
 - **Hypotézy** - stav (netestováno/testováno/vyvráceno), vysvětlení
 - **Persony** - protopersona/persona, motivace, potřeby, problémy, velikost a hodnota cílové skupiny
-- **Požadavky** - MoSCoW, motivace, konflikty
-- **Scénáře** - frekvence, hodnota, MoSCoW
-- **Aktivity** - šablony úkolů s checklisty a termíny
+- **Požadavky** - MoSCoW, kategorie (datový/funkční/kvalitativní/omezení), motivace, konflikty
+- **Scénáře** - spouštěč, uspokojení potřeby, frekvence, hodnota, MoSCoW
+- **Rizika** - pravděpodobnost, dopad, opatření, stav
+- **Aktivity** - katalog 31 UX technik s checklisty, termíny a metodikou „Jak na to“; doporučení dalších aktivit podle stavu projektu
 - **Úkoly** - SMART cíle s termíny a přiřazením
 - **Bugy** - závažnost, dopad, priorita
 - **Tým** - členové týmu s rolemi
@@ -74,12 +75,24 @@ Po výměně zdrojového obrázku (čtvercový PNG, ideálně ≥512px):
 npx tauri icon src-tauri/icons/app-icon.png
 ```
 
+## Konfigurace (`/data`)
+
+Konfigurovatelná data jsou v YAML souborech ve složce `data/` (komentáře `#` jsou povolené). Přibalí se při buildu a načtou při startu (`src/lib/dataConfig.js`); chybný soubor nezastaví aplikaci – neplatné položky se vynechají s varováním v konzoli.
+
+- `data/activity-types.yaml` – katalog typů aktivit: skupiny, názvy, popisy, délky, checklisty a metodika „Jak na to“. Id položek checklistu neměňte (odkazují na ně uložené aktivity).
+- `data/entities.yaml` – datová struktura entit (persony, scénáře, požadavky, rizika, …): prefix kódu, výchozí hodnoty nové entity, atributy formuláře/detailu (typy polí, volby selectů, pořadí) a pole pro skóre úplnosti. Popisky jsou klíče do `src/i18n/cs.js`.
+- `data/app.yaml` – paleta barev projektů, výchozí délky projektů podle rozsahu, práh pro doporučení aktivit.
+
+Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Konfigurace); soubory v `data/` určují výchozí stav.
+
 ## Architektura
 
 - **Vue 3** + **Vite** + **Tauri 2** (Rust)
 - **Web:** `localStorage`; **desktop (Tauri):** embedded `SQLite` přes nativní storage bridge
+- **Historie změn projektu:** samostatný klíč `uxlog_history` (zápis v `persist()` → `stores/history.js`, logika rozdílů a vracení v `lib/history.js`)
 - Obchodní logika v `src/lib/` (čisté, testovatelné funkce)
 - Stav v `src/lib/stores/` (reaktivní store moduly)
 - Plugin systém v `src/lib/plugins/` (event bus, capabilities)
 - Překlady v `src/i18n/cs.js`
+- Katalog aktivit a jejich metodika v `data/activity-types.yaml` (převyprávěno z interní knihovny technik; složka `knowledge/` s exportem knihovny je jen lokální podklad, je v `.gitignore` a aplikace ji nenačítá)
 - Vlastní CSS design systém v `src/style.css` (CSS proměnné, bez externí knihovny)

@@ -12,6 +12,13 @@ import {
   buildAskNotes,
   buildAskPrompt,
   parseAskAnswer,
+  buildAskMethodology,
+  buildNotebookPrompt,
+  NOTEBOOK_METHOD_RULES,
+  salvageActions,
+  splitNotebookText,
+  mergeActions,
+  processNotebookInParts,
 } from './prompts.js'
 
 describe('buildCompetitionAnalysisPrompt', () => {
@@ -240,5 +247,129 @@ describe('buildAskPrompt / parseAskAnswer', () => {
   it('odpověď ořízne a snese null', () => {
     expect(parseAskAnswer('  Dvě.  ')).toEqual({ answer: 'Dvě.' })
     expect(parseAskAnswer(null)).toEqual({ answer: '' })
+  })
+})
+
+describe('buildNotebookPrompt – metodika', () => {
+  it('obsahuje nová pole entit a metodická pravidla', () => {
+    const p = buildNotebookPrompt('poznámky', '(nic)')
+    expect(p).toContain('category (data/function/quality/constraint)')
+    expect(p).toContain('attitude (positive/neutral/negative)')
+    expect(p).toContain('trigger, outcome')
+    expect(p).toContain('competitorType (direct/indirect)')
+    expect(p).toContain(NOTEBOOK_METHOD_RULES)
+    expect(NOTEBOOK_METHOD_RULES).toContain('Myslím si, že')
+    expect(NOTEBOOK_METHOD_RULES).toContain('ne konkrétní řešení')
+  })
+})
+
+describe('buildAskMethodology', () => {
+  it('vypíše metodiku aktivit s postupem a výstupy', () => {
+    const m = buildAskMethodology([
+      { name: 'Kick-off', guide: { why: 'Sjednotí očekávání.', when: 'Na začátku.', duration: '', who: 'Tým', steps: ['Pozvi lidi', 'Proveď workshop'], outputs: ['Zápis'] } },
+    ])
+    expect(m).toBe('### Kick-off\nProč: Sjednotí očekávání.\nKdy: Na začátku.\nKoho potřebuji: Tým\nPostup:\n1. Pozvi lidi\n2. Proveď workshop\nVýstupy:\n1. Zápis')
+  })
+
+  it('vynechá aktivity bez metodiky, duplicity a poškozená data', () => {
+    const m = buildAskMethodology([
+      null,
+      { name: 'Vlastní', guide: null },
+      { name: '', guide: { why: 'x' } },
+      { name: 'A', guide: { why: 'první' } },
+      { name: 'A', guide: { why: 'druhá' } },
+      { name: 'B', guide: { steps: 'není pole' } },
+    ])
+    expect(m).toBe('### A\nProč: první')
+  })
+
+  it('bez metodiky vrátí zástupný text', () => {
+    expect(buildAskMethodology(undefined)).toBe('(projekt nemá aktivity s metodikou)')
+  })
+})
+
+describe('buildAskPrompt – metodika', () => {
+  it('vloží sekci metodiky a pravidlo pro metodické dotazy', () => {
+    const p = buildAskPrompt('Jak na kick-off?', 'ctx', 'notes', '### Kick-off\nProč: x')
+    expect(p).toContain('## Metodika aktivit projektu:\n### Kick-off')
+    expect(p).toContain('„Metodika aktivit projektu“')
+  })
+})
+
+describe('dlouhé poznámky – useknutá odpověď a zpracování po částech', () => {
+  const action = (name, extra = {}) => ({ type: 'create', entity: 'persona', entityId: null, entityName: name, fields: { name, ...extra }, sourceText: 'x' })
+
+  it('salvageActions vytáhne kompletní akce z useknutého JSONu', () => {
+    const full = JSON.stringify({ actions: [action('Jana'), action('Petr, "Pepa"')] })
+    const truncated = full.slice(0, full.indexOf('Petr') + 6)
+    expect(salvageActions(truncated).map((a) => a.entityName)).toEqual(['Jana'])
+    expect(salvageActions(full)).toHaveLength(2)
+    expect(salvageActions('nic')).toEqual([])
+  })
+
+  it('parseActions u useknuté odpovědi vrátí kompletní akce a příznak truncated', () => {
+    const full = JSON.stringify({ actions: [action('Jana'), action('Petr')] })
+    const res = parseActions(full.slice(0, -20))
+    expect(res.truncated).toBe(true)
+    expect(res.actions.map((a) => a.entityName)).toEqual(['Jana'])
+  })
+
+  it('parseActions bez jediné kompletní akce vyhodí srozumitelnou chybu', () => {
+    expect(() => parseActions('{"actions": [{"type": "cre')).toThrow(/neúplnou nebo neplatnou odpověď/)
+  })
+
+  it('parseActions zkrátí dlouhou citaci zdroje', () => {
+    const res = parseActions(JSON.stringify({ actions: [{ ...action('A'), sourceText: 'y'.repeat(1000) }] }))
+    expect(res.actions[0].sourceText.length).toBeLessThanOrEqual(201)
+  })
+
+  it('prompt zápisníku nežádá opisování celého textu a omezuje citace', () => {
+    const p = buildNotebookPrompt('text', 'ctx', { index: 2, total: 3 })
+    expect(p).not.toContain('residualText')
+    expect(p).toContain('nejvýše 200 znaků')
+    expect(p).toContain('část 2 z 3')
+  })
+
+  it('splitNotebookText dělí po odstavcích, dlouhé odstavce po větách a nic neztratí', () => {
+    expect(splitNotebookText('krátký')).toEqual(['krátký'])
+    expect(splitNotebookText('   ')).toEqual([])
+    const paras = Array.from({ length: 10 }, (_, i) => `Odstavec ${i}. ` + 'slovo '.repeat(30))
+    const chunks = splitNotebookText(paras.join('\n\n'), 500)
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.every((c) => c.length <= 500)).toBe(true)
+    expect(chunks.join(' ').replace(/\s+/g, ' ')).toBe(paras.join(' ').replace(/\s+/g, ' ').trim())
+    const oneLong = 'x'.repeat(1200)
+    expect(splitNotebookText(oneLong, 500).join('')).toBe(oneLong)
+  })
+
+  it('mergeActions spojí stejný záznam z více částí', () => {
+    const merged = mergeActions([
+      [action('Jana', { description: 'Účetní' })],
+      [action('jana', { description: 'Pracuje z domova', needs: 'Rychlost' }), { type: 'update', entity: 'goal', entityId: 'g1', entityName: 'Cíl', fields: { metrics: 'A' } }],
+      [{ type: 'update', entity: 'goal', entityId: 'g1', entityName: 'Cíl', fields: { metrics: 'A' } }],
+    ])
+    expect(merged).toHaveLength(2)
+    expect(merged[0].fields).toEqual({ name: 'Jana', description: 'Účetní\n\nPracuje z domova', needs: 'Rychlost' })
+    expect(merged[1].fields.metrics).toBe('A')
+  })
+
+  it('processNotebookInParts zpracuje text po částech, chybnou část zopakuje a nahlásí', async () => {
+    const text = ['Jana je účetní.', 'Petr je vedoucí.', 'Eva je studentka.'].join('\n\n')
+    let calls = 0
+    const callModel = async (prompt) => {
+      calls++
+      if (prompt.includes('Eva')) return '{"actions": [' // vždy useknuté bez kompletní akce
+      const name = prompt.includes('Jana') ? 'Jana' : 'Petr'
+      return JSON.stringify({ actions: [action(name)] })
+    }
+    const res = await processNotebookInParts(text, 'ctx', callModel, 20)
+    expect(res.actions.map((a) => a.entityName)).toEqual(['Jana', 'Petr'])
+    expect(res).toMatchObject({ failedParts: 1, totalParts: 3 })
+    expect(calls).toBe(4) // část s Evou se zkusila dvakrát
+  })
+
+  it('processNotebookInParts vyhodí chybu, když nezíská žádnou akci kvůli selhání', async () => {
+    await expect(processNotebookInParts('text', 'ctx', async () => 'nesmysl')).rejects.toThrow(/neúplnou nebo neplatnou/)
+    await expect(processNotebookInParts('text', 'ctx', async () => '{"actions": []}')).resolves.toMatchObject({ actions: [], failedParts: 0 })
   })
 })

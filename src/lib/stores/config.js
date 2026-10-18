@@ -5,9 +5,10 @@
  */
 
 import { reactive, toRaw } from 'vue'
-import { ACTIVITY_TYPES } from '../activityTypes.js'
+import { ACTIVITY_TYPES, getActivityGuide } from '../activityTypes.js'
 import { ENTITY_FIELD_DEFAULTS } from '../entityFieldDefaults.js'
 import { generateId } from '../id.js'
+import { APP_CONFIG } from '../dataConfig.js'
 import { mirrorToTauri } from '../tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_config'
@@ -35,7 +36,7 @@ function getEmptyConfig() {
     customActivityTemplates: [],
     entityCustomFields: {},
     entityFieldOverrides: {},
-    projectDurationDays: { small: 30, medium: 60, large: 120 },
+    projectDurationDays: { ...APP_CONFIG.projectDurationDays },
   }
 }
 
@@ -71,9 +72,10 @@ export function getEffectiveTemplates() {
         name: o.name !== undefined ? o.name : t.defaultName,
         description: o.description !== undefined ? o.description : t.defaultDescription,
         sortOrder: o.sortOrder !== undefined ? o.sortOrder : t.sortOrder,
-        createOnNewProject: o.createOnNewProject !== undefined ? o.createOnNewProject : true,
+        createOnNewProject: o.createOnNewProject !== undefined ? o.createOnNewProject : t.createOnNewProject !== false,
         checklist: o.checklist !== undefined ? o.checklist : t.checklist,
         defaultDurationDays: o.defaultDurationDays !== undefined ? o.defaultDurationDays : t.defaultDurationDays,
+        guide: getActivityGuide(t.key),
         isBuiltIn: true,
         isCustom: false,
       }
@@ -205,7 +207,7 @@ export function restoreTemplate(key) {
  */
 export function getProjectDurationDays() {
   return {
-    ...{ small: 30, medium: 60, large: 120 },
+    ...APP_CONFIG.projectDurationDays,
     ...(configState.projectDurationDays || {}),
   }
 }
