@@ -1,6 +1,6 @@
 [package]
 name = "uxlog"
-version = "1.2.29"
+version = "1.2.30"
 description = "UXLog – desktop aplikace pro logování UX design procesu"
 authors = ["UXLog"]
 edition = "2021"

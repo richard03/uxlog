@@ -4,6 +4,52 @@
  */
 
 // ---------------------------------------------------------------------------
+// Jazyk odpovědi
+// ---------------------------------------------------------------------------
+
+/** Písmena, která má jen čeština (ne slovenština ani jiné jazyky). */
+const CZECH_ONLY_CHARS = /[ěřůĚŘŮ]/
+/** Písmena s háčkem používaná v češtině. */
+const CZECH_CARON_CHARS = /[ščžťďňŠČŽŤĎŇ]/
+/** Samohlásky s čárkou používané v češtině. */
+const CZECH_ACUTE_CHARS = /[áéíóúýÁÉÍÓÚÝ]/g
+/** Písmena jiných jazyků (slovenština, němčina, francouzština, španělština…), která čeština nemá. */
+const NON_CZECH_CHARS = /[äôĺŕľöüßàèìòùâêîûçñ¿¡ÄÔĹŔĽÖÜÀÈÌÒÙÂÊÎÛÇÑ]/
+
+/**
+ * Hrubě rozpozná, zda je text psaný česky (podle diakritiky).
+ * Bez spolehlivého signálu (např. čeština bez diakritiky) vrací null – jazyk pak určí model sám
+ * podle obecného pravidla „piš ve stejném jazyce jako uživatel“.
+ * @param {unknown} text
+ * @returns {'cs'|null}
+ */
+export function detectTextLanguage(text) {
+  const s = typeof text === 'string' ? text : ''
+  if (!s.trim()) return null
+  if (CZECH_ONLY_CHARS.test(s)) return 'cs'
+  if (NON_CZECH_CHARS.test(s)) return null
+  if (CZECH_CARON_CHARS.test(s)) return 'cs'
+  return (s.match(CZECH_ACUTE_CHARS) || []).length >= 2 ? 'cs' : null
+}
+
+/**
+ * Pravidlo pro model: výstup psát v jazyce, ve kterém komunikuje uživatel (nikdy nepřekládat do angličtiny).
+ * @param {string} sampleText - text uživatele, podle kterého se jazyk určí
+ * @param {{ source: string, output: string, json?: boolean }} opts
+ *   source – co uživatel napsal (např. „poznámky uživatele“), output – které texty se týká,
+ *   json – doplnit, že anglicky zůstávají jen klíče JSON a hodnoty výčtů
+ * @returns {string}
+ */
+export function buildLanguageRule(sampleText, { source, output, json = false }) {
+  const base = detectTextLanguage(sampleText) === 'cs'
+    ? `Jazyk – ${source}: čeština. ${output} piš česky, nepřekládej do angličtiny ani do jiného jazyka.`
+    : `${output} piš ve stejném jazyce jako ${source}; nepřekládej do angličtiny ani do jiného jazyka.`
+  return json
+    ? `${base} Anglicky zůstávají jen klíče JSON, typy entit a hodnoty výčtů (např. "create", "persona", "must", "high").`
+    : base
+}
+
+// ---------------------------------------------------------------------------
 // Notebook processing
 // ---------------------------------------------------------------------------
 
@@ -96,9 +142,15 @@ const NOTEBOOK_SOURCE_MAX_CHARS = 200
  * @param {string} notebookText
  * @param {string} projectContext
  * @param {{ index: number, total: number }} [part] - u dlouhých poznámek zpracovávaných po částech
+ * @param {string} [languageSample] - text, podle kterého se určí jazyk výstupu (u částí celé poznámky)
  * @returns {string}
  */
-export function buildNotebookPrompt(notebookText, projectContext, part = null) {
+export function buildNotebookPrompt(notebookText, projectContext, part = null, languageSample = notebookText) {
+  const languageRule = buildLanguageRule(languageSample, {
+    source: 'poznámky uživatele',
+    output: 'Všechny texty, které navrhuješ (hodnoty ve „fields“, entityName)',
+    json: true,
+  })
   const partNote = part && part.total > 1
     ? `\n(Toto je část ${part.index} z ${part.total} delších poznámek – zpracuj jen tuto část.)\n`
     : ''
@@ -133,6 +185,7 @@ Pravidla:
 4. "sourceText" je krátká doslovná citace z poznámek, ze které akce vychází – nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
 5. Do "fields" zahrň POUZE pole, která text skutečně zmiňuje; texty piš stručně, poznámky neopisuj celé.
 6. Jeden záznam navrhni jen jednou – všechny informace o něm dej do jedné akce.
+7. ${languageRule}
 
 Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
 {
@@ -148,7 +201,9 @@ Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
   ]
 }
 
-Pokud z poznámek nevyplývají žádné konkrétní akce, vrať: { "actions": [] }`
+Pokud z poznámek nevyplývají žádné konkrétní akce, vrať: { "actions": [] }
+
+Připomenutí: ${languageRule}`
 }
 
 /**
@@ -324,7 +379,7 @@ export async function processNotebookInParts(notebookText, projectContext, callM
   let firstError = null
   let failedParts = 0
   for (let i = 0; i < parts.length; i++) {
-    const prompt = buildNotebookPrompt(parts[i], projectContext, { index: i + 1, total: parts.length })
+    const prompt = buildNotebookPrompt(parts[i], projectContext, { index: i + 1, total: parts.length }, notebookText)
     let done = false
     for (let attempt = 0; attempt < 2 && !done; attempt++) {
       try {
@@ -426,13 +481,14 @@ ${entityDesc}
 ${context}
 
 ## Tvůj úkol:
-Navrhni seznam entit z projektu, které smysluplně souvisejí s aktuální entitou. Pro každou navrhovanou souvislost uveď stručný komentář v češtině, v čem tato souvislost spočívá.
+Navrhni seznam entit z projektu, které smysluplně souvisejí s aktuální entitou. Pro každou navrhovanou souvislost uveď stručný komentář, v čem tato souvislost spočívá.
 
 Pravidla:
 1. Navrhuj POUZE skutečně smysluplné souvislosti – jasná funkční, konceptuální nebo kontextová vazba.
 2. Nenavrhuj triviální ani příliš obecné souvislosti.
 3. Každá navrhovaná entita musí být ze seznamu výše (použij přesné ID).
 4. Pokud nenajdeš žádné smysluplné souvislosti, vrať prázdný seznam.
+5. ${buildLanguageRule(entityDesc, { source: 'texty aktuální entity', output: 'Komentáře v poli „note“', json: true })}
 
 Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
 {
@@ -497,6 +553,7 @@ Pravidla:
 3. Silné a slabé stránky musí být konkrétní a relevantní, ne obecné fráze.
 4. Nezahrnuj konkurenty, kteří už existují v přehledu projektu výše.
 5. Raději uveď méně konkurentů, ale za to spolehlivých, než více s nejistými údaji.
+6. ${buildLanguageRule(topic, { source: 'téma zadané uživatelem', output: 'Popisy, silné a slabé stránky a inspiraci', json: true })}
 
 Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
 {
@@ -749,7 +806,7 @@ ${notes}
 ${question}
 
 Pravidla:
-1. Odpovídej česky, stručně a věcně, jako prostý text (bez markdownu, bez HTML).
+1. Odpovídej stručně a věcně, jako prostý text (bez markdownu, bez HTML). ${buildLanguageRule(question, { source: 'dotaz uživatele', output: 'Odpověď' })}
 2. Vycházej z dat projektu a poznámek výše; pokud odpověď nelze z dostupných informací zjistit, řekni to.
 3. U každého záznamu je pole „souvislosti“ se všemi propojenými záznamy (souvislosti jsou obousměrné). Hodnota „žádné“ znamená, že záznam není propojen s ničím – i to je platná informace pro odpověď.
 4. Na metodické otázky (jak postupovat, co připravit, kdo se má účastnit, co je výstupem) odpovídej podle sekce „Metodika aktivit projektu“; pokud tam technika není, odpověz podle obecné UX praxe a uveď, že nejde o postup z metodiky projektu.

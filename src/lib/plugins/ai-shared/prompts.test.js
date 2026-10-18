@@ -19,6 +19,9 @@ import {
   splitNotebookText,
   mergeActions,
   processNotebookInParts,
+  detectTextLanguage,
+  buildLanguageRule,
+  buildConnectionsPrompt,
 } from './prompts.js'
 
 describe('buildCompetitionAnalysisPrompt', () => {
@@ -371,5 +374,57 @@ describe('dlouhé poznámky – useknutá odpověď a zpracování po částech'
   it('processNotebookInParts vyhodí chybu, když nezíská žádnou akci kvůli selhání', async () => {
     await expect(processNotebookInParts('text', 'ctx', async () => 'nesmysl')).rejects.toThrow(/neúplnou nebo neplatnou/)
     await expect(processNotebookInParts('text', 'ctx', async () => '{"actions": []}')).resolves.toMatchObject({ actions: [], failedParts: 0 })
+  })
+})
+
+describe('jazyk odpovědi AI', () => {
+  it('detectTextLanguage rozpozná češtinu podle diakritiky', () => {
+    expect(detectTextLanguage('Uživatel řekl, že potřebuje přehled objednávek.')).toBe('cs')
+    expect(detectTextLanguage('Účastník chce šetřit čas')).toBe('cs')
+    expect(detectTextLanguage('The user needs an overview of orders.')).toBeNull()
+    expect(detectTextLanguage('Pouzivatel potrebuje prehlad')).toBeNull()
+    expect(detectTextLanguage('Používateľ potrebuje väčší prehľad')).toBeNull()
+    expect(detectTextLanguage('Kolik máme person a jaké jsou?')).toBe('cs')
+    expect(detectTextLanguage('¿Qué día es hoy?')).toBeNull()
+    expect(detectTextLanguage('Café im Büro')).toBeNull()
+  })
+
+  it('detectTextLanguage toleruje prázdný a neplatný vstup', () => {
+    expect(detectTextLanguage('')).toBeNull()
+    expect(detectTextLanguage('   ')).toBeNull()
+    expect(detectTextLanguage(null)).toBeNull()
+    expect(detectTextLanguage(42)).toBeNull()
+  })
+
+  it('buildLanguageRule u češtiny výslovně žádá češtinu, jinak jazyk uživatele', () => {
+    const cs = buildLanguageRule('Rozhovor s uživatelkou o nákupu', { source: 'poznámky', output: 'Texty', json: true })
+    expect(cs).toMatch(/čeština/)
+    expect(cs).toMatch(/nepřekládej do angličtiny/)
+    expect(cs).toMatch(/klíče JSON/)
+    const other = buildLanguageRule('Interview notes', { source: 'poznámky', output: 'Texty' })
+    expect(other).toMatch(/ve stejném jazyce jako poznámky/)
+    expect(other).not.toMatch(/klíče JSON/)
+  })
+
+  it('prompt zápisníku obsahuje pravidlo jazyka podle poznámek (i u části bez diakritiky)', () => {
+    expect(buildNotebookPrompt('Uživatelka řekla, že nákup je složitý.', 'ctx')).toMatch(/Jazyk – poznámky uživatele: čeština/)
+    const part = buildNotebookPrompt('Jana, Petr', 'ctx', { index: 2, total: 2 }, 'Rozhovor s uživateli: Jana, Petr – nákup je složitý')
+    expect(part).toMatch(/Jazyk – poznámky uživatele: čeština/)
+  })
+
+  it('processNotebookInParts určí jazyk z celých poznámek', async () => {
+    const prompts = []
+    const text = 'Jana Petr Karel\n\nUživatelka řekla, že nákup je složitý.'
+    await processNotebookInParts(text, 'ctx', async (p) => { prompts.push(p); return '{"actions": []}' }, 20)
+    expect(prompts.length).toBeGreaterThan(1)
+    for (const p of prompts) expect(p).toMatch(/Jazyk – poznámky uživatele: čeština/)
+  })
+
+  it('dotaz, analýza konkurence i souvislosti respektují jazyk uživatele', () => {
+    expect(buildAskPrompt('Kolik máme person a jaké jsou?', 'ctx', 'notes')).toMatch(/Jazyk – dotaz uživatele: čeština/)
+    expect(buildAskPrompt('How many personas do we have?', 'ctx', 'notes')).toMatch(/ve stejném jazyce jako dotaz uživatele/)
+    expect(buildCompetitionAnalysisPrompt('e-shop se šperky a hodinkami', 'ctx')).toMatch(/čeština/)
+    expect(buildConnectionsPrompt({ id: 'p1', name: 'Jana', description: 'Matka dvou dětí, nakupuje přes mobil' }, 'personas', 'ctx'))
+      .toMatch(/Jazyk – texty aktuální entity: čeština/)
   })
 })
