@@ -5,8 +5,9 @@
       :color="project?.color"
       :title="item.name || t.activity.name">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-        <ExportButton :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
+        <!-- V okně nad plátnem bez importu a exportu -->
+        <AppButton v-if="!inCanvas" variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
         <KebabMenu
           :items="activityHeaderKebabItems"
           @action="onActivityHeaderKebab"
@@ -106,7 +107,7 @@
 
     <ConfirmDialog v-if="showConfirm" :title="t.activity.delete" :message="t.activity.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
-    <MoveToProjectModal v-if="showMove" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'project', params: { id: projectId } })" />
+    <MoveToProjectModal v-if="showMove" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="leaveDetail({ name: 'project', params: { id: projectId } })" />
     <MoveToProjectModal v-if="showCopy" mode="copy" state-key="activities" :entity-id="item?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
 
     <TaskAddModal
@@ -123,8 +124,9 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
+import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useConfig } from '../composables/useConfig.js'
 import { useDeadline } from '../composables/useDeadline.js'
@@ -148,7 +150,7 @@ import { getEffectiveActivityChecklist, resolveActivityChecklistItemLabel } from
 import { formatCalendarDate } from '../utils/formatDate.js'
 
 const route = useRoute()
-const router = useRouter()
+const { leaveDetail, openDetail, inCanvas } = useEntityNavigation()
 const store = useStore()
 const { t } = useI18n()
 const { getTemplate } = useConfig()
@@ -263,7 +265,7 @@ function onTaskAddModalSave(payload) {
  * @param {string} taskId
  */
 function onOpenChecklistLinkedTask(taskId) {
-  router.push({ name: 'taskDetail', params: { id: projectId.value, taskId } })
+  openDetail('tasks', projectId.value, taskId)
 }
 
 const breadcrumbs = computed(() => [
@@ -319,7 +321,7 @@ function confirmDelete() { showConfirm.value = true }
 function doDelete() {
   if (item.value) {
     store.deleteActivity(item.value.id)
-    router.push({ name: 'project', params: { id: projectId.value } })
+    leaveDetail({ name: 'project', params: { id: projectId.value } })
   }
   showConfirm.value = false
 }

@@ -1,6 +1,8 @@
 # Obecná konfigurace aplikace – UXLog
 #
 # projectColors        paleta barev projektů (nový projekt dostane první nepoužitou)
+# canvasCardColors     paleta barev kartiček na Canvasu (color = hex #rrggbb, labelKey = název barvy v cs.js canvas.colors);
+#                      barvu písma aplikace dopočítá podle kontrastu
 # projectDurationDays  výchozí délka projektu ve dnech podle rozsahu (uživatel ji může změnit v Konfiguraci)
 # recommendations      doporučení dalších aktivit v panelu Aktivity
 #   minRequirementsForPrioritization  od kolika požadavků se stejnou prioritou doporučit prioritizační workshop
@@ -18,6 +20,31 @@ projectColors:
   - "#8d6e63" # hnědá
   - "#78909c" # šedomodrá
   - "#26c6da" # azurová
+canvasCardColors:
+  - color: "#fde68a"
+    labelKey: yellow
+  - color: "#fdba74"
+    labelKey: orange
+  - color: "#fca5a5"
+    labelKey: red
+  - color: "#f9a8d4"
+    labelKey: pink
+  - color: "#c4b5fd"
+    labelKey: violet
+  - color: "#93c5fd"
+    labelKey: blue
+  - color: "#67e8f9"
+    labelKey: cyan
+  - color: "#86efac"
+    labelKey: green
+  - color: "#dc2626"
+    labelKey: darkRed
+  - color: "#2563eb"
+    labelKey: darkBlue
+  - color: "#15803d"
+    labelKey: darkGreen
+  - color: "#475569"
+    labelKey: slate
 projectDurationDays:
   small: 30
   medium: 60

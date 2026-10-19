@@ -149,6 +149,13 @@ const routes = [
         meta: { title: 'Úkol' },
       },
       {
+        path: 'canvas',
+        name: 'projectCanvas',
+        component: () => import('../views/CanvasView.vue'),
+        // Přes celé okno – bez hlavičky obrazovky a bez Zápisníku
+        meta: { title: 'Canvas', fullScreen: true },
+      },
+      {
         path: 'history',
         name: 'projectHistory',
         component: () => import('../views/ProjectHistoryView.vue'),

@@ -39,9 +39,14 @@ import { useI18n } from '../composables/useI18n.js'
 import { FormSelect } from './form'
 import AppButton from './AppButton.vue'
 
+/**
+ * Jedna entita: stateKey + entityId (detail). Více entit najednou: entities (výběr na plátně).
+ */
 const props = defineProps({
-  stateKey: { type: String, required: true },
-  entityId: { type: String, required: true },
+  stateKey: { type: String, default: '' },
+  entityId: { type: String, default: '' },
+  /** @type {Array<{ stateKey: string, id: string }>} */
+  entities: { type: Array, default: null },
   currentProjectId: { type: String, required: true },
   mode: { type: String, default: 'move' },
 })
@@ -61,6 +66,16 @@ const selectedProjectId = ref(otherProjects.value[0]?.id ?? null)
 
 function doAction() {
   if (!selectedProjectId.value) return
+  if (props.entities) {
+    if (props.mode === 'copy') {
+      store.copyEntitiesToProject(props.entities, selectedProjectId.value)
+      emit('copied', selectedProjectId.value)
+    } else {
+      store.moveEntitiesToProject(props.entities, selectedProjectId.value)
+      emit('moved', selectedProjectId.value)
+    }
+    return
+  }
   if (props.mode === 'copy') {
     store.copyEntityToProject(props.stateKey, props.entityId, selectedProjectId.value)
     emit('copied', selectedProjectId.value)

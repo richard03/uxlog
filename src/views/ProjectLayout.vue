@@ -1,13 +1,18 @@
 <template>
-  <div class="project-layout container" :style="{ '--project-header-height': `${headerHeight}px` }">
+  <div
+    class="project-layout"
+    :class="fullScreen ? 'project-layout--full' : 'container'"
+    :style="{ '--project-header-height': `${headerHeight}px` }"
+  >
     <!-- Hlavička aktuální obrazovky (ProjectPageHeader ji sem teleportuje) – přes celou šířku -->
-    <div :id="PROJECT_HEADER_TARGET_ID" ref="headerEl" class="project-layout-header"></div>
+    <div v-show="!fullScreen" :id="PROJECT_HEADER_TARGET_ID" ref="headerEl" class="project-layout-header"></div>
     <!-- Obsah obrazovky vlevo -->
     <div class="project-layout-content">
       <router-view />
     </div>
-    <!-- Zápisník (chat) vpravo – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci -->
-    <aside v-if="project" class="project-layout-chat">
+    <!-- Zápisník (chat) vpravo – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci.
+         Na celoobrazovkové obrazovce (Canvas) je jen skrytý, aby neodeslaný koncept zůstal zachovaný. -->
+    <aside v-if="project" v-show="!fullScreen" class="project-layout-chat">
       <NotebookChat :project-id="projectId" />
     </aside>
   </div>
@@ -25,6 +30,8 @@ const store = useStore()
 
 const projectId = computed(() => String(route.params.id || ''))
 const project = computed(() => store.getProject(projectId.value))
+/** Obrazovka přes celé okno (meta.fullScreen, např. Canvas) – bez hlavičky a Zápisníku. */
+const fullScreen = computed(() => route.meta.fullScreen === true)
 
 /** Výška hlavičky – chat pod ní musí se vstupním polem zůstat celý na obrazovce. */
 const headerEl = ref(null)
@@ -53,6 +60,22 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 
 .project-layout-header {
   grid-column: 1 / -1;
+}
+
+/* Celoobrazovkový režim: obrazovka vyplní celou šířku i zbylou výšku okna */
+.project-layout--full {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.project-layout--full > .project-layout-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .project-layout-header:empty {

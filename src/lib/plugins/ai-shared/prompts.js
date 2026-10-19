@@ -623,7 +623,7 @@ const ASK_SECTIONS = [
  */
 const ASK_SKIPPED_KEYS = new Set([
   'id', 'projectId', 'sortOrder', 'customFields', 'createdAt', 'updatedAt', 'lastWorkedAt',
-  'checkedItems', 'baseChecklist', 'customChecklist', 'checklistItemTaskIds', 'dismissed', 'notebook', 'notebookHistory',
+  'checkedItems', 'baseChecklist', 'customChecklist', 'checklistItemTaskIds', 'dismissed', 'notebook', 'notebookHistory', 'canvas',
   'personaIds', 'scenarioIds', 'requirementIds', 'hypothesisIds', 'stakeholderIds', 'conflictingRequirementIds',
 ])
 const ASK_MAX_FIELD_CHARS = 500

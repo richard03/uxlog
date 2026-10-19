@@ -19,6 +19,7 @@ Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Fu
 - **Tým** - členové týmu s rolemi
 
 Další:
+- **Data / Canvas** – přepínač pohledu projektu vedle loga; Canvas je nekonečné plátno přes celé okno: entity jako kartičky, výběr myší (i obdélníkem), přetahování jednotlivých kartiček i skupin, posun a zoom plátna, dvojklik otevře detail entity v plovoucím okně nad plátnem (každá entita ve vlastním okně, okna jde přesouvat a měnit jim velikost); nad výběrem plovoucí lišta s barvou kartiček a menu „…“ (přesun, kopie, smazání); filtr typů na horní hraně zvýrazní kartičky jednoho typu
 - Vazby mezi entitami (many-to-many) s automatickým propojováním
 - Fulltextové vyhledávání napříč všemi entitami
 - Export/import dat v JSON a YAML s řešením konfliktů
@@ -90,6 +91,7 @@ Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Ko
 - **Vue 3** + **Vite** + **Tauri 2** (Rust)
 - **Web:** `localStorage`; **desktop (Tauri):** embedded `SQLite` přes nativní storage bridge
 - **Historie změn projektu:** samostatný klíč `uxlog_history` (zápis v `persist()` → `stores/history.js`, logika rozdílů a vracení v `lib/history.js`)
+- **Canvas:** rozvržení kartiček v `project.canvas` (logika `lib/canvas.js`, store `stores/canvas.js`, UI `useProjectCanvas` + `CanvasView.vue`); okna detailů nad plátnem: logika `lib/canvasWindows.js`, stav a tažení `useCanvasWindows`, okno `CanvasEntityWindow.vue` (stejná komponenta detailu jako v Datech, navigaci podle kontextu řeší `useEntityNavigation`)
 - Obchodní logika v `src/lib/` (čisté, testovatelné funkce)
 - Stav v `src/lib/stores/` (reaktivní store moduly)
 - Plugin systém v `src/lib/plugins/` (event bus, capabilities)

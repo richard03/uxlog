@@ -6,7 +6,7 @@
 export { state, initStore, getData, persist, subscribe } from './state.js'
 export {
   getProjects, getProject, addProject, updateProject, deleteProject,
-  reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject,
+  reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject, moveEntitiesToProject, copyEntitiesToProject,
   getProjectNotebookHistory, addNotebookEntry, updateNotebookEntryInProject,
 } from './projects.js'
 export { getGoals, getGoal, addGoal, updateGoal, deleteGoal } from './goals.js'
@@ -44,6 +44,10 @@ export {
 export {
   getProjectHistory, revertHistoryEntry, getDeletedProjects, restoreDeletedProject,
 } from './history.js'
+export {
+  getCanvasLayout, getCanvasCards, moveCanvasCard, moveCanvasCards, setCanvasViewport,
+  setCanvasCardColor, deleteCanvasCards,
+} from './canvas.js'
 export {
   getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,
 } from './connections.js'

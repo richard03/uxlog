@@ -2,6 +2,9 @@
  * České překlady pro UXLog.
  */
 
+/** „záznam“ ve správném tvaru podle počtu. */
+const records = (n) => (n === 1 ? 'záznam' : n >= 2 && n <= 4 ? 'záznamy' : 'záznamů')
+
 export default {
   app: {
     title: 'UXLog',
@@ -24,6 +27,8 @@ export default {
     lightMode: 'Světlý režim',
     settings: 'Nastavení',
     config: 'Konfigurace',
+    canvas: 'Canvas',
+    data: 'Data',
   },
   project: {
     label: 'Projekt',
@@ -746,6 +751,65 @@ export default {
     clearSearch: 'Zrušit hledání',
     emptyFiltered: 'Žádné položky neodpovídají nastavenému filtru.',
     emptyFilteredHint: 'Zkuste upravit filtr.',
+  },
+  canvas: {
+    title: 'Canvas',
+    surface: 'Plátno projektu',
+    hint: 'Kliknutím kartičku vyberete, se Shiftem nebo Ctrl ji přidáte k výběru; tažením prázdného místa vyberete více kartiček. Tažením vybrané kartičky přesunete celý výběr, z klávesnice šipkami (se Shiftem o větší krok). Plátno posunete pravým nebo prostředním tlačítkem myši nebo mezerníkem s tažením, kolečkem myši ho přiblížíte. Dvojklikem nebo Enterem otevřete detail v plovoucím okně nad plátnem, každý záznam ve vlastním okně; okno přesunete tažením za lištu, velikost změníte tažením za pravý dolní roh, Esc nebo křížek ho zavře. Esc zruší výběr, Ctrl+A vybere vše. Výběrem typu ve filtru na horní hraně plátna zvýrazníte kartičky tohoto typu, ostatní se zprůhlední. Nad výběrem se zobrazí lišta, ve které změníte barvu kartiček a v menu Akce přesunete, zkopírujete nebo smažete vybrané záznamy.',
+    legend: 'Tažení: výběr · Pravé tlačítko / mezerník + tažení: posun · Kolečko: zoom · Dvojklik: detail',
+    selected: (n) => `Vybráno: ${n}`,
+    empty: 'Projekt zatím nemá žádné záznamy. Přidejte je v sekcích projektu nebo přes Zápisník a objeví se tady.',
+    zoomIn: 'Přiblížit',
+    zoomOut: 'Oddálit',
+    zoomLevel: 'Přiblížení',
+    fit: 'Zobrazit vše',
+    cardAria: (type, name) => `${type} ${name}. Enter otevře detail, mezerník vybere, šipky posunou výběr.`,
+    untitled: 'Bez názvu',
+    priority: 'Priorita',
+    moscowShort: { must: 'Must', should: 'Should', could: 'Could', wont: "Won't" },
+    closeWindow: 'Zavřít okno',
+    resizeWindow: 'Tažením změníte velikost okna',
+    typeFilter: 'Zvýraznit',
+    allTypes: 'Všechny typy',
+    typeOption: (label, count) => `${label} (${count})`,
+    types: {
+      goals: 'Cíle',
+      stakeholders: 'Stakeholdeři',
+      teamMembers: 'Členové týmu',
+      competitions: 'Konkurence',
+      hypotheses: 'Hypotézy',
+      personas: 'Persony',
+      scenarios: 'Scénáře',
+      requirements: 'Požadavky',
+      risks: 'Rizika',
+      activities: 'Aktivity',
+      tasks: 'Úkoly',
+      bugs: 'Chyby',
+    },
+    toolbar: 'Nástroje výběru',
+    cardColor: 'Barva kartičky',
+    noColor: 'Bez barvy',
+    selectionActions: 'Akce s výběrem',
+    colors: {
+      yellow: 'Žlutá',
+      orange: 'Oranžová',
+      red: 'Červená',
+      pink: 'Růžová',
+      violet: 'Fialová',
+      blue: 'Modrá',
+      cyan: 'Azurová',
+      green: 'Zelená',
+      darkRed: 'Tmavě červená',
+      darkBlue: 'Tmavě modrá',
+      darkGreen: 'Tmavě zelená',
+      slate: 'Břidlicová',
+    },
+    deleteSelected: (n) => `Smazat vybrané (${n})`,
+    deleteSelectedConfirm: (n) => (n === 1
+      ? 'Opravdu smazat vybraný záznam?'
+      : `Opravdu smazat ${n} ${n <= 4 ? 'vybrané' : 'vybraných'} ${records(n)}?`),
+    deletedToast: (n) => `Smazáno: ${n} ${records(n)}`,
+    copiedToast: (n, project) => `Zkopírováno do projektu „${project}“: ${n} ${records(n)}`,
   },
   history: {
     title: 'Historie změn',

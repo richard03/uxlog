@@ -26,14 +26,17 @@
         class="entity-card connection-card"
       >
         <!-- Levá polovina: odkaz na entitu (řádky s neexistující entitou se vůbec nezobrazují) -->
-        <router-link
-          :to="otherRoute(conn)"
-          class="connection-entity-link"
-          :aria-label="entityAriaLabel(conn)"
-        >
-          <span class="conn-type-badge">{{ entityTypeLabel(otherType(conn)) }}</span>
-          <span v-if="otherCode(conn)" class="conn-code">{{ otherCode(conn) }}</span>
-          <span class="conn-name">{{ otherName(conn) }}</span>
+        <router-link :to="otherRoute(conn)" custom v-slot="{ href, navigate }">
+          <a
+            :href="href"
+            class="connection-entity-link"
+            :aria-label="entityAriaLabel(conn)"
+            @click="openConnection($event, navigate, conn)"
+          >
+            <span class="conn-type-badge">{{ entityTypeLabel(otherType(conn)) }}</span>
+            <span v-if="otherCode(conn)" class="conn-code">{{ otherCode(conn) }}</span>
+            <span class="conn-name">{{ otherName(conn) }}</span>
+          </a>
         </router-link>
 
         <!-- Pravá polovina: poznámka – zobrazení nebo inline editor -->
@@ -179,6 +182,7 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import { useStore } from '../composables/useStore.js'
+import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 import { useI18n } from '../composables/useI18n.js'
 import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 import AppButton from './AppButton.vue'
@@ -193,6 +197,7 @@ const props = defineProps({
 })
 
 const store = useStore()
+const { detailRoute, openDetail, inCanvas } = useEntityNavigation()
 const { t } = useI18n()
 
 // Klíče store entit, které se mohou propojovat
@@ -267,46 +272,23 @@ function entityAriaLabel(conn) {
   return parts.join(' ')
 }
 
-// Routy pro detail entity
-const ROUTE_MAP = {
-  goals: 'goalDetail',
-  stakeholders: 'stakeholderDetail',
-  competitions: 'competitionDetail',
-  hypotheses: 'hypothesisDetail',
-  personas: 'personaDetail',
-  scenarios: 'scenarioDetail',
-  requirements: 'requirementDetail',
-  tasks: 'taskDetail',
-  bugs: 'bugDetail',
-  risks: 'riskDetail',
-  teamMembers: 'teamMemberDetail',
-  activities: 'activityDetail',
-}
-
-const PARAM_MAP = {
-  goals: 'goalId',
-  stakeholders: 'stakeholderId',
-  competitions: 'competitionId',
-  hypotheses: 'hypothesisId',
-  personas: 'personaId',
-  scenarios: 'scenarioId',
-  requirements: 'requirementId',
-  tasks: 'taskId',
-  bugs: 'bugId',
-  risks: 'riskId',
-  teamMembers: 'memberId',
-  activities: 'activityId',
-}
-
+/** Odkaz na detail druhé entity (v pohledu Data). */
 function otherRoute(conn) {
   const et = otherType(conn)
   const eid = otherId(conn)
-  const ent = resolveEntity(et, eid)
-  if (!ent) return null
-  const routeName = ROUTE_MAP[et]
-  const paramName = PARAM_MAP[et]
-  if (!routeName || !paramName) return null
-  return { name: routeName, params: { id: props.projectId, [paramName]: eid } }
+  if (!resolveEntity(et, eid)) return null
+  return detailRoute(et, props.projectId, eid)
+}
+
+/** V okně nad plátnem otevře druhou entitu v dalším okně (plátno se neopouští), jinak běžná navigace. */
+function openConnection(event, navigate, conn) {
+  const plainClick = event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+  if (inCanvas && plainClick) {
+    event.preventDefault()
+    openDetail(otherType(conn), props.projectId, otherId(conn))
+    return
+  }
+  navigate(event)
 }
 
 const connections = computed(() => store.getConnectionsFor(props.entityType, props.entityId))

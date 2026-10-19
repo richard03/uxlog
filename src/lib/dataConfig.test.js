@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   ACTIVITY_CONFIG, ENTITY_CONFIG, APP_CONFIG,
-  parseConfigYaml, normalizeActivityConfig, normalizeEntityConfig, normalizeAppConfig,
+  parseConfigYaml, normalizeActivityConfig, normalizeEntityConfig, normalizeAppConfig, normalizeCanvasCardColors,
   getEntityDefaults, getCodePrefix,
 } from './dataConfig.js'
 import { evaluateCompleteness } from './completeness.js'
@@ -92,6 +92,18 @@ describe('normalizace – poškozená konfigurace', () => {
     expect(c.projectColors).toEqual(['#abc'])
     expect(c.projectDurationDays.small).toBe(30)
     expect(normalizeAppConfig(undefined).projectColors.length).toBe(1)
+  })
+
+  it('paleta kartiček Canvasu: app.yaml má platné barvy, normalizace toleruje chyby', () => {
+    expect(APP_CONFIG.canvasCardColors.length).toBeGreaterThan(5)
+    for (const c of APP_CONFIG.canvasCardColors) {
+      expect(c.color).toMatch(/^#[0-9a-f]{6}$/)
+      expect(c.labelKey).toBeTruthy()
+    }
+    expect(normalizeCanvasCardColors([
+      { color: '#FDE68A', labelKey: 'yellow' }, '#abc', { color: '#fde68a' }, { color: 'red' }, null, { labelKey: 'x' },
+    ])).toEqual([{ color: '#fde68a', labelKey: 'yellow' }, { color: '#aabbcc', labelKey: null }])
+    expect(normalizeAppConfig({ canvasCardColors: 'nesmysl' }).canvasCardColors).toEqual([{ color: '#fde68a', labelKey: 'yellow' }])
   })
 })
 

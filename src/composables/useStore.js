@@ -120,12 +120,22 @@ export function useStore() {
     reorderProjects: store.reorderProjects,
     moveEntityToProject: store.moveEntityToProject,
     copyEntityToProject: store.copyEntityToProject,
+    moveEntitiesToProject: store.moveEntitiesToProject,
+    copyEntitiesToProject: store.copyEntitiesToProject,
     // Connections (souvislosti)
     getConnectionsFor: store.getConnectionsFor,
     getConnections: store.getConnections,
     addConnection: store.addConnection,
     updateConnection: store.updateConnection,
     deleteConnection: store.deleteConnection,
+    // Plátno projektu (Canvas)
+    getCanvasLayout: store.getCanvasLayout,
+    getCanvasCards: store.getCanvasCards,
+    moveCanvasCard: store.moveCanvasCard,
+    moveCanvasCards: store.moveCanvasCards,
+    setCanvasViewport: store.setCanvasViewport,
+    setCanvasCardColor: store.setCanvasCardColor,
+    deleteCanvasCards: store.deleteCanvasCards,
     // Historie změn projektu
     getProjectHistory: store.getProjectHistory,
     revertHistoryEntry: store.revertHistoryEntry,

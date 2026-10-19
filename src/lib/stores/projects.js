@@ -5,6 +5,7 @@ import { getEffectiveTemplates } from './config.js'
 import { todayISO, addDays } from '../deadline.js'
 import { pickProjectColor } from '../projectColors.js'
 import { createNotebookEntry, appendNotebookEntry, updateNotebookEntry, getNotebookHistory } from '../notebookChat.js'
+import { cardKey, removeCanvasCards } from '../canvas.js'
 
 export function getProjects() {
   return [...(state.projects || [])].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
@@ -123,10 +124,44 @@ export function moveEntityToProject(stateKey, entityId, targetProjectId) {
   if (!item) return false
   const sourceProjectId = item.projectId
   item.projectId = targetProjectId
+  // Pozice a barva kartičky na plátně patří zdrojovému projektu – v cílovém dostane výchozí místo
+  const source = sourceProjectId && sourceProjectId !== targetProjectId ? getProject(sourceProjectId) : null
+  if (source?.canvas) source.canvas = removeCanvasCards(source.canvas, [cardKey(stateKey, entityId)])
   if (sourceProjectId) updateProject(sourceProjectId, {})
   updateProject(targetProjectId, {})
   persist()
   return true
+}
+
+/**
+ * Přesune více entit do jiného projektu (jedna akce = jeden záznam historie).
+ * @param {Array<{ stateKey: string, id: string }>} entities
+ * @param {string} targetProjectId
+ * @returns {number} počet přesunutých entit
+ */
+export function moveEntitiesToProject(entities, targetProjectId) {
+  if (!targetProjectId || !getProject(targetProjectId)) return 0
+  let moved = 0
+  for (const e of entities || []) {
+    if (e?.stateKey && e.id && moveEntityToProject(e.stateKey, e.id, targetProjectId)) moved++
+  }
+  return moved
+}
+
+/**
+ * Zkopíruje více entit do jiného projektu.
+ * @param {Array<{ stateKey: string, id: string }>} entities
+ * @param {string} targetProjectId
+ * @returns {Array<Object>} vytvořené kopie
+ */
+export function copyEntitiesToProject(entities, targetProjectId) {
+  if (!targetProjectId || !getProject(targetProjectId)) return []
+  const copies = []
+  for (const e of entities || []) {
+    const copy = e?.stateKey && e.id ? copyEntityToProject(e.stateKey, e.id, targetProjectId) : null
+    if (copy) copies.push(copy)
+  }
+  return copies
 }
 
 export function copyEntityToProject(stateKey, entityId, targetProjectId) {

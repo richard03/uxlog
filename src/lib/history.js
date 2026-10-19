@@ -10,8 +10,11 @@
  * Uložená historie: { [projectId]: Entry[] } (od nejstaršího), samostatně mimo data aplikace.
  */
 
-/** Pole, která se mění automaticky nebo nepatří do historie (chat zápisníku má vlastní historii). */
-export const HISTORY_IGNORED_FIELDS = ['updatedAt', 'lastWorkedAt', '_ts', 'notebookHistory', 'notebook']
+/**
+ * Pole, která se mění automaticky nebo nepatří do historie (chat zápisníku má vlastní historii;
+ * rozvržení plátna `canvas` by posouváním kartiček vytlačilo skutečné změny z limitu historie).
+ */
+export const HISTORY_IGNORED_FIELDS = ['updatedAt', 'lastWorkedAt', '_ts', 'notebookHistory', 'notebook', 'canvas']
 
 /** Maximální počet záznamů historie na projekt (starší se zahazují). */
 export const HISTORY_LIMIT = 100

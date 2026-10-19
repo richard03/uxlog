@@ -1,6 +1,13 @@
 <template>
+  <!-- Detail v okně nad plátnem: jen akce do lišty okna (bez drobkové navigace a odkazu na historii) -->
+  <Teleport v-if="canvasWindow" :to="`#${canvasWindow.actionsTargetId}`" defer>
+    <h1 class="visually-hidden">{{ title }}</h1>
+    <div class="pph-actions">
+      <slot name="actions" />
+    </div>
+  </Teleport>
   <!-- Hlavička obrazovky projektu – vykreslí se přes celou šířku nad Zápisníkem (cíl v ProjectLayout) -->
-  <Teleport :to="`#${PROJECT_HEADER_TARGET_ID}`" defer>
+  <Teleport v-else :to="`#${PROJECT_HEADER_TARGET_ID}`" defer>
     <header class="page-header project-page-header">
       <h1 class="visually-hidden">{{ title }}</h1>
       <div class="pph-row">
@@ -33,9 +40,11 @@ import { useRoute } from 'vue-router'
 import Breadcrumb from './Breadcrumb.vue'
 import ProjectColorTag from './ProjectColorTag.vue'
 import { useI18n } from '../composables/useI18n.js'
+import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 
 const route = useRoute()
 const { t } = useI18n()
+const { canvasWindow } = useEntityNavigation()
 const projectId = computed(() => route.params.id)
 
 /**
@@ -46,6 +55,7 @@ const projectId = computed(() => route.params.id)
  * @prop {string} color - barva projektu
  * @prop {string} title - text skrytého h1 (název obrazovky / entity)
  * Vpravo před akcemi je vždy odkaz na historii změn projektu.
+ * V okně detailu nad plátnem (CanvasEntityWindow) vykreslí jen akce do lišty okna.
  * Přejmenování entity je v nadpisu sloupce (ColumnHeading, prop onEdit), ne v drobkové navigaci.
  */
 defineProps({

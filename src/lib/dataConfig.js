@@ -8,6 +8,7 @@
  */
 
 import { parseYaml } from './yaml.js'
+import { normalizeHexColor } from './color.js'
 import activityTypesYaml from '../../data/activity-types.yaml?raw'
 import entitiesYaml from '../../data/entities.yaml?raw'
 import appYaml from '../../data/app.yaml?raw'
@@ -130,21 +131,43 @@ export function normalizeEntityConfig(raw) {
 /** Výchozí obecná konfigurace (použije se pro chybějící hodnoty v app.yaml). */
 const APP_DEFAULTS = {
   projectColors: ['#4a90d9'],
+  canvasCardColors: [{ color: '#fde68a', labelKey: 'yellow' }],
   projectDurationDays: { small: 30, medium: 60, large: 120 },
   recommendations: { minRequirementsForPrioritization: 5 },
 }
 
 /**
+ * Normalizuje paletu barev kartiček Canvasu: položka { color, labelKey } nebo jen hex řetězec.
+ * Neplatné barvy a duplicity vypadnou; labelKey chybí → null (popisek bude hex kód).
+ * @param {unknown} raw
+ * @returns {Array<{ color: string, labelKey: string|null }>}
+ */
+export function normalizeCanvasCardColors(raw) {
+  const out = []
+  const seen = new Set()
+  for (const item of Array.isArray(raw) ? raw : []) {
+    const color = normalizeHexColor(isObject(item) ? item.color : item)
+    if (!color || seen.has(color)) continue
+    seen.add(color)
+    const labelKey = isObject(item) && typeof item.labelKey === 'string' && item.labelKey.trim() ? item.labelKey.trim() : null
+    out.push({ color, labelKey })
+  }
+  return out
+}
+
+/**
  * Normalizuje obecnou konfiguraci aplikace.
  * @param {Object} raw
- * @returns {{ projectColors: string[], projectDurationDays: Object, recommendations: Object }}
+ * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, projectDurationDays: Object, recommendations: Object }}
  */
 export function normalizeAppConfig(raw) {
   const colors = strList(raw?.projectColors).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c.trim())).map((c) => c.trim())
+  const cardColors = normalizeCanvasCardColors(raw?.canvasCardColors)
   const d = isObject(raw?.projectDurationDays) ? raw.projectDurationDays : {}
   const r = isObject(raw?.recommendations) ? raw.recommendations : {}
   return {
     projectColors: colors.length ? colors : [...APP_DEFAULTS.projectColors],
+    canvasCardColors: cardColors.length ? cardColors : APP_DEFAULTS.canvasCardColors.map((c) => ({ ...c })),
     projectDurationDays: {
       small: num(d.small, APP_DEFAULTS.projectDurationDays.small),
       medium: num(d.medium, APP_DEFAULTS.projectDurationDays.medium),

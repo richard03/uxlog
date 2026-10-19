@@ -5,8 +5,9 @@
       :color="project?.color"
       :title="item.name || t.requirement.name">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
-        <ExportButton :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
+        <!-- V okně nad plátnem bez importu a exportu -->
+        <AppButton v-if="!inCanvas" variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('requirements', item?.id)" :filename="item?.name || t.requirement.label" />
         <KebabMenu
           :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
           @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
@@ -66,7 +67,7 @@
 
     <ConfirmDialog v-if="showConfirm" :title="t.requirement.delete" :message="t.requirement.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
-    <MoveToProjectModal v-if="showMove" state-key="requirements" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="router.push({ name: 'requirements', params: { id: projectId } })" />
+    <MoveToProjectModal v-if="showMove" state-key="requirements" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="leaveDetail({ name: 'requirements', params: { id: projectId } })" />
     <MoveToProjectModal v-if="showCopy" mode="copy" state-key="requirements" :entity-id="item?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
   </div>
   <div v-else-if="project && !item" class="container">
@@ -76,8 +77,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
+import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityFields } from '../composables/useEntityFields.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
@@ -93,7 +95,7 @@ import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
 
 const route = useRoute()
-const router = useRouter()
+const { leaveDetail, inCanvas } = useEntityNavigation()
 const store = useStore()
 const { t } = useI18n()
 
@@ -130,7 +132,7 @@ function confirmDelete() { showConfirm.value = true }
 function doDelete() {
   if (item.value) {
     store.deleteRequirement(item.value.id)
-    router.push({ name: 'requirements', params: { id: projectId.value } })
+    leaveDetail({ name: 'requirements', params: { id: projectId.value } })
   }
   showConfirm.value = false
 }

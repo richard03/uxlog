@@ -1,5 +1,5 @@
 <template>
-  <div class="app">
+  <div class="app" :class="{ 'app--full-screen': route.meta.fullScreen }">
     <a href="#main" class="skip-link">{{ t.common.skipToContent }}</a>
     <AppHeader />
     <main id="main" class="main" role="main">
@@ -21,6 +21,7 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { toRaw } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import StatusBar from './components/StatusBar.vue'
@@ -38,6 +39,8 @@ import {
 } from './lib/tauriBridge.js'
 
 const { t } = useI18n()
+/** Obrazovky s meta.fullScreen (Canvas) vyplní celé okno mezi AppHeaderem a StatusBarem. */
+const route = useRoute()
 
 /** Interval automatického syncu (každých 60 s). */
 const SYNC_INTERVAL_MS = 60_000
@@ -169,5 +172,18 @@ onUnmounted(() => {
   flex: 1;
   padding-top: var(--space-md);
   padding-bottom: 24px; /* rezerva pro StatusBar */
+}
+
+/* Celoobrazovková obrazovka: okno nescrolluje, obsah vyplní zbylou výšku */
+.app--full-screen {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app--full-screen .main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 0;
 }
 </style>
