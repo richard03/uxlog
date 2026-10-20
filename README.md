@@ -19,7 +19,7 @@ Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Fu
 - **Tým** - členové týmu s rolemi
 
 Další:
-- **Data / Canvas** – přepínač pohledu projektu vedle loga; Canvas je nekonečné plátno přes celé okno: entity jako kartičky, výběr myší (i obdélníkem), přetahování jednotlivých kartiček i skupin, posun a zoom plátna, dvojklik otevře detail entity v plovoucím okně nad plátnem (každá entita ve vlastním okně, okna jde přesouvat a měnit jim velikost); nad výběrem plovoucí lišta s barvou kartiček a menu „…“ (přesun, kopie, smazání); filtr typů na horní hraně zvýrazní kartičky jednoho typu
+- **Data / Canvas** – přepínač pohledu projektu vedle loga; Canvas je nekonečné plátno přes celé okno: entity jako kartičky, výběr myší (i obdélníkem), přetahování jednotlivých kartiček i skupin, posun a zoom plátna, dvojklik otevře detail entity v plovoucím okně nad plátnem (každá entita ve vlastním okně, okna jde přesouvat a měnit jim velikost); nad výběrem plovoucí lišta s barvou kartiček a menu „…“ (přesun, kopie, smazání); filtr typů na horní hraně zvýrazní kartičky jednoho typu; nástroj Rámeček (F) kreslí rámečky s nadpisem, kartičky přetažené do rámečku se s ním přesouvají
 - Vazby mezi entitami (many-to-many) s automatickým propojováním
 - Fulltextové vyhledávání napříč všemi entitami
 - Export/import dat v JSON a YAML s řešením konfliktů

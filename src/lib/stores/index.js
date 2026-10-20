@@ -47,6 +47,7 @@ export {
 export {
   getCanvasLayout, getCanvasCards, moveCanvasCard, moveCanvasCards, setCanvasViewport,
   setCanvasCardColor, deleteCanvasCards,
+  getCanvasFrames, addCanvasFrame, updateCanvasFrame, moveCanvasFrame, deleteCanvasFrame,
 } from './canvas.js'
 export {
   getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,

@@ -9,6 +9,7 @@ import {
   setCardPositions, rectFromPoints, cardsInRect, toggleSelection, mergeSelection, offsetCards,
   parseCardKey, setCardColors, removeCanvasCards, selectionBounds, canvasToScreen,
   canvasTypeCounts, isCardFilteredOut, CANVAS_ENTITY_TYPES,
+  frameContents, moveFrameWithContents, floatingToolbarPlacement,
   CARD_WIDTH, CARD_HEIGHT, CARD_GAP_X, MIN_ZOOM, MAX_ZOOM, DEFAULT_VIEWPORT,
 } from './canvas.js'
 import { entityDetailRoute } from './entityRoutes.js'
@@ -16,7 +17,7 @@ import { entityDetailRoute } from './entityRoutes.js'
 describe('normalizeCanvasLayout', () => {
   it('chybějící nebo poškozená data → prázdné rozvržení s výchozím pohledem', () => {
     for (const raw of [undefined, null, 'x', 42, [], { positions: 'x', viewport: 7 }]) {
-      expect(normalizeCanvasLayout(raw)).toEqual({ positions: {}, colors: {}, viewport: { ...DEFAULT_VIEWPORT } })
+      expect(normalizeCanvasLayout(raw)).toEqual({ positions: {}, colors: {}, frames: [], viewport: { ...DEFAULT_VIEWPORT } })
     }
   })
 
@@ -331,5 +332,72 @@ describe('filtr typů na plátně', () => {
     expect(isCardFilteredOut({ type: 'risks' }, '')).toBe(false)
     expect(isCardFilteredOut({ type: 'risks' }, 'nesmysl')).toBe(false)
     expect(isCardFilteredOut(null, 'personas')).toBe(true)
+  })
+})
+
+describe('rámečky v rozvržení plátna', () => {
+  const frame = { id: 'f1', title: 'Výzkum', x: 0, y: 0, width: 600, height: 400, color: null }
+
+  it('normalizeCanvasLayout zachová platné rámečky', () => {
+    const layout = normalizeCanvasLayout({ frames: [frame, { id: 'bad' }, null] })
+    expect(layout.frames).toEqual([frame])
+  })
+
+  it('frameContents: kartičky se středem uvnitř a celé vnořené rámečky', () => {
+    const cards = [
+      { key: 'in', x: 10, y: 10 },
+      { key: 'edge', x: 600 - CARD_WIDTH / 2, y: 0 }, // střed přesně na pravé hraně → uvnitř
+      { key: 'half', x: 500, y: 10 }, // střed za pravou hranou
+      { key: 'out', x: 1000, y: 1000 },
+    ]
+    const frames = [
+      frame,
+      { id: 'nested', x: 50, y: 50, width: 200, height: 150 },
+      { id: 'overlap', x: 500, y: 0, width: 200, height: 150 },
+    ]
+    expect(frameContents(frame, cards, frames)).toEqual({ cardKeys: ['in', 'edge'], frameIds: ['nested'] })
+    expect(frameContents(null, cards, frames)).toEqual({ cardKeys: [], frameIds: [] })
+  })
+
+  it('moveFrameWithContents posune rámeček, jeho kartičky a vnořené rámečky', () => {
+    const layout = {
+      positions: { 'goals:a': { x: 10, y: 10 } },
+      frames: [frame, { id: 'nested', x: 50, y: 50, width: 200, height: 150 }, { id: 'other', x: 2000, y: 0, width: 200, height: 150 }],
+    }
+    const cards = [{ key: 'goals:a', x: 10, y: 10 }, { key: 'goals:b', x: 100, y: 120 }, { key: 'goals:c', x: 3000, y: 0 }]
+    const next = moveFrameWithContents(layout, cards, 'f1', 100, -20)
+    expect(next.frames.map((f) => [f.id, f.x, f.y])).toEqual([['f1', 100, -20], ['nested', 150, 30], ['other', 2000, 0]])
+    expect(next.positions).toEqual({ 'goals:a': { x: 110, y: -10 }, 'goals:b': { x: 200, y: 100 } })
+    expect(layout.frames[0].x).toBe(0)
+    expect(moveFrameWithContents(layout, cards, 'neexistuje', 10, 10).frames).toEqual(normalizeCanvasLayout(layout).frames)
+    expect(moveFrameWithContents(layout, cards, 'f1', 0, 0).positions).toEqual(layout.positions)
+  })
+
+  it('fitViewport počítá rámečky jejich skutečnou velikostí', () => {
+    const size = { width: 1000, height: 1000 }
+    const withFrame = fitViewport([{ x: 0, y: 0 }, { x: 0, y: 0, width: 3000, height: 100 }], size, 0)
+    expect(withFrame.zoom).toBeCloseTo(1000 / 3000)
+  })
+})
+
+describe('floatingToolbarPlacement', () => {
+  const size = { width: 1000, height: 800 }
+  const opts = { gap: 10, space: 44, topInset: 56, halfWidth: 60 }
+
+  it('nad obdélníkem, když je nahoře místo pod horním pruhem', () => {
+    expect(floatingToolbarPlacement({ x: 400, y: 300, width: 200, height: 100 }, size, opts))
+      .toEqual({ left: 500, top: 290, above: true, align: 'start' })
+  })
+
+  it('pod obdélníkem, když nahoře místo není; jinak pod horním pruhem', () => {
+    expect(floatingToolbarPlacement({ x: 600, y: 80, width: 200, height: 100 }, size, opts))
+      .toEqual({ left: 700, top: 190, above: false, align: 'end' })
+    expect(floatingToolbarPlacement({ x: 0, y: 0, width: 1000, height: 800 }, size, opts).top).toBe(56)
+  })
+
+  it('vodorovně nepřeteče okraj; neplatný vstup → null', () => {
+    expect(floatingToolbarPlacement({ x: -500, y: 300, width: 100, height: 100 }, size, opts).left).toBe(60)
+    expect(floatingToolbarPlacement({ x: 5000, y: 300, width: 100, height: 100 }, size, opts).left).toBe(940)
+    expect(floatingToolbarPlacement(null, size, opts)).toBeNull()
   })
 })

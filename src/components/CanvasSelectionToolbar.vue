@@ -5,7 +5,7 @@
     class="canvas-toolbar"
     :class="`canvas-toolbar--${align}`"
     role="toolbar"
-    :aria-label="t.canvas.toolbar"
+    :aria-label="label || t.canvas.toolbar"
     data-canvas-keys="off"
     @pointerdown.stop
     @dblclick.stop
@@ -16,8 +16,8 @@
       <button
         type="button"
         class="ct-btn"
-        :title="t.canvas.cardColor"
-        :aria-label="t.canvas.cardColor"
+        :title="colorLabel || t.canvas.cardColor"
+        :aria-label="colorLabel || t.canvas.cardColor"
         aria-haspopup="true"
         :aria-expanded="paletteOpen"
         @click="paletteOpen = !paletteOpen"
@@ -30,7 +30,7 @@
         ></span>
       </button>
 
-      <div v-if="paletteOpen" class="ct-palette" role="group" :aria-label="t.canvas.cardColor">
+      <div v-if="paletteOpen" class="ct-palette" role="group" :aria-label="colorLabel || t.canvas.cardColor">
         <button
           type="button"
           class="ct-none"
@@ -59,7 +59,7 @@
 
     <span class="ct-sep" aria-hidden="true"></span>
 
-    <KebabMenu :items="menuItems" :aria-label="t.canvas.selectionActions" @action="(a) => emit('action', a)" />
+    <KebabMenu :items="menuItems" :aria-label="menuLabel || t.canvas.selectionActions" @action="(a) => emit('action', a)" />
   </div>
 </template>
 
@@ -73,6 +73,7 @@ import KebabMenu from './KebabMenu.vue'
  * @prop {string|null} currentColor - společná barva výběru, null = bez barvy, 'mixed' = různé barvy
  * @prop {Array} menuItems - položky menu „…“ (jako KebabMenu)
  * @prop {'start'|'end'} align - kam se rozbalují nabídky (start = doprava od lišty, end = doleva)
+ * @prop {string} label, colorLabel, menuLabel - popisky lišty, tlačítka barvy a menu (výchozí: výběr kartiček)
  * @emits color - zvolená barva (hex) nebo null (výchozí barvy)
  * @emits action - akce z menu „…“
  */
@@ -81,6 +82,9 @@ defineProps({
   currentColor: { type: String, default: null },
   menuItems: { type: Array, required: true },
   align: { type: String, default: 'start' },
+  label: { type: String, default: '' },
+  colorLabel: { type: String, default: '' },
+  menuLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['color', 'action'])

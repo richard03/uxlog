@@ -136,6 +136,11 @@ export function useStore() {
     setCanvasViewport: store.setCanvasViewport,
     setCanvasCardColor: store.setCanvasCardColor,
     deleteCanvasCards: store.deleteCanvasCards,
+    getCanvasFrames: store.getCanvasFrames,
+    addCanvasFrame: store.addCanvasFrame,
+    updateCanvasFrame: store.updateCanvasFrame,
+    moveCanvasFrame: store.moveCanvasFrame,
+    deleteCanvasFrame: store.deleteCanvasFrame,
     // Historie změn projektu
     getProjectHistory: store.getProjectHistory,
     revertHistoryEntry: store.revertHistoryEntry,

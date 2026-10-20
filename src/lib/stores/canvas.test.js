@@ -149,3 +149,45 @@ describe('kontextové akce výběru na plátně (store)', () => {
     expect(store.copyEntitiesToProject(items, 'neexistuje')).toEqual([])
   })
 })
+
+describe('rámečky na plátně (store)', () => {
+  it('vytvoření, úprava, přesun s kartičkami a smazání; bez historie a bez změny lastWorkedAt', async () => {
+    const pid = store.addProject({ name: 'Rámečky' }).id
+    const persona = store.addPersona(pid, { name: 'Jana' })
+    await tick()
+    const key = `personas:${persona.id}`
+    store.moveCanvasCard(pid, key, { x: 100, y: 100 })
+    const historyBefore = store.getProjectHistory(pid).length
+    const lastWorkedAt = store.getProject(pid).lastWorkedAt
+
+    const frame = store.addCanvasFrame(pid, { x: 50, y: 50, width: 600, height: 400 }, 'Výzkum')
+    expect(store.getCanvasFrames(pid)).toEqual([frame])
+
+    store.updateCanvasFrame(pid, frame.id, { title: 'Rozhovory', color: '#FDE68A' })
+    expect(store.getCanvasFrames(pid)[0]).toMatchObject({ title: 'Rozhovory', color: '#fde68a' })
+
+    store.moveCanvasFrame(pid, frame.id, 200, 10)
+    expect(store.getCanvasFrames(pid)[0]).toMatchObject({ x: 250, y: 60 })
+    expect(store.getCanvasCards(pid).find((c) => c.key === key)).toMatchObject({ x: 300, y: 110 })
+
+    store.deleteCanvasFrame(pid, frame.id)
+    expect(store.getCanvasFrames(pid)).toEqual([])
+    expect(store.getPersona(persona.id)?.name).toBe('Jana')
+
+    await tick()
+    expect(store.getProjectHistory(pid)).toHaveLength(historyBefore)
+    expect(store.getProject(pid).lastWorkedAt).toBe(lastWorkedAt)
+  })
+
+  it('ostatní úpravy rozvržení rámečky zachovají', async () => {
+    const pid = store.addProject({ name: 'Zachování' }).id
+    const goal = store.addGoal(pid, { name: 'G' })
+    const frame = store.addCanvasFrame(pid, { x: 0, y: 0, width: 300, height: 300 }, 'R')
+    store.moveCanvasCard(pid, `goals:${goal.id}`, { x: 5, y: 5 })
+    store.setCanvasCardColor(pid, [`goals:${goal.id}`], '#2563eb')
+    store.setCanvasViewport(pid, { x: 1, y: 2, zoom: 1.5 })
+    store.deleteCanvasCards(pid, [`goals:${goal.id}`])
+    expect(store.getCanvasFrames(pid).map((f) => f.id)).toEqual([frame.id])
+    expect(store.addCanvasFrame('neexistuje', { x: 0, y: 0, width: 300, height: 300 }, 'X')).toBeNull()
+  })
+})

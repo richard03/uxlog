@@ -20,7 +20,7 @@
       role="region"
       :aria-label="t.canvas.surface"
       aria-describedby="canvas-hint"
-      @pointerdown="onSurfacePointerDown"
+      @pointerdown="onSurfaceDown"
       @pointermove="onSurfacePointerMove"
       @pointerup="onSurfacePointerUp"
       @pointercancel="onSurfacePointerUp"
@@ -29,6 +29,53 @@
     >
       <p v-if="cards.length === 0" class="canvas-empty">{{ t.canvas.empty }}</p>
       <div class="canvas-world" :style="worldStyle">
+        <!-- Rámečky (pod kartičkami); tělo rámečku nepřijímá ukazatel – výběr a posun plátna fungují i uvnitř -->
+        <div
+          v-for="frame in frames"
+          :key="frame.id"
+          class="canvas-frame"
+          :class="{ 'canvas-frame--selected': frame.id === selectedFrameId, 'canvas-frame--colored': frame.color }"
+          :style="frameStyle(frame)"
+        >
+          <input
+            v-if="frame.id === editingFrameId"
+            v-focus-select
+            class="canvas-frame-title canvas-frame-title-input"
+            :value="frame.title"
+            :aria-label="t.canvas.frameTitleLabel"
+            :maxlength="FRAME_TITLE_MAX_LENGTH"
+            data-canvas-keys="off"
+            @pointerdown.stop
+            @dblclick.stop
+            @keydown.enter.prevent="commitRename($event.target.value)"
+            @keydown.esc.prevent.stop="cancelRename"
+            @blur="commitRename($event.target.value)"
+          />
+          <button
+            v-else
+            type="button"
+            class="canvas-frame-title"
+            :aria-pressed="frame.id === selectedFrameId"
+            :aria-label="t.canvas.frameAria(frame.title || t.canvas.frameUntitled)"
+            @pointerdown="onTitlePointerDown($event, frame)"
+            @pointermove="onFrameGesturePointerMove"
+            @pointerup="onFrameGesturePointerUp"
+            @pointercancel="onFrameGesturePointerCancel"
+            @dblclick.stop="startRename(frame.id)"
+            @keydown="onFrameTitleKeydown($event, frame)"
+          >{{ frame.title || t.canvas.frameUntitled }}</button>
+          <span
+            v-if="frame.id === selectedFrameId && frame.id !== editingFrameId"
+            class="canvas-frame-resize"
+            :title="t.canvas.frameResize"
+            aria-hidden="true"
+            @pointerdown="onFrameResizePointerDown($event, frame)"
+            @pointermove="onFrameGesturePointerMove"
+            @pointerup="onFrameGesturePointerUp"
+            @pointercancel="onFrameGesturePointerCancel"
+          ></span>
+        </div>
+
         <button
           v-for="card in cards"
           :key="card.key"
@@ -63,6 +110,50 @@
           <span v-if="card.description" class="canvas-card-desc">{{ card.description }}</span>
         </button>
       </div>
+
+      <!-- Režim kreslení rámečku: vrstva nad plátnem zachytí tažení -->
+      <div
+        v-if="drawMode"
+        class="canvas-draw-layer"
+        @pointerdown="onDrawPointerDown"
+        @pointermove="onDrawPointerMove"
+        @pointerup="onDrawPointerUp"
+        @pointercancel="onDrawPointerUp"
+      ></div>
+      <div v-if="drawStyle" class="canvas-draw-rect" :style="drawStyle" aria-hidden="true"></div>
+
+      <!-- Nástroje vlevo nahoře -->
+      <div class="canvas-overlay canvas-tools" role="toolbar" :aria-label="t.canvas.tools" data-canvas-keys="off" @pointerdown.stop @dblclick.stop @wheel.stop>
+        <button
+          type="button"
+          class="canvas-tool"
+          :class="{ 'canvas-tool--active': drawMode }"
+          :aria-pressed="drawMode"
+          :title="t.canvas.frameToolHint"
+          @click="toggleDrawMode()"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 2v20M18 2v20M2 6h20M2 18h20" />
+          </svg>
+          {{ t.canvas.frameTool }}
+        </button>
+        <span v-if="drawMode" class="canvas-draw-hint" aria-live="polite">{{ t.canvas.drawHint }}</span>
+      </div>
+
+      <!-- Lišta vybraného rámečku: barva a menu „…“ -->
+      <CanvasSelectionToolbar
+        v-if="frameToolbarStyle"
+        :style="frameToolbarStyle"
+        :align="frameToolbarAlign"
+        :colors="frameColors"
+        :current-color="frameCurrentColor"
+        :menu-items="frameMenuItems"
+        :label="t.canvas.frameToolbar"
+        :color-label="t.canvas.frameColor"
+        :menu-label="t.canvas.frameActions"
+        @color="setFrameColor"
+        @action="onFrameMenuAction"
+      />
 
       <!-- Kontextová lišta výběru: barva kartiček a menu „…“ -->
       <CanvasSelectionToolbar
@@ -139,18 +230,26 @@
         @confirm="confirmDelete"
         @cancel="closeDialog"
       />
+      <ConfirmDialog
+        v-if="frameDeleteDialog"
+        :title="frameDeleteDialog.title"
+        :message="frameDeleteDialog.message"
+        @confirm="confirmFrameDelete"
+        @cancel="cancelFrameDelete"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useProjectCanvas, CARD_WIDTH, CARD_HEIGHT } from '../composables/useProjectCanvas.js'
 import { useCanvasWindows } from '../composables/useCanvasWindows.js'
 import { useCanvasSelectionActions } from '../composables/useCanvasSelectionActions.js'
+import { useCanvasFrames, FRAME_TITLE_MAX_LENGTH } from '../composables/useCanvasFrames.js'
 import AppButton from '../components/AppButton.vue'
 import CanvasEntityWindow from '../components/CanvasEntityWindow.vue'
 import CanvasSelectionToolbar from '../components/CanvasSelectionToolbar.vue'
@@ -167,15 +266,68 @@ const project = computed(() => store.getProject(projectId.value))
 
 const surfaceEl = ref(null)
 
+// --- Rámečky (vytvořené před plátnem kvůli náhledu posunu kartiček; pohled čtou až za běhu) ---
+let canvasApi = null
+const {
+  frames, cardPreview, frameStyle, selectedFrameId, editingFrameId, selectFrame, deselectFrame,
+  drawMode, drawStyle, toggleDrawMode, onDrawPointerDown, onDrawPointerMove, onDrawPointerUp,
+  onTitlePointerDown, onResizePointerDown: onFrameResizePointerDown,
+  onGesturePointerMove: onFrameGesturePointerMove, onGesturePointerUp: onFrameGesturePointerUp,
+  onGesturePointerCancel: onFrameGesturePointerCancel,
+  startRename, commitRename, cancelRename,
+  colors: frameColors, currentColor: frameCurrentColor, setColor: setFrameColor,
+  menuItems: frameMenuItems, onMenuAction: onFrameMenuAction,
+  toolbarStyle: frameToolbarStyle, toolbarAlign: frameToolbarAlign,
+  deleteDialog: frameDeleteDialog, confirmDelete: confirmFrameDelete, cancelDelete: cancelFrameDelete,
+} = useCanvasFrames(projectId, surfaceEl, {
+  getViewport: () => canvasApi.viewport.value,
+  getCards: () => store.getCanvasCards(projectId.value),
+  onSelect: () => canvasApi.clearSelection(),
+})
+
+canvasApi = useProjectCanvas(projectId, surfaceEl, {
+  onOpen: (card) => openWindow(card.type, card.id),
+  cardPreview,
+  getExtraFitItems: () => frames.value,
+})
+
 const {
   cards, worldStyle, surfaceStyle, marqueeStyle, zoomPercent, isPanning, spaceHeld, selectedCount, isSelected, draggingKeys,
   selectedKeys, toolbarStyle, toolbarAlign, cardColorStyle, typeFilter, typeCounts, isFilteredOut,
   onSurfacePointerDown, onSurfacePointerMove, onSurfacePointerUp, onSurfaceContextMenu, onWheel,
   zoomIn, zoomOut, fitAll,
   onCardPointerDown, onCardPointerMove, onCardPointerUp, onCardPointerCancel, onCardDblClick, onCardKeydown,
-} = useProjectCanvas(projectId, surfaceEl, {
-  onOpen: (card) => openWindow(card.type, card.id),
+} = canvasApi
+
+// Výběr kartiček a výběr rámečku se vylučují
+watch(selectedKeys, (keys) => {
+  if (keys.length) deselectFrame()
 })
+
+/** Klik do prázdna zruší i výběr rámečku. */
+function onSurfaceDown(event) {
+  if (event.button === 0) deselectFrame()
+  onSurfacePointerDown(event)
+}
+
+/** Klávesnice na nadpisu rámečku: Enter vybere, F2 přejmenuje. */
+function onFrameTitleKeydown(event, frame) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    selectFrame(frame.id)
+  } else if (event.key === 'F2') {
+    event.preventDefault()
+    startRename(frame.id)
+  }
+}
+
+/** Pole pro přejmenování rámečku dostane po zobrazení fokus a vybraný text. */
+const vFocusSelect = {
+  mounted(el) {
+    el.focus()
+    el.select()
+  },
+}
 
 // --- Kontextová lišta výběru ---
 const {
@@ -349,6 +501,148 @@ function typeLabel(type) {
   font-size: 0.8125rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Rámečky */
+.canvas-frame {
+  position: absolute;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  pointer-events: none;
+}
+
+.canvas-frame--colored {
+  border-color: var(--frame-color);
+  background: color-mix(in srgb, var(--frame-color) 18%, transparent);
+}
+
+.canvas-frame--selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Nadpis nad horní hranou rámečku – úchyt pro přesun, dvojklik přejmenuje */
+.canvas-frame-title {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  max-width: 100%;
+  margin-bottom: 4px;
+  padding: 2px 6px;
+  overflow: hidden;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.canvas-frame-title:hover,
+.canvas-frame--selected .canvas-frame-title {
+  color: var(--text);
+  background: var(--bg-muted);
+}
+
+.canvas-frame-title:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.canvas-frame-title-input {
+  min-width: 12rem;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-focus);
+  cursor: text;
+  user-select: text;
+}
+
+.canvas-frame-title-input:focus {
+  outline: none;
+}
+
+/* Úchyt pro změnu velikosti v pravém dolním rohu vybraného rámečku */
+.canvas-frame-resize {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg-elevated);
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+/* Kreslení rámečku */
+.canvas-draw-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: crosshair;
+}
+
+.canvas-draw-rect {
+  position: absolute;
+  z-index: 1;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  pointer-events: none;
+}
+
+.canvas-tools {
+  left: var(--space-md);
+  top: var(--space-sm);
+}
+
+.canvas-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px var(--space-sm);
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.canvas-tool:hover {
+  background: var(--bg-muted);
+}
+
+.canvas-tool:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.canvas-tool--active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--accent);
+}
+
+.canvas-draw-hint {
+  padding-right: var(--space-xs);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .canvas-card {

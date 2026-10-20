@@ -2,7 +2,8 @@
  * Plátno projektu (Canvas) – čisté funkce.
  *
  * Entity projektu se na plátně zobrazují jako kartičky. Uložené rozvržení je na projektu
- * v poli `canvas`: { positions: { [cardKey]: { x, y } }, colors: { [cardKey]: '#rrggbb' }, viewport: { x, y, zoom } }.
+ * v poli `canvas`: { positions: { [cardKey]: { x, y } }, colors: { [cardKey]: '#rrggbb' }, frames: Frame[], viewport: { x, y, zoom } }
+ * (rámečky viz canvasFrames.js).
  * cardKey = `${stateKey}:${id}` (např. 'personas:abc'). Kartička bez uložené pozice dostane
  * výchozí místo ve sloupci svého typu – dokud ji uživatel nepřesune, její pozice se neukládá.
  * Souřadnice pozic jsou v souřadnicích plátna (před posunem a zoomem pohledu).
@@ -10,6 +11,7 @@
 
 import { getBugPriority } from './models.js'
 import { normalizeHexColor } from './color.js'
+import { normalizeFrames } from './canvasFrames.js'
 
 /** Typy entit na plátně (klíče ve state) v pořadí sloupců výchozího rozvržení. */
 export const CANVAS_ENTITY_TYPES = [
@@ -87,7 +89,7 @@ export function normalizeViewport(raw) {
 /**
  * Normalizuje uložené rozvržení plátna – toleruje chybějící, poškozená i starší data.
  * @param {unknown} raw - project.canvas
- * @returns {{ positions: Object<string, {x: number, y: number}>, colors: Object<string, string>, viewport: {x: number, y: number, zoom: number} }}
+ * @returns {{ positions: Object<string, {x: number, y: number}>, colors: Object<string, string>, frames: Array<Object>, viewport: {x: number, y: number, zoom: number} }}
  */
 export function normalizeCanvasLayout(raw) {
   const layout = raw && typeof raw === 'object' ? raw : {}
@@ -102,7 +104,7 @@ export function normalizeCanvasLayout(raw) {
     const hex = normalizeHexColor(color)
     if (hex) colors[key] = hex
   }
-  return { positions, colors, viewport: normalizeViewport(layout.viewport) }
+  return { positions, colors, frames: normalizeFrames(layout.frames), viewport: normalizeViewport(layout.viewport) }
 }
 
 /**
@@ -350,8 +352,8 @@ export function zoomViewportAt(viewport, nextZoom, anchor) {
 
 /**
  * Pohled, ve kterém jsou vidět všechny kartičky (s okrajem); bez kartiček výchozí pohled.
- * Zoom se nezvětšuje nad 1.
- * @param {Array<{ x: number, y: number }>} cards
+ * Zoom se nezvětšuje nad 1. Položky s width/height (rámečky) se počítají svým rozměrem, ostatní jako kartička.
+ * @param {Array<{ x: number, y: number, width?: number, height?: number }>} cards
  * @param {{ width: number, height: number }} size - rozměr plátna na obrazovce
  * @param {number} [padding]
  * @param {number} [topInset] - pruh nahoře zakrytý ovládáním (kartičky se vycentrují pod něj)
@@ -361,8 +363,8 @@ export function fitViewport(cards, size, padding = 40, topInset = 0) {
   if (!cards?.length || !(size?.width > 0) || !(size?.height > 0)) return { ...DEFAULT_VIEWPORT }
   const minX = Math.min(...cards.map((c) => c.x))
   const minY = Math.min(...cards.map((c) => c.y))
-  const maxX = Math.max(...cards.map((c) => c.x + CARD_WIDTH))
-  const maxY = Math.max(...cards.map((c) => c.y + CARD_HEIGHT))
+  const maxX = Math.max(...cards.map((c) => c.x + (c.width ?? CARD_WIDTH)))
+  const maxY = Math.max(...cards.map((c) => c.y + (c.height ?? CARD_HEIGHT)))
   const inset = isFiniteNumber(topInset) && topInset > 0 ? Math.min(topInset, size.height / 2) : 0
   const areaH = size.height - inset
   const availW = Math.max(1, size.width - padding * 2)
@@ -453,4 +455,69 @@ export function offsetCards(cards, keys, dx, dy) {
     if (wanted.has(c.key)) moves[c.key] = { x: c.x + dx, y: c.y + dy }
   }
   return moves
+}
+
+/**
+ * Obsah rámečku: kartičky, jejichž střed leží v rámečku, a rámečky celé uvnitř (vnořené).
+ * @param {{ id: string, x: number, y: number, width: number, height: number }} frame
+ * @param {Array<{ key: string, x: number, y: number }>} cards
+ * @param {Array<Object>} frames
+ * @returns {{ cardKeys: string[], frameIds: string[] }}
+ */
+export function frameContents(frame, cards, frames) {
+  if (!frame) return { cardKeys: [], frameIds: [] }
+  const right = frame.x + frame.width
+  const bottom = frame.y + frame.height
+  const cardKeys = (cards || [])
+    .filter((c) => {
+      const cx = c.x + CARD_WIDTH / 2
+      const cy = c.y + CARD_HEIGHT / 2
+      return cx >= frame.x && cx <= right && cy >= frame.y && cy <= bottom
+    })
+    .map((c) => c.key)
+  const frameIds = (frames || [])
+    .filter((f) => f.id !== frame.id && f.x >= frame.x && f.y >= frame.y && f.x + f.width <= right && f.y + f.height <= bottom)
+    .map((f) => f.id)
+  return { cardKeys, frameIds }
+}
+
+/**
+ * Nové rozvržení po posunu rámečku i s jeho obsahem (kartičky a vnořené rámečky).
+ * @param {Object} layout
+ * @param {Array<{ key: string, x: number, y: number }>} cards - kartičky s aktuálními pozicemi
+ * @param {string} frameId
+ * @param {number} dx
+ * @param {number} dy
+ * @returns {Object}
+ */
+export function moveFrameWithContents(layout, cards, frameId, dx, dy) {
+  const base = normalizeCanvasLayout(layout)
+  const frame = base.frames.find((f) => f.id === frameId)
+  if (!frame || !isFiniteNumber(dx) || !isFiniteNumber(dy) || (dx === 0 && dy === 0)) return base
+  const { cardKeys, frameIds } = frameContents(frame, cards, base.frames)
+  const moving = new Set([frameId, ...frameIds])
+  const frames = base.frames.map((f) => (moving.has(f.id) ? { ...f, x: Math.round(f.x + dx), y: Math.round(f.y + dy) } : f))
+  return { ...setCardPositions(base, offsetCards(cards, cardKeys, dx, dy)), frames }
+}
+
+/**
+ * Umístění plovoucí lišty k obdélníku na obrazovce (výběr kartiček, rámeček): vystředěná nad ním,
+ * když se tam vejde pod horní pruh; jinak pod ním; jinak hned pod horním pruhem. Vodorovně nepřeteče okraj.
+ * align říká, kam se mají rozbalovat nabídky lišty (do středu plátna).
+ * @param {{ x: number, y: number, width: number, height: number }} rect - px relativně k plátnu
+ * @param {{ width: number, height: number }} size - rozměr plátna
+ * @param {{ gap?: number, space?: number, topInset?: number, halfWidth?: number }} [options]
+ * @returns {{ left: number, top: number, above: boolean, align: 'start'|'end' }|null}
+ */
+export function floatingToolbarPlacement(rect, size, { gap = 10, space = 44, topInset = 0, halfWidth = 60 } = {}) {
+  if (!rect || !isFiniteNumber(rect.x) || !isFiniteNumber(rect.y)) return null
+  const width = size?.width ?? 0
+  const height = size?.height ?? 0
+  let left = rect.x + rect.width / 2
+  if (width > halfWidth * 2) left = Math.min(Math.max(left, halfWidth), width - halfWidth)
+  const align = width && left > width / 2 ? 'end' : 'start'
+  const above = rect.y - gap
+  if (above >= topInset + space) return { left, top: above, above: true, align }
+  const below = rect.y + rect.height + gap
+  return { left, top: below <= height - space ? below : topInset, above: false, align }
 }

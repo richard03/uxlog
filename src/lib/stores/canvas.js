@@ -8,8 +8,10 @@
 import { state, persist } from './state.js'
 import {
   collectCanvasEntities, placeCards, normalizeCanvasLayout, normalizeViewport,
-  setCardPositions, pruneCanvasLayout, setCardColors, parseCardKey,
+  setCardPositions, pruneCanvasLayout, setCardColors, parseCardKey, moveFrameWithContents,
 } from '../canvas.js'
+import { frameFromRect, updateFrame, removeFrame, sortFramesForRender } from '../canvasFrames.js'
+import { generateId } from '../id.js'
 import { deleteGoal } from './goals.js'
 import { deleteStakeholder } from './stakeholders.js'
 import { deleteTeamMember } from './teamMembers.js'
@@ -139,4 +141,79 @@ export function deleteCanvasCards(projectId, keys) {
     persist()
   }
   return deleted
+}
+
+// ---------------------------------------------------------------------------
+// Rámečky (součást rozvržení plátna – nemění lastWorkedAt a nejsou v historii)
+// ---------------------------------------------------------------------------
+
+/**
+ * Rámečky plátna projektu v pořadí vykreslení (větší dospod).
+ * @param {string} projectId
+ * @returns {Array<Object>}
+ */
+export function getCanvasFrames(projectId) {
+  return sortFramesForRender(getCanvasLayout(projectId).frames)
+}
+
+/**
+ * Vytvoří rámeček z nakresleného obdélníku (souřadnice plátna).
+ * @param {string} projectId
+ * @param {{ x: number, y: number, width: number, height: number }} rect
+ * @param {string} title
+ * @returns {Object|null} nový rámeček
+ */
+export function addCanvasFrame(projectId, rect, title) {
+  const project = findProject(projectId)
+  if (!project) return null
+  const frame = frameFromRect(rect, { id: generateId(), title })
+  if (!frame) return null
+  const layout = normalizeCanvasLayout(project.canvas)
+  project.canvas = { ...layout, frames: [...layout.frames, frame] }
+  persist()
+  return frame
+}
+
+/**
+ * Upraví rámeček (název, poloha, rozměr, barva).
+ * @param {string} projectId
+ * @param {string} frameId
+ * @param {Object} patch
+ */
+export function updateCanvasFrame(projectId, frameId, patch) {
+  const project = findProject(projectId)
+  if (!project) return
+  const layout = normalizeCanvasLayout(project.canvas)
+  const frames = updateFrame(layout.frames, frameId, patch)
+  if (JSON.stringify(frames) === JSON.stringify(layout.frames)) return
+  project.canvas = { ...layout, frames }
+  persist()
+}
+
+/**
+ * Posune rámeček i s kartičkami a vnořenými rámečky – jedno uložení.
+ * @param {string} projectId
+ * @param {string} frameId
+ * @param {number} dx
+ * @param {number} dy
+ */
+export function moveCanvasFrame(projectId, frameId, dx, dy) {
+  const project = findProject(projectId)
+  if (!project || (!dx && !dy)) return
+  project.canvas = moveFrameWithContents(project.canvas, getCanvasCards(projectId), frameId, dx, dy)
+  persist()
+}
+
+/**
+ * Smaže rámeček; kartičky v něm zůstanou na svém místě.
+ * @param {string} projectId
+ * @param {string} frameId
+ */
+export function deleteCanvasFrame(projectId, frameId) {
+  const project = findProject(projectId)
+  if (!project) return
+  const layout = normalizeCanvasLayout(project.canvas)
+  if (!layout.frames.some((fr) => fr.id === frameId)) return
+  project.canvas = { ...layout, frames: removeFrame(layout.frames, frameId) }
+  persist()
 }

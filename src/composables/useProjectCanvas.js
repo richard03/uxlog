@@ -12,12 +12,12 @@
  * Pozice se ukládají až po puštění (během tažení jen lokálně), pohled se ukládá se zpožděním.
  */
 
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, unref, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from './useStore.js'
 import {
   zoomViewportAt, fitViewport, normalizeViewport, screenToCanvas, rectFromPoints, cardsInRect,
   toggleSelection, mergeSelection, offsetCards, selectionBounds, canvasToScreen,
-  canvasTypeCounts, isCardFilteredOut, CANVAS_TOP_INSET,
+  canvasTypeCounts, isCardFilteredOut, floatingToolbarPlacement, CANVAS_TOP_INSET,
 } from '../lib/canvas.js'
 import { cardColorScheme } from '../lib/color.js'
 
@@ -30,12 +30,6 @@ const DRAG_THRESHOLD = 4
 const KEYBOARD_STEP = 16
 const ZOOM_STEP = 1.2
 const VIEWPORT_SAVE_DELAY = 400
-/** Mezera mezi výběrem a kontextovou lištou (px na obrazovce). */
-const TOOLBAR_GAP = 10
-/** Místo, které lišta potřebuje nad / pod výběrem (px); jinak se přichytí pod filtr u horní hrany plátna. */
-const TOOLBAR_SPACE = 44
-/** Lišta je vystředěná na výběr, ale nesmí přetéct okraj plátna (polovina její přibližné šířky). */
-const TOOLBAR_HALF_WIDTH = 60
 
 /** Klávesy nemají plátno ovládat, když uživatel píše do pole (např. hledání). */
 function isTypingTarget(target) {
@@ -60,9 +54,14 @@ function capturePointer(event) {
 /**
  * @param {import('vue').Ref<string>} projectId
  * @param {import('vue').Ref<HTMLElement|null>} surfaceEl - element plátna (pro rozměr a souřadnice)
- * @param {{ onOpen?: (card: Object) => void }} [options] - onOpen: dvojklik (nebo Enter) na kartičku
+ * @param {{
+ *   onOpen?: (card: Object) => void,
+ *   cardPreview?: import('vue').Ref<{ keys: Set<string>, dx: number, dy: number }|null>,
+ *   getExtraFitItems?: () => Array<{ x: number, y: number, width: number, height: number }>,
+ * }} [options] - onOpen: dvojklik (nebo Enter) na kartičku; cardPreview: posun kartiček v náhledu
+ *   (tažení rámečku); getExtraFitItems: další objekty, které má ukázat „Zobrazit vše“ (rámečky)
  */
-export function useProjectCanvas(projectId, surfaceEl, { onOpen } = {}) {
+export function useProjectCanvas(projectId, surfaceEl, { onOpen, cardPreview, getExtraFitItems } = {}) {
   const store = useStore()
 
   const viewport = ref(store.getCanvasLayout(projectId.value).viewport)
@@ -85,9 +84,10 @@ export function useProjectCanvas(projectId, surfaceEl, { onOpen } = {}) {
 
   const cards = computed(() => {
     const d = dragging.value
-    if (!d?.moved) return placedCards.value
-    const moved = new Set(d.keys)
-    return placedCards.value.map((c) => (moved.has(c.key) ? { ...c, x: c.x + d.dx, y: c.y + d.dy } : c))
+    // Náhled posunu: tažené kartičky, nebo kartičky uvnitř taženého rámečku
+    const preview = d?.moved ? { keys: new Set(d.keys), dx: d.dx, dy: d.dy } : unref(cardPreview)
+    if (!preview) return placedCards.value
+    return placedCards.value.map((c) => (preview.keys.has(c.key) ? { ...c, x: c.x + preview.dx, y: c.y + preview.dy } : c))
   })
 
   const selectedSet = computed(() => new Set(selection.value))
@@ -121,23 +121,19 @@ export function useProjectCanvas(projectId, surfaceEl, { onOpen } = {}) {
    */
   const toolbarPlacement = computed(() => {
     if (!selection.value.length || dragging.value?.moved || marquee.value?.moved) return null
-    const bounds = selectionBounds(placedCards.value, selection.value)
+    const bounds = selectionBounds(cards.value, selection.value)
     if (!bounds) return null
     const { zoom } = viewport.value
     const topLeft = canvasToScreen(viewport.value, bounds)
-    const { width, height } = surfaceSize()
-    let left = topLeft.x + (bounds.width * zoom) / 2
-    if (width > TOOLBAR_HALF_WIDTH * 2) left = Math.min(Math.max(left, TOOLBAR_HALF_WIDTH), width - TOOLBAR_HALF_WIDTH)
-    const above = topLeft.y - TOOLBAR_GAP
-    const below = topLeft.y + bounds.height * zoom + TOOLBAR_GAP
-    // Rozbalovací nabídky lišty se otevírají směrem do středu plátna, aby nepřetekly okraj
-    const align = width && left > width / 2 ? 'end' : 'start'
-    // Nad výběrem jen tehdy, když se lišta nepřekryje s filtrem typů u horní hrany
-    if (above >= CANVAS_TOP_INSET + TOOLBAR_SPACE) {
-      return { align, style: { left: `${left}px`, top: `${above}px`, transform: 'translate(-50%, -100%)' } }
+    const rect = { x: topLeft.x, y: topLeft.y, width: bounds.width * zoom, height: bounds.height * zoom }
+    // Nad výběrem jen tehdy, když se lišta nepřekryje s filtrem typů u horní hrany;
+    // rozbalovací nabídky lišty se otevírají směrem do středu plátna (align)
+    const p = floatingToolbarPlacement(rect, surfaceSize(), { topInset: CANVAS_TOP_INSET })
+    if (!p) return null
+    return {
+      align: p.align,
+      style: { left: `${p.left}px`, top: `${p.top}px`, transform: p.above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)' },
     }
-    const top = below <= height - TOOLBAR_SPACE ? below : CANVAS_TOP_INSET
-    return { align, style: { left: `${left}px`, top: `${top}px`, transform: 'translate(-50%, 0)' } }
   })
 
   /** Vlastní barva kartičky jako CSS proměnné (písmo dopočítané podle kontrastu); bez barvy prázdný objekt. */
@@ -281,7 +277,8 @@ export function useProjectCanvas(projectId, surfaceEl, { onOpen } = {}) {
   const zoomOut = () => zoomBy(1 / ZOOM_STEP)
 
   function fitAll() {
-    setViewport(fitViewport(placedCards.value, surfaceSize(), undefined, CANVAS_TOP_INSET))
+    const items = [...placedCards.value, ...(getExtraFitItems?.() || [])]
+    setViewport(fitViewport(items, surfaceSize(), undefined, CANVAS_TOP_INSET))
   }
 
   // --- Výběr a přetahování kartiček ---
@@ -412,6 +409,7 @@ export function useProjectCanvas(projectId, surfaceEl, { onOpen } = {}) {
     spaceHeld,
     selectedCount: computed(() => selection.value.length),
     selectedKeys: computed(() => selection.value),
+    clearSelection: () => { selection.value = [] },
     typeFilter,
     typeCounts,
     isFilteredOut,
