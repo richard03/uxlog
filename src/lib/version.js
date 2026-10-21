@@ -1,2 +1,2 @@
 /** Verze aplikace. Při každé změně kódu zvyšovat patch (1.0.0 → 1.0.1). */
-export const APP_VERSION = '1.2.35'
+export const APP_VERSION = '1.2.36'

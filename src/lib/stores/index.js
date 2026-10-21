@@ -49,6 +49,7 @@ export {
   setCanvasCardColor, deleteCanvasCards,
   getCanvasFrames, addCanvasFrame, updateCanvasFrame, moveCanvasFrame, deleteCanvasFrame,
 } from './canvas.js'
+export { getProjectDocument, updateDocumentEntity, updateDocumentField } from './document.js'
 export {
   getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,
 } from './connections.js'

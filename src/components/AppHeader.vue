@@ -5,13 +5,13 @@
         <router-link to="/" class="logo" :aria-label="t.app.title">
           {{ t.app.title }}
         </router-link>
-        <!-- Přepínač pohledu projektu: Data (obrazovky s entitami a Zápisníkem) / Canvas – jen v projektu -->
+        <!-- Přepínač pohledu projektu: Data (obrazovky s entitami a Zápisníkem) / Canvas / Dokument – jen v projektu -->
         <div v-if="projectId && project" class="view-switch">
           <router-link :to="dataTarget" custom v-slot="{ navigate }">
             <AppButton
               variant="secondary"
-              :class="{ 'nav-active': !onCanvas }"
-              :aria-current="!onCanvas ? 'page' : undefined"
+              :class="{ 'nav-active': onData }"
+              :aria-current="onData ? 'page' : undefined"
               @click="navigate"
             >{{ t.nav.data }}</AppButton>
           </router-link>
@@ -22,6 +22,14 @@
               :aria-current="onCanvas ? 'page' : undefined"
               @click="navigate"
             >{{ t.nav.canvas }}</AppButton>
+          </router-link>
+          <router-link :to="{ name: 'projectDocument', params: { id: projectId } }" custom v-slot="{ navigate }">
+            <AppButton
+              variant="secondary"
+              :class="{ 'nav-active': onDocument }"
+              :aria-current="onDocument ? 'page' : undefined"
+              @click="navigate"
+            >{{ t.nav.document }}</AppButton>
           </router-link>
         </div>
       </div>
@@ -62,13 +70,15 @@ const projectColor = computed(() => project.value?.color || null)
 
 // Plátno včetně detailu entity v panelu nad ním (potomci routy projectCanvas)
 const onCanvas = computed(() => route.matched.some((r) => r.name === 'projectCanvas'))
+const onDocument = computed(() => route.name === 'projectDocument')
+const onData = computed(() => !onCanvas.value && !onDocument.value)
 
-/** Poslední obrazovka „Data“ (mimo Canvas) pro každý projekt – tlačítko Data se na ni vrací. */
+/** Poslední obrazovka „Data“ (mimo Canvas a Dokument) pro každý projekt – tlačítko Data se na ni vrací. */
 const lastDataPath = ref({})
 watch(
   () => route.fullPath,
   () => {
-    if (projectId.value && route.name && !onCanvas.value) {
+    if (projectId.value && route.name && onData.value) {
       lastDataPath.value = { ...lastDataPath.value, [projectId.value]: route.fullPath }
     }
   },

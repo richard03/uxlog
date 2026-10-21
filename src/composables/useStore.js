@@ -141,6 +141,10 @@ export function useStore() {
     updateCanvasFrame: store.updateCanvasFrame,
     moveCanvasFrame: store.moveCanvasFrame,
     deleteCanvasFrame: store.deleteCanvasFrame,
+    // Dokument projektu
+    getProjectDocument: store.getProjectDocument,
+    updateDocumentEntity: store.updateDocumentEntity,
+    updateDocumentField: store.updateDocumentField,
     // Historie změn projektu
     getProjectHistory: store.getProjectHistory,
     revertHistoryEntry: store.revertHistoryEntry,

@@ -1,7 +1,7 @@
 <template>
   <div class="export-btn-wrap" ref="wrapRef">
     <AppButton variant="secondary" @click="toggle" :aria-expanded="open" aria-haspopup="menu">
-      {{ t.project.export }}
+      {{ label || t.project.export }}
     </AppButton>
     <ul v-if="open" class="export-menu" role="menu">
       <li role="none">
@@ -18,12 +18,24 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import AppButton from './AppButton.vue'
-import { downloadYaml, copyYaml } from '../utils/exportHelper.js'
+import { downloadText, copyText } from '../utils/exportHelper.js'
 
+/**
+ * @prop {Function} getYaml - vrátí exportovaný text (název z doby, kdy šlo jen o YAML)
+ * @prop {string} extension, mimeType - formát staženého souboru (výchozí YAML)
+ * @prop {string} label - popisek tlačítka (výchozí „Export“)
+ */
 const props = defineProps({
   getYaml: { type: Function, required: true },
   filename: { type: String, required: true },
+  extension: { type: String, default: 'yaml' },
+  mimeType: { type: String, default: 'application/yaml' },
+  label: { type: String, default: '' },
 })
+
+function download(text) {
+  downloadText(text, props.filename, { extension: props.extension, mimeType: props.mimeType })
+}
 
 const { t } = useI18n()
 const open = ref(false)
@@ -33,17 +45,17 @@ function toggle() { open.value = !open.value }
 
 async function handleClipboard() {
   open.value = false
-  const yaml = props.getYaml()
-  const ok = await copyYaml(yaml)
+  const text = props.getYaml()
+  const ok = await copyText(text)
   if (!ok) {
     // clipboard nedostupný – fallback na stažení
-    downloadYaml(yaml, props.filename)
+    download(text)
   }
 }
 
 function handleDownload() {
   open.value = false
-  downloadYaml(props.getYaml(), props.filename)
+  download(props.getYaml())
 }
 
 function onClickOutside(e) {

@@ -156,6 +156,13 @@ const routes = [
         meta: { title: 'Canvas', fullScreen: true },
       },
       {
+        path: 'document',
+        name: 'projectDocument',
+        component: () => import('../views/DocumentView.vue'),
+        // Přes celé okno – bez hlavičky obrazovky a bez Zápisníku, vlastní lišta s hledáním a exportem
+        meta: { title: 'Dokument', fullScreen: true },
+      },
+      {
         path: 'history',
         name: 'projectHistory',
         component: () => import('../views/ProjectHistoryView.vue'),
