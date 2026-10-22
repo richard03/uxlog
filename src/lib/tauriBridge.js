@@ -133,20 +133,27 @@ export async function openExternal(url) {
 }
 
 /**
- * Uloží soubor na disk přes Tauri invoke a otevře ho.
+ * Uloží soubor na disk přes Tauri invoke (Dokumenty/UXLog) a otevře ho, nebo ukáže ve složce.
  * Ve webovém prostředí použije klasický <a> download.
  * @param {string} filename
  * @param {Uint8Array|ArrayBuffer} data
  * @param {string} mimeType
+ * @param {{ reveal?: boolean }} [options] - reveal: ukázat soubor ve správci souborů místo otevření
+ * @returns {Promise<string|null>} plná cesta k uloženému souboru (Tauri), ve webu null
  */
-export async function saveAndOpenFile(filename, data, mimeType) {
+export async function saveAndOpenFile(filename, data, mimeType, { reveal = false } = {}) {
   if (isTauri) {
     const { invoke } = await import('@tauri-apps/api/core')
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
     const base64 = uint8ArrayToBase64(bytes)
     const path = await invoke('save_download_file', { filename, dataBase64: base64 })
-    const { open } = await import('@tauri-apps/plugin-shell')
-    await open(path)
+    // Soubor je uložený – nepovedené otevření (např. chybí aplikace pro typ souboru) export nezmaří
+    try {
+      await invoke('open_download_file', { path, reveal })
+    } catch (err) {
+      console.warn('[UXLog] open_download_file failed:', err)
+    }
+    return path
   } else {
     const blob = new Blob([data], { type: mimeType })
     const url = URL.createObjectURL(blob)
@@ -155,6 +162,7 @@ export async function saveAndOpenFile(filename, data, mimeType) {
     a.download = filename
     a.click()
     URL.revokeObjectURL(url)
+    return null
   }
 }
 

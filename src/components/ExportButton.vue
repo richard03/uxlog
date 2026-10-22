@@ -19,6 +19,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import AppButton from './AppButton.vue'
 import { downloadText, copyText } from '../utils/exportHelper.js'
+import { showToast } from '../composables/useToast.js'
 
 /**
  * @prop {Function} getYaml - vrátí exportovaný text (název z doby, kdy šlo jen o YAML)
@@ -33,8 +34,15 @@ const props = defineProps({
   label: { type: String, default: '' },
 })
 
-function download(text) {
-  downloadText(text, props.filename, { extension: props.extension, mimeType: props.mimeType })
+/** Uloží soubor a oznámí výsledek – v desktopové aplikaci cestu k souboru, při chybě důvod. */
+async function download(text) {
+  try {
+    const path = await downloadText(text, props.filename, { extension: props.extension, mimeType: props.mimeType })
+    if (path) showToast(t.common.exportSaved(path), 6000)
+  } catch (err) {
+    console.error('[UXLog] export download failed:', err)
+    showToast(t.common.exportFailed(String(err?.message ?? err ?? '')), 8000)
+  }
 }
 
 const { t } = useI18n()
@@ -47,9 +55,11 @@ async function handleClipboard() {
   open.value = false
   const text = props.getYaml()
   const ok = await copyText(text)
-  if (!ok) {
+  if (ok) {
+    showToast(t.common.exportCopiedToClipboard)
+  } else {
     // clipboard nedostupný – fallback na stažení
-    download(text)
+    await download(text)
   }
 }
 

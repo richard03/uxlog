@@ -60,6 +60,43 @@ fn save_download_file(filename: String, data_base64: String) -> Result<String, S
     Ok(path.to_string_lossy().to_string())
 }
 
+/// Otevře uložený soubor ve výchozí aplikaci (reveal = false), nebo ho ukáže ve složce
+/// ve správci souborů (reveal = true). Jen soubory v Dokumenty/UXLog – volá se po save_download_file.
+/// Shell plugin `open` smí otevírat jen URL, proto vlastní příkaz.
+#[tauri::command]
+fn open_download_file(path: String, reveal: bool) -> Result<(), String> {
+    use std::process::Command;
+
+    let file = std::path::PathBuf::from(&path);
+    let docs = dirs::document_dir()
+        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from(".")));
+    let allowed = docs.join("UXLog");
+    let canonical = file.canonicalize().map_err(|e| format!("Soubor nenalezen: {e}"))?;
+    let allowed = allowed.canonicalize().map_err(|e| format!("Adresář nenalezen: {e}"))?;
+    if !canonical.starts_with(&allowed) {
+        return Err("Soubor není v adresáři exportů".into());
+    }
+
+    #[cfg(target_os = "windows")]
+    let result = if reveal {
+        Command::new("explorer").arg(format!("/select,{}", file.display())).spawn()
+    } else {
+        Command::new("explorer").arg(&file).spawn()
+    };
+    #[cfg(target_os = "macos")]
+    let result = if reveal {
+        Command::new("open").arg("-R").arg(&file).spawn()
+    } else {
+        Command::new("open").arg(&file).spawn()
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let result = Command::new("xdg-open")
+        .arg(if reveal { file.parent().map(|p| p.to_path_buf()).unwrap_or(file.clone()) } else { file.clone() })
+        .spawn();
+
+    result.map(|_| ()).map_err(|e| format!("Nelze otevřít soubor: {e}"))
+}
+
 /// Jednoduchý base64 dekodér (standard alphabet).
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     const TABLE: [u8; 128] = {
@@ -143,6 +180,7 @@ pub fn run() {
             list_storage_keys,
             get_api_port,
             save_download_file,
+            open_download_file,
         ])
         .run(tauri::generate_context!())
         .expect("Chyba při spuštění UXLog");

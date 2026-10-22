@@ -907,6 +907,9 @@ export default {
     restored: 'Projekt byl obnoven.',
   },
   common: {
+    exportSaved: (path) => `Soubor uložen: ${path}`,
+    exportFailed: (error) => `Soubor se nepodařilo uložit${error ? `: ${error}` : '.'}`,
+    exportCopiedToClipboard: 'Zkopírováno do schránky.',
     skipToContent: 'Přeskočit na obsah',
     showMore: 'Zobrazit celé',
     showLess: 'Sbalit',

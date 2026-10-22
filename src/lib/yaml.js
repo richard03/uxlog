@@ -17,7 +17,20 @@ function yamlEscape(str) {
   return str
 }
 
-function serializeKV(key, value, depth) {
+/**
+ * Klíč mapy: jednoduchý klíč (písmena, číslice, _, -) zůstane, jinak se uzavře do uvozovek
+ * (např. klíče rozvržení Canvasu „personas:<id>“ – dvojtečka v klíči by rozbila čtení).
+ * @param {string} key
+ * @returns {string}
+ */
+export function yamlKey(key) {
+  const k = String(key)
+  if (/^[\w-]+$/.test(k) && !k.startsWith('-')) return k
+  return '"' + k.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '').replace(/\n/g, '\\n') + '"'
+}
+
+function serializeKV(rawKey, value, depth) {
+  const key = yamlKey(rawKey)
   const indent = '  '.repeat(depth)
   if (value === null || value === undefined) return `${indent}${key}: null`
   if (typeof value === 'boolean' || typeof value === 'number') return `${indent}${key}: ${value}`
@@ -43,7 +56,8 @@ function serializeArrayItem(item, depth) {
   const entries = Object.entries(item)
   if (entries.length === 0) return `${indent}- {}`
   const lines = []
-  entries.forEach(([k, v], i) => {
+  entries.forEach(([rawKey, v], i) => {
+    const k = yamlKey(rawKey)
     const prefix = i === 0 ? `${indent}- ` : `${indent}  `
     if (v === null || v === undefined) {
       lines.push(`${prefix}${k}: null`)
@@ -181,6 +195,22 @@ export function parseYaml(text, { config = false } = {}) {
     return lines[pos].search(/\S/)
   }
 
+  /**
+   * Rozdělí řádek „klíč: hodnota“. Klíč je buď v uvozovkách, nebo bez mezer a končí první
+   * dvojtečkou, za kterou následuje mezera nebo konec řádku (jako v YAML) – proto projde
+   * i starší export s klíči typu „personas:<id>“ bez uvozovek.
+   * @param {string} text
+   * @returns {{ key: string, rest: string }|null}
+   */
+  function splitKey(text) {
+    const m = text.match(/^(?:"((?:[^"\\]|\\.)*)"|([^\s"#][^\s]*?))\s*:(?:\s+([\s\S]*)|$)/)
+    if (!m) return null
+    const key = m[1] !== undefined
+      ? m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\')
+      : m[2]
+    return { key, rest: (m[3] ?? '').trim() }
+  }
+
   function parseScalar(raw) {
     if (raw === 'null') return null
     if (raw === 'true') return true
@@ -219,10 +249,9 @@ export function parseYaml(text, { config = false } = {}) {
       if (pos >= lines.length) break
       const ci = currentIndent()
       if (ci < 0 || ci < indent || ci > indent) break
-      const match = lines[pos].slice(indent).match(/^(\w+):\s*([\s\S]*)/)
+      const match = splitKey(lines[pos].slice(indent))
       if (!match) break
-      const key = match[1]
-      const rest = match[2].trim()
+      const { key, rest } = match
       pos++
       if (rest === '') {
         skipBlank()
@@ -249,7 +278,7 @@ export function parseYaml(text, { config = false } = {}) {
       const stripped = lines[pos].slice(indent)
       if (!stripped.startsWith('- ')) break
       const afterDash = stripped.slice(2)
-      if (/^\w+:/.test(afterDash)) {
+      if (splitKey(afterDash)) {
         result.push(parseArrayItem(indent))
       } else if (afterDash.trim() === '' || afterDash.trim() === 'null') {
         pos++
@@ -268,10 +297,9 @@ export function parseYaml(text, { config = false } = {}) {
     const afterDash = line.slice(arrayIndent + 2)
     const result = {}
     let lastKey = null
-    const firstMatch = afterDash.match(/^(\w+):\s*([\s\S]*)/)
+    const firstMatch = splitKey(afterDash)
     if (firstMatch) {
-      const key = firstMatch[1]
-      const rest = firstMatch[2].trim()
+      const { key, rest } = firstMatch
       pos++
       lastKey = key
       if (rest === '') {
@@ -292,7 +320,7 @@ export function parseYaml(text, { config = false } = {}) {
       skipBlank()
       if (pos >= lines.length) break
       if (currentIndent() !== itemIndent) break
-      const curMatch = lines[pos].slice(itemIndent).match(/^(\w+):\s*([\s\S]*)/)
+      const curMatch = splitKey(lines[pos].slice(itemIndent))
       if (!curMatch) {
         // Řádek bez "key: value" na stejné úrovni – může jít o pokračování předchozí hodnoty (vícerořádkový text)
         if (lastKey != null && typeof result[lastKey] === 'string') {
@@ -302,8 +330,7 @@ export function parseYaml(text, { config = false } = {}) {
           break
         }
       } else {
-        const key = curMatch[1]
-        const rest = curMatch[2].trim()
+        const { key, rest } = curMatch
         pos++
         lastKey = key
         if (rest === '') {

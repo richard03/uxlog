@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { toYaml, parseYaml, stripYamlComment } from './yaml.js'
+import { toYaml, parseYaml, stripYamlComment, yamlKey } from './yaml.js'
 
 describe('toYaml', () => {
   it('serializuje primitiva', () => {
@@ -220,5 +220,56 @@ describe('stripYamlComment', () => {
     expect(stripYamlComment('a: b#c')).toBe('a: b#c')
     expect(stripYamlComment('a: "b # c"')).toBe('a: "b # c"')
     expect(stripYamlComment("- 'b # c' # d")).toBe("- 'b # c'")
+  })
+})
+
+describe('klíče map se zvláštními znaky', () => {
+  const layout = {
+    project: {
+      id: 'p1',
+      canvas: {
+        positions: { 'personas:1b22956d-a7d6': { x: 10, y: -20 } },
+        colors: { 'personas:1b22956d-a7d6': '#fde68a', 'requirements:9f-01': '#15803d' },
+      },
+    },
+    activities: [{ id: 'a', checklistLabels: { 'item-1': 'Krok', 'má mezeru': 'x', 'a"b': 'y' } }],
+  }
+
+  it('yamlKey nechá jednoduchý klíč a ostatní uzavře do uvozovek', () => {
+    expect(yamlKey('name')).toBe('name')
+    expect(yamlKey('1b22956d-a7d6')).toBe('1b22956d-a7d6')
+    expect(yamlKey('personas:abc')).toBe('"personas:abc"')
+    expect(yamlKey('-x')).toBe('"-x"')
+    expect(yamlKey('a"b')).toBe('"a\\"b"')
+  })
+
+  it('export s klíči Canvasu se načte zpět beze ztrát (mapa i položka pole)', () => {
+    const yaml = toYaml(layout)
+    expect(yaml).toContain('"personas:1b22956d-a7d6": "#fde68a"')
+    expect(parseYaml(yaml)).toEqual(layout)
+  })
+
+  it('načte i starší export s dvojtečkou v klíči bez uvozovek a pokračuje dalšími klíči', () => {
+    const legacy = [
+      'project:',
+      '  canvas:',
+      '    colors:',
+      '      personas:1b22-a7d6: "#fde68a"',
+      '    positions:',
+      '      personas:1b22-a7d6:',
+      '        x: 1',
+      '        y: 2',
+      '  name: HPS',
+      'goals:',
+      '  - id: g1',
+      '    url: https://example.com/a:b',
+    ].join('\n')
+    expect(parseYaml(legacy)).toEqual({
+      project: {
+        canvas: { colors: { 'personas:1b22-a7d6': '#fde68a' }, positions: { 'personas:1b22-a7d6': { x: 1, y: 2 } } },
+        name: 'HPS',
+      },
+      goals: [{ id: 'g1', url: 'https://example.com/a:b' }],
+    })
   })
 })
