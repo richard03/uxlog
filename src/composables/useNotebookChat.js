@@ -12,6 +12,8 @@ import { useEntityHelpers } from './useEntityHelpers.js'
 import { useI18n } from './useI18n.js'
 import { useConfig } from './useConfig.js'
 import { buildOutcomes, countOutcomes, LEGACY_ENTRY_ID } from '../lib/notebookChat.js'
+import { verifyQuotes, findAlteredQuotes, changedFields, fallbackMerge } from '../lib/notebookMerge.js'
+import { notebookFieldKeys } from '../lib/plugins/ai-shared/prompts.js'
 
 /** Entity s automatickým kódem → getter pro existující položky (prefix kódu je v data/entities.yaml). */
 const CODE_ENTITIES = {
@@ -23,18 +25,21 @@ const CODE_ENTITIES = {
   risk: 'getRisks',
 }
 
-/** Entita → [název metody pro vytvoření, název metody pro úpravu] ve store */
+/** Entita → [vytvoření, úprava, jeden záznam, seznam záznamů projektu] – názvy metod ve store */
 const ENTITY_METHODS = {
-  persona: ['addPersona', 'updatePersona'],
-  requirement: ['addRequirement', 'updateRequirement'],
-  goal: ['addGoal', 'updateGoal'],
-  stakeholder: ['addStakeholder', 'updateStakeholder'],
-  competition: ['addCompetition', 'updateCompetition'],
-  hypothesis: ['addHypothesis', 'updateHypothesis'],
-  scenario: ['addScenario', 'updateScenario'],
-  teamMember: ['addTeamMember', 'updateTeamMember'],
-  risk: ['addRisk', 'updateRisk'],
+  persona: ['addPersona', 'updatePersona', 'getPersona', 'getPersonas'],
+  requirement: ['addRequirement', 'updateRequirement', 'getRequirement', 'getRequirements'],
+  goal: ['addGoal', 'updateGoal', 'getGoal', 'getGoals'],
+  stakeholder: ['addStakeholder', 'updateStakeholder', 'getStakeholder', 'getStakeholders'],
+  competition: ['addCompetition', 'updateCompetition', 'getCompetition', 'getCompetitions'],
+  hypothesis: ['addHypothesis', 'updateHypothesis', 'getHypothesis', 'getHypotheses'],
+  scenario: ['addScenario', 'updateScenario', 'getScenario', 'getScenarios'],
+  teamMember: ['addTeamMember', 'updateTeamMember', 'getTeamMember', 'getTeamMembers'],
+  risk: ['addRisk', 'updateRisk', 'getRisk', 'getRisks'],
 }
+
+/** Kolik slučování (volání AI) běží najednou. */
+const MERGE_CONCURRENCY = 3
 
 /** Id záznamů, které se zpracovávají v tomto běhu aplikace (sdílené napříč instancemi). */
 const inFlight = ref(new Set())
@@ -48,8 +53,8 @@ const reviewQueue = ref([])
 export function useNotebookChat(projectIdRef) {
   const store = useStore()
   const { generateNextCode, getCodePrefix } = useEntityHelpers()
-  const { t } = useI18n()
-  const { getTemplate } = useConfig()
+  const { t, tPath } = useI18n()
+  const { getTemplate, getEffectiveEntityFields } = useConfig()
 
   const projectId = computed(() => toValue(projectIdRef))
   const history = computed(() => store.getProjectNotebookHistory(projectId.value))
@@ -116,7 +121,7 @@ export function useNotebookChat(projectIdRef) {
       if (list.length === 0) {
         store.updateNotebookEntryInProject(pid, entry.id, { status: 'done', outcomes: [] })
       } else {
-        reviewQueue.value = [...reviewQueue.value, { projectId: pid, entryId: entry.id, actions: list.map((a, i) => ({ ...a, _id: i })) }]
+        startReview(pid, entry, list)
       }
     } catch (e) {
       store.updateNotebookEntryInProject(pid, entry.id, { status: 'error', error: e?.message || String(e) })
@@ -179,15 +184,217 @@ export function useNotebookChat(projectIdRef) {
     runEntry(projectId.value, entry)
   }
 
+  // --- Revize: doplnění existujících záznamů ---------------------------------------------
+
   /**
-   * Zapíše jednu potvrzenou akci AI do store.
+   * Existující záznam projektu, kterého se akce týká, nebo null.
+   * @param {string} pid
+   * @param {string} entityType
+   * @param {string} id
+   */
+  function findEntity(pid, entityType, id) {
+    const getter = ENTITY_METHODS[entityType]?.[2]
+    const entity = getter && id ? store[getter](id) : null
+    return entity && entity.projectId === pid ? entity : null
+  }
+
+  /** Kopie záznamu bez reaktivity (stav „vlevo“ v revizi se nemá měnit pod rukama). */
+  function snapshot(entity) {
+    return entity ? JSON.parse(JSON.stringify(entity)) : null
+  }
+
+  /** Označení záznamu pro uživatele: „PER-003 Jana“. */
+  function entityLabel(entity) {
+    return [entity?.code, entity?.name].filter((s) => typeof s === 'string' && s.trim()).join(' ') || entity?.id || ''
+  }
+
+  /**
+   * Pole typu entity pro revizi (jen ta, která AI smí měnit) s popisky a volbami z konfigurace entit.
+   * @param {string} entityType
+   * @returns {Array<{ key: string, label: string, type: string, options: Array<{ value: string, label: string }> }>}
+   */
+  function fieldMeta(entityType) {
+    const configured = new Map(getEffectiveEntityFields(entityType, tPath).map((f) => [f.key, f]))
+    return notebookFieldKeys(entityType).map((key) => {
+      const f = configured.get(key)
+      const own = tPath(`${entityType}.${key}`)
+      return {
+        key,
+        label: f?.label || (own !== `${entityType}.${key}` ? own : key),
+        type: f?.type || (key === 'name' || key === 'code' ? 'text' : 'textarea'),
+        options: Array.isArray(f?.options) ? f.options : [],
+      }
+    })
+  }
+
+  /**
+   * Záznamy stejného typu v projektu (pro „Sloučit do existující…“).
+   * @param {string} entityType
+   * @returns {Array<{ id: string, label: string }>}
+   */
+  function candidates(entityType) {
+    const list = ENTITY_METHODS[entityType]?.[3]
+    if (!list) return []
+    return store[list](currentReview.value?.projectId || projectId.value).map((e) => ({ id: e.id, label: entityLabel(e) }))
+  }
+
+  /** Návrh (pravý sloupec) z hodnot záznamu a změněných polí. */
+  function buildProposal(entityType, original, changes) {
+    const proposal = {}
+    for (const key of notebookFieldKeys(entityType)) {
+      const v = original?.[key]
+      proposal[key] = v == null ? '' : typeof v === 'string' ? v : String(v)
+    }
+    return { ...proposal, ...changes }
+  }
+
+  /**
+   * Sloučí nové informace do existujícího záznamu pomocí AI (při selhání bez AI – připojením).
+   * Výsledek: action.proposal = celý návrh záznamu, action.merge = 'done' | 'failed'.
+   * @param {Object} review
+   * @param {Object} action - reaktivní akce z revize
+   */
+  async function runMerge(review, action) {
+    const entity = findEntity(review.projectId, action.entity, action.entityId)
+    if (!entity) {
+      // Úprava neexistujícího záznamu (AI si spletla ID, nebo byl mezitím smazán) → nový záznam
+      Object.assign(action, { type: 'create', entityId: null, original: null, merge: null, proposal: { name: action.createName || '', ...action.extracted }, focusKeys: createFocusKeys(action.extracted) })
+      return
+    }
+    const original = snapshot(entity)
+    const token = Symbol('merge')
+    Object.assign(action, { original, entityName: entityLabel(entity), merge: 'pending', mergeError: '', mergeToken: token })
+    const textKeys = fieldMeta(action.entity).filter((f) => f.type === 'textarea').map((f) => f.key)
+    let changes
+    let status = 'done'
+    let error = ''
+    try {
+      if (!hasCapability('ai:merge')) throw new Error(t.notebook.mergeUnavailable)
+      const res = await callCapability('ai:merge', action.entity, original, action.quotes.map((q) => q.text), review.notesText, action.extracted)
+      changes = changedFields(original, res?.fields || {})
+    } catch (e) {
+      changes = fallbackMerge(original, action.extracted, { textKeys })
+      status = 'failed'
+      error = e?.message || String(e)
+    }
+    // Mezitím uživatel mohl zvolit jiný cíl sloučení – starý výsledek zahodit
+    if (action.mergeToken !== token) return
+    // Sloučení nesmí smazat název existujícího záznamu
+    if ('name' in changes && !String(changes.name).trim()) delete changes.name
+    // focusKeys: pole, která se mění – v návrhu jsou nahoře (pořadí se při psaní už nemění)
+    Object.assign(action, { proposal: buildProposal(action.entity, original, changes), focusKeys: Object.keys(changes), merge: status, mergeError: error })
+  }
+
+  /** Klíče polí nahoře v návrhu nového záznamu – název vždy první (musí jít doplnit). */
+  function createFocusKeys(fields) {
+    return ['name', ...Object.keys(fields || {}).filter((k) => k !== 'name')]
+  }
+
+  /**
+   * Chybí návrhu název? Takový záznam nejde potvrdit (záznam bez názvu nesmí vzniknout).
+   * @param {Object} action
+   * @returns {boolean}
+   */
+  function nameMissing(action) {
+    return !String(action?.proposal?.name ?? '').trim()
+  }
+
+  /** Spustí slučování akcí s omezeným souběhem. */
+  async function runMerges(review, actions) {
+    let next = 0
+    const worker = async () => {
+      while (next < actions.length) await runMerge(review, actions[next++])
+    }
+    await Promise.all(Array.from({ length: Math.min(MERGE_CONCURRENCY, actions.length) }, worker))
+  }
+
+  /**
+   * Založí revizi návrhů AI: ověří citace a u úprav existujících záznamů spustí slučování.
+   * @param {string} pid
+   * @param {Object} entry - zpráva zápisníku
+   * @param {Array<Object>} list - akce z AI
+   */
+  function startReview(pid, entry, list) {
+    const actions = list.map((a, i) => {
+      const extracted = { ...(a.fields || {}) }
+      return {
+        ...a,
+        _id: i,
+        fields: extracted,
+        extracted,
+        createName: a.entityName,
+        quotes: verifyQuotes(a.quotes, entry.text),
+        original: null,
+        merge: null,
+        mergeError: '',
+        proposal: { name: '', ...extracted },
+        focusKeys: a.type === 'update' ? Object.keys(extracted) : createFocusKeys(extracted),
+      }
+    })
+    reviewQueue.value = [...reviewQueue.value, { projectId: pid, entryId: entry.id, notesText: entry.text, actions }]
+    // Reaktivní kopie z fronty – změny akcí (výsledek slučování) se tak propíší do UI
+    const review = reviewQueue.value[reviewQueue.value.length - 1]
+    runMerges(review, review.actions.filter((a) => a.type === 'update'))
+  }
+
+  /**
+   * „Sloučit do existující…“ – návrh nového záznamu se zapracuje do vybraného existujícího.
+   * @param {Object} action
+   * @param {string} targetId
+   */
+  function mergeInto(action, targetId) {
+    const review = currentReview.value
+    if (!review || !findEntity(review.projectId, action.entity, targetId)) return
+    Object.assign(action, { type: 'update', entityId: targetId })
+    runMerge(review, action)
+  }
+
+  /** Vrátí akci zpět na vytvoření nového záznamu (zruší sloučení). */
+  function revertToCreate(action) {
+    Object.assign(action, {
+      type: 'create', entityId: null, entityName: action.createName, original: null,
+      merge: null, mergeError: '', mergeToken: null, proposal: { name: action.createName || '', ...action.extracted }, focusKeys: createFocusKeys(action.extracted),
+    })
+  }
+
+  /** Znovu spustí slučování (např. po chybě AI). */
+  function remerge(action) {
+    const review = currentReview.value
+    if (review && action.type === 'update') runMerge(review, action)
+  }
+
+  /**
+   * Změněná pole akce (pro zvýraznění a zápis): u úpravy oproti původnímu záznamu, u nového záznamu neprázdná.
+   * @param {Object} action
+   * @returns {Record<string, string>}
+   */
+  function actionChanges(action) {
+    if (action?.type === 'update') return changedFields(action.original, action.proposal)
+    return changedFields(null, Object.fromEntries(Object.entries(action?.proposal || {}).filter(([, v]) => String(v ?? '').trim())))
+  }
+
+  /**
+   * Citace v návrhu, které nejsou doslova v poznámkách ani v původním záznamu.
+   * @param {Object} action
+   * @returns {Array<{ field: string, text: string }>}
+   */
+  function alteredQuotes(action) {
+    const sources = [currentReview.value?.notesText || '', ...Object.values(action?.original || {}).filter((v) => typeof v === 'string')]
+    return findAlteredQuotes(actionChanges(action), sources)
+  }
+
+  /**
+   * Zapíše jednu potvrzenou akci AI do store. U úpravy jen pole, která se oproti záznamu
+   * v době revize změnila – souběžné úpravy ostatních polí se tak nepřepíšou.
    * @param {Object} action
    */
   function applyAction(action) {
     const pid = currentReview.value?.projectId
     const methods = ENTITY_METHODS[action?.entity]
     if (!pid || !methods) return
-    const fields = { ...action.fields }
+    // Záznam bez názvu nesmí vzniknout ani o název přijít (UI potvrzení v tom případě nepustí)
+    if (nameMissing(action)) return
+    const fields = actionChanges(action)
     if (action.type === 'create') {
       const getter = CODE_ENTITIES[action.entity]
       const prefix = getCodePrefix(action.entity)
@@ -195,7 +402,7 @@ export function useNotebookChat(projectIdRef) {
         fields.code = generateNextCode(prefix, store[getter](pid))
       }
       store[methods[0]](pid, fields)
-    } else if (action.type === 'update' && action.entityId) {
+    } else if (action.type === 'update' && action.entityId && Object.keys(fields).length) {
       store[methods[1]](action.entityId, fields)
     }
   }
@@ -217,5 +424,7 @@ export function useNotebookChat(projectIdRef) {
   return {
     history, aiAvailable, displayStatus, send, retry, currentReview, applyAction, finishReview,
     countOutcomes, legacyEntryId: LEGACY_ENTRY_ID,
+    /** Pomocníci revize (NotebookModal) – sloučení do existujícího záznamu. */
+    reviewHelpers: { fieldMeta, candidates, mergeInto, revertToCreate, remerge, actionChanges, alteredQuotes, nameMissing },
   }
 }

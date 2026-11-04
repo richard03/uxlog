@@ -4,7 +4,7 @@
     <PendingReviewLayout>
       <template #toolbar-right>
         <template v-if="pendingActions.length">
-          <AppButton variant="primary" size="sm" @click="confirmAllPending">
+          <AppButton variant="primary" size="sm" :disabled="!readyActions.length" @click="confirmAllPending">
             {{ t.notebook.actionConfirmAll }}
           </AppButton>
           <AppButton variant="secondary" size="sm" @click="rejectAllPending">
@@ -17,11 +17,7 @@
         v-for="action in pendingActions"
         :key="action._id"
         :expanded="!!expandedById[action._id]"
-        :confirm-label="t.notebook.actionConfirm"
-        :skip-label="t.notebook.actionSkip"
         @toggle="toggleRow(action._id)"
-        @confirm="confirmOne(action)"
-        @skip="skipOne(action)"
       >
         <template #summary>
           <span class="pr-badge">{{ t.notebook.entityLabels[action.entity] || action.entity }}</span>
@@ -31,12 +27,35 @@
           >
             {{ action.type === 'create' ? t.notebook.actionCreate : t.notebook.actionUpdate }}
           </span>
-          <strong class="pr-title">{{ action.entityName }}</strong>
-          <span v-if="action.entityId" class="pr-meta-id">{{ t.import.rowId }}: {{ action.entityId }}</span>
+          <strong class="pr-title">{{ (action.type === 'create' ? action.proposal?.name : action.entityName) || t.notebook.untitled }}</strong>
+          <span v-if="action.merge === 'pending'" class="pr-merge-status pr-merge-status--inline">{{ t.notebook.merging }}</span>
+        </template>
+        <template #actions>
+          <AppButton
+            variant="primary"
+            size="sm"
+            :disabled="!canConfirm(action)"
+            :title="helpers.nameMissing(action) ? t.notebook.nameRequired : undefined"
+            @click="confirmOne(action)"
+          >
+            {{ t.notebook.actionConfirm }}
+          </AppButton>
+          <AppButton variant="tertiary" size="sm" @click="skipOne(action)">
+            {{ t.notebook.actionSkip }}
+          </AppButton>
         </template>
         <template #body>
-          <PendingReviewAiFields :model="action.fields" :id-prefix="`af-${action._id}`" />
-          <blockquote v-if="action.sourceText" class="pr-source">{{ action.sourceText }}</blockquote>
+          <NotebookMergeColumns
+            :action="action"
+            :fields="helpers.fieldMeta(action.entity)"
+            :candidates="helpers.candidates(action.entity)"
+            :changes="helpers.actionChanges(action)"
+            :altered="helpers.alteredQuotes(action)"
+            :id-prefix="`af-${action._id}`"
+            @merge-into="(id) => helpers.mergeInto(action, id)"
+            @revert="helpers.revertToCreate(action)"
+            @remerge="helpers.remerge(action)"
+          />
         </template>
       </PendingReviewRow>
     </PendingReviewLayout>
@@ -46,31 +65,47 @@
 <script setup>
 /**
  * Revize akcí navržených AI ke zprávě ze zápisníku.
- * Potvrzené akce emituje jako `confirm-action`; při zavření předá _id potvrzených akcí (`close`).
- * Nepotvrzené akce se považují za přeskočené.
+ * Akce jsou reaktivní objekty z revize v useNotebookChat (výsledek slučování do existujícího
+ * záznamu do nich dorazí až po otevření). Potvrzené akce emituje jako `confirm-action`;
+ * při zavření předá _id potvrzených akcí (`close`). Nepotvrzené akce se považují za přeskočené.
  */
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import Modal from './Modal.vue'
 import AppButton from './AppButton.vue'
 import PendingReviewLayout from './PendingReviewLayout.vue'
 import PendingReviewRow from './PendingReviewRow.vue'
-import PendingReviewAiFields from './PendingReviewAiFields.vue'
+import NotebookMergeColumns from './NotebookMergeColumns.vue'
 import { useI18n } from '../composables/useI18n.js'
 import { showToast } from '../composables/useToast.js'
 
 const props = defineProps({
   actions: { type: Array, default: () => [] },
+  /** reviewHelpers z useNotebookChat (fieldMeta, candidates, mergeInto, revertToCreate, remerge, actionChanges, alteredQuotes). */
+  helpers: { type: Object, required: true },
 })
 
 const emit = defineEmits(['close', 'confirm-action'])
 
 const { t } = useI18n()
 
-const pendingActions = ref(props.actions.map((a) => ({ ...a, fields: { ...a.fields } })))
+/** _id vyřízených akcí (potvrzených i přeskočených). */
+const handled = ref(new Set())
 const confirmedIds = []
 
-/** Rozbalení řádku akce (klíč = _id). */
-const expandedById = reactive({})
+const pendingActions = computed(() => props.actions.filter((a) => !handled.value.has(a._id)))
+/**
+ * Jde akci potvrdit? Ne, dokud běží slučování nebo když návrh nemá název.
+ * @param {Object} action
+ */
+function canConfirm(action) {
+  return action.merge !== 'pending' && !props.helpers.nameMissing(action)
+}
+
+/** Akce, které jde potvrdit. */
+const readyActions = computed(() => pendingActions.value.filter(canConfirm))
+
+/** Rozbalení řádku akce (klíč = _id) – jediný návrh je rozbalený rovnou. */
+const expandedById = reactive(props.actions.length === 1 ? { [props.actions[0]._id]: true } : {})
 
 /**
  * Přepne stav rozbalení řádku.
@@ -81,11 +116,11 @@ function toggleRow(id) {
 }
 
 /**
- * Odebere akci ze seznamu.
+ * Označí akci jako vyřízenou.
  * @param {{ _id: number }} action
  */
-function removeAction(action) {
-  pendingActions.value = pendingActions.value.filter((a) => a._id !== action._id)
+function markHandled(action) {
+  handled.value = new Set([...handled.value, action._id])
   delete expandedById[action._id]
 }
 
@@ -105,9 +140,10 @@ watch(() => pendingActions.value.length, (len) => {
  * @param {object} action
  */
 function confirmOne(action) {
+  if (!canConfirm(action)) return
   emit('confirm-action', action)
   confirmedIds.push(action._id)
-  removeAction(action)
+  markHandled(action)
   showToast(t.notebook.itemImported)
 }
 
@@ -116,20 +152,21 @@ function confirmOne(action) {
  * @param {object} action
  */
 function skipOne(action) {
-  removeAction(action)
+  markHandled(action)
   showToast(t.notebook.itemSkipped)
 }
 
 /**
- * Potvrdí všechny zbývající akce najednou.
+ * Potvrdí všechny zbývající akce, u kterých už doběhlo slučování.
  */
 function confirmAllPending() {
-  for (const action of pendingActions.value) {
+  const ready = readyActions.value
+  for (const action of ready) {
     emit('confirm-action', action)
     confirmedIds.push(action._id)
   }
+  handled.value = new Set([...handled.value, ...ready.map((a) => a._id)])
   showToast(t.notebook.batchImported)
-  pendingActions.value = []
 }
 
 /**
@@ -137,6 +174,6 @@ function confirmAllPending() {
  */
 function rejectAllPending() {
   showToast(t.notebook.allRejected)
-  pendingActions.value = []
+  handled.value = new Set(props.actions.map((a) => a._id))
 }
 </script>

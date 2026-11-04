@@ -80,6 +80,7 @@
       v-if="currentReview"
       :key="currentReview.entryId"
       :actions="currentReview.actions"
+      :helpers="reviewHelpers"
       @confirm-action="applyAction"
       @close="finishReview"
     />
@@ -102,7 +103,7 @@ const props = defineProps({
 const { t } = useI18n()
 const {
   history, aiAvailable, displayStatus, send, retry, currentReview, applyAction, finishReview,
-  countOutcomes, legacyEntryId: legacyId,
+  countOutcomes, legacyEntryId: legacyId, reviewHelpers,
 } = useNotebookChat(() => props.projectId)
 const draft = ref('')
 const historyEl = ref(null)

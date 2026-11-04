@@ -19,6 +19,7 @@ Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Fu
 - **Tým** - členové týmu s rolemi
 
 Další:
+- **Zápisník** – vložený text (např. rozhovor) AI rozebere na návrhy záznamů; existující záznamy doplní (AI vepíše sloučený text, citace přenese doslova) a revize ukazuje vedle sebe současný záznam, citace z nového textu a upravitelný návrh
 - **Data / Canvas / Dokument** – přepínač pohledu projektu vedle loga; Dokument zobrazí všechna data projektu jako text s nadpisy a odstavci, který jde upravovat přímo (změny se ukládají do záznamů), s fulltextovým hledáním (Ctrl+F) a exportem do Markdownu; Canvas je nekonečné plátno přes celé okno: entity jako kartičky, výběr myší (i obdélníkem), přetahování jednotlivých kartiček i skupin, posun a zoom plátna, dvojklik otevře detail entity v plovoucím okně nad plátnem (každá entita ve vlastním okně, okna jde přesouvat a měnit jim velikost); nad výběrem plovoucí lišta s barvou kartiček a menu „…“ (přesun, kopie, smazání); filtr typů na horní hraně zvýrazní kartičky jednoho typu; nástroj Rámeček (F) kreslí rámečky s nadpisem, kartičky přetažené do rámečku se s ním přesouvají
 - Vazby mezi entitami (many-to-many) s automatickým propojováním
 - Fulltextové vyhledávání napříč všemi entitami

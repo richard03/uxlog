@@ -6,7 +6,7 @@
  */
 
 import {
-  buildProjectContext, processNotebookInParts,
+  buildProjectContext, processNotebookInParts, buildMergePrompt, parseMergeResult,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
   buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer,
@@ -55,6 +55,22 @@ async function processNotebook(notebookText, projectData) {
   if (!apiKey) throw new Error('Gemini API klíč není nastaven. Přejděte do nastavení.')
   const model = getModel()
   return processNotebookInParts(notebookText, buildProjectContext(projectData), (prompt) => callGemini(apiKey, prompt, model, { json: true }))
+}
+
+/**
+ * Sloučí nové informace z poznámek do existujícího záznamu (druhá fáze zpracování zápisníku).
+ * @param {string} entityType
+ * @param {Object} entity - současný záznam
+ * @param {string[]} quotes - výňatky z poznámek
+ * @param {string} notesText - celé poznámky (určují jazyk)
+ * @param {Object} proposed - nové informace z první fáze
+ * @returns {Promise<{ fields: Object }>}
+ */
+async function mergeEntity(entityType, entity, quotes, notesText, proposed) {
+  const apiKey = getKey()
+  if (!apiKey) throw new Error('Gemini API klíč není nastaven. Přejděte do nastavení.')
+  const prompt = buildMergePrompt(entityType, entity, quotes, { proposed, languageSample: notesText })
+  return parseMergeResult(await callGemini(apiKey, prompt, getModel(), { json: true }), entityType)
 }
 
 /**
@@ -108,6 +124,10 @@ export default {
 
     ctx.registerCapability('ai:notebook', (notebookText, projectData) => {
       return processNotebook(notebookText, projectData)
+    })
+
+    ctx.registerCapability('ai:merge', (entityType, entity, quotes, notesText, proposed) => {
+      return mergeEntity(entityType, entity, quotes, notesText, proposed)
     })
 
     ctx.registerCapability('ai:ask', (question, projectData, history) => {

@@ -22,6 +22,12 @@ import {
   detectTextLanguage,
   buildLanguageRule,
   buildConnectionsPrompt,
+  buildProjectContext,
+  buildMergePrompt,
+  parseMergeResult,
+  notebookFieldKeys,
+  deriveEntityName,
+  ensureActionName,
 } from './prompts.js'
 
 describe('buildCompetitionAnalysisPrompt', () => {
@@ -321,15 +327,19 @@ describe('dlouhé poznámky – useknutá odpověď a zpracování po částech'
     expect(() => parseActions('{"actions": [{"type": "cre')).toThrow(/neúplnou nebo neplatnou odpověď/)
   })
 
-  it('parseActions zkrátí dlouhou citaci zdroje', () => {
-    const res = parseActions(JSON.stringify({ actions: [{ ...action('A'), sourceText: 'y'.repeat(1000) }] }))
-    expect(res.actions[0].sourceText.length).toBeLessThanOrEqual(201)
+  it('parseActions omezí citace (bez výpustky) a starší sourceText převede na quotes', () => {
+    const res = parseActions(JSON.stringify({ actions: [{ ...action('A'), quotes: ['y'.repeat(1000), 'b', 'b', ''] }] }))
+    expect(res.actions[0].quotes).toEqual(['y'.repeat(400), 'b'])
+    expect(parseActions(JSON.stringify({ actions: [action('B')] })).actions[0]).toMatchObject({ quotes: ['x'] })
+    expect(parseActions(JSON.stringify({ actions: [action('B')] })).actions[0]).not.toHaveProperty('sourceText')
   })
 
   it('prompt zápisníku nežádá opisování celého textu a omezuje citace', () => {
     const p = buildNotebookPrompt('text', 'ctx', { index: 2, total: 3 })
     expect(p).not.toContain('residualText')
-    expect(p).toContain('nejvýše 200 znaků')
+    expect(p).toContain('nejvýše 400 znaků')
+    expect(p).toContain('DOSLOVA')
+    expect(p).toContain('"quotes"')
     expect(p).toContain('část 2 z 3')
   })
 
@@ -426,5 +436,86 @@ describe('jazyk odpovědi AI', () => {
     expect(buildCompetitionAnalysisPrompt('e-shop se šperky a hodinkami', 'ctx')).toMatch(/čeština/)
     expect(buildConnectionsPrompt({ id: 'p1', name: 'Jana', description: 'Matka dvou dětí, nakupuje přes mobil' }, 'personas', 'ctx'))
       .toMatch(/Jazyk – texty aktuální entity: čeština/)
+  })
+})
+
+describe('doplňování existujících záznamů', () => {
+  it('přehled projektu obsahuje zkrácený obsah záznamů', () => {
+    const ctx = buildProjectContext({
+      personas: [{ id: 'p1', code: 'PER-001', name: 'Jana', status: 'persona', description: 'Nákupčí velkoobchodu', needs: 'x'.repeat(500) }],
+      teamMembers: [{ id: 'm', name: 'Petr', role: 'UX' }],
+    })
+    expect(ctx).toContain('O záznamu: Nákupčí velkoobchodu | xxx')
+    expect(ctx.split('\n').find((l) => l.includes('PER-001')).length).toBeLessThan(340)
+    expect(ctx).toContain('Jméno:Petr Role:UX')
+  })
+
+  it('prompt zápisníku: tatáž entita jinými slovy → update, nová (i podobná) → create', () => {
+    const p = buildNotebookPrompt('Rozhovor s nákupčí', 'ctx')
+    expect(p).toMatch(/TÉŽE entitě.*i pod jiným jménem, z jiného pohledu/)
+    expect(p).toMatch(/Novou entitu vždy založ, i když se některé existující podobá/)
+    expect(p).toMatch(/Pokud si nejsi jistý, že jde o tutéž entitu, použij "create"/)
+  })
+
+  it('mergeActions sloučí citace z částí bez duplicit', () => {
+    const a = { type: 'update', entity: 'persona', entityId: 'p1', entityName: 'Jana', fields: { needs: 'A' }, quotes: ['q1'] }
+    const b = { ...a, fields: { needs: 'B' }, quotes: ['q1', 'q2'] }
+    const [merged] = mergeActions([[a], [b]])
+    expect(merged.quotes).toEqual(['q1', 'q2'])
+  })
+
+  it('merge prompt obsahuje současné hodnoty, citace a pravidlo o doslovných citacích', () => {
+    const p = buildMergePrompt('persona', { name: 'Jana', needs: 'Rychlé objednání.', quote: '' }, ['„Objednávám každé pondělí.“'], {
+      proposed: { needs: 'Objednávka z mobilu' },
+      languageSample: 'Rozhovor s nákupčí, objednává každé pondělí přes telefon.',
+    })
+    expect(p).toContain('### needs\nRychlé objednání.')
+    expect(p).toContain('### quote\n(prázdné)')
+    expect(p).toContain('1. <<<„Objednávám každé pondělí.“>>>')
+    expect(p).toContain('- needs: Objednávka z mobilu')
+    expect(p).toMatch(/DOSLOVA, znak po znaku/)
+    expect(p).toMatch(/CELÉ nové znění/)
+    expect(p).toMatch(/čeština/)
+  })
+
+  it('parseMergeResult toleruje markdown a text kolem, ponechá jen povolená pole', () => {
+    const res = parseMergeResult('Tady:\n```json\n{ "fields": { "needs": ["A", "B"], "id": "x", "foo": "y" } }\n```', 'persona')
+    expect(res).toEqual({ fields: { needs: 'A\nB' } })
+    expect(parseMergeResult('{"fields":{}}', 'persona')).toEqual({ fields: {} })
+    expect(() => parseMergeResult('nic', 'persona')).toThrow(/neplatnou odpověď/)
+  })
+
+  it('deriveEntityName vezme první větu textu a dlouhou zkrátí na hranici slova', () => {
+    expect(deriveEntityName({ description: 'Nákupčí velkoobchodu. Objednává každé pondělí.' })).toBe('Nákupčí velkoobchodu')
+    expect(deriveEntityName({ status: 'persona', needs: '- Přehled o dodávce' })).toBe('Přehled o dodávce')
+    const long = deriveEntityName({ description: 'Uživatel potřebuje mít neustále přehled o tom, kde se právě nachází jeho objednané zboží a kdy dorazí' })
+    expect(long.length).toBeLessThanOrEqual(61)
+    expect(long.endsWith('…')).toBe(true)
+    expect(long).not.toMatch(/\s…$/)
+    expect(deriveEntityName({ code: 'PER-001', url: 'https://x.cz', status: 'persona' })).toBe('')
+    expect(deriveEntityName(null)).toBe('')
+  })
+
+  it('parseActions doplní chybějící název nové entity (z entityName, jinak z textu)', () => {
+    const parse = (a) => parseActions(JSON.stringify({ actions: [a] })).actions[0]
+    const base = { type: 'create', entity: 'requirement', entityId: null, quotes: [] }
+    expect(parse({ ...base, entityName: 'Sledování dodávky', fields: { description: 'X' } }).fields.name).toBe('Sledování dodávky')
+    const derived = parse({ ...base, entityName: '', fields: { name: '  ', description: 'Nákupčí vidí stav dodávky. Bez telefonu.' } })
+    expect(derived.fields.name).toBe('Nákupčí vidí stav dodávky')
+    expect(derived.entityName).toBe('Nákupčí vidí stav dodávky')
+  })
+
+  it('u úpravy prázdný název z návrhu vypadne (nesmaže stávající)', () => {
+    expect(ensureActionName({ type: 'update', entityId: 'p1', fields: { name: '', needs: 'A' } }).fields).toEqual({ needs: 'A' })
+  })
+
+  it('prompt vyžaduje název nové entity', () => {
+    expect(buildNotebookPrompt('text', 'ctx')).toMatch(/"name" v "fields" POVINNÉ/)
+    expect(buildMergePrompt('persona', {}, [])).toMatch(/"name" nikdy nevracej prázdné/)
+  })
+
+  it('notebookFieldKeys vrací klíče bez popisu výčtu', () => {
+    expect(notebookFieldKeys('risk')).toContain('likelihood')
+    expect(notebookFieldKeys('nic')).toEqual([])
   })
 })

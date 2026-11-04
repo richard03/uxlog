@@ -6,7 +6,7 @@
  */
 
 import {
-  buildProjectContext, processNotebookInParts,
+  buildProjectContext, processNotebookInParts, buildMergePrompt, parseMergeResult,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
   buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer,
@@ -62,6 +62,22 @@ async function processNotebook(notebookText, projectData) {
 }
 
 /**
+ * Sloučí nové informace z poznámek do existujícího záznamu (druhá fáze zpracování zápisníku).
+ * @param {string} entityType
+ * @param {Object} entity - současný záznam
+ * @param {string[]} quotes - výňatky z poznámek
+ * @param {string} notesText - celé poznámky (určují jazyk)
+ * @param {Object} proposed - nové informace z první fáze
+ * @returns {Promise<{ fields: Object }>}
+ */
+async function mergeEntity(entityType, entity, quotes, notesText, proposed) {
+  const apiKey = getKey()
+  if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
+  const prompt = buildMergePrompt(entityType, entity, quotes, { proposed, languageSample: notesText })
+  return parseMergeResult(await callOpenAI(apiKey, prompt, getModel(), { json: true }), entityType)
+}
+
+/**
  * Dotaz nad projektem (režim „Zeptat se“) – vrací jen text odpovědi, nic nezapisuje.
  * @param {string} question
  * @param {Object} projectData
@@ -112,6 +128,10 @@ export default {
 
     ctx.registerCapability('ai:notebook', (notebookText, projectData) => {
       return processNotebook(notebookText, projectData)
+    })
+
+    ctx.registerCapability('ai:merge', (entityType, entity, quotes, notesText, proposed) => {
+      return mergeEntity(entityType, entity, quotes, notesText, proposed)
     })
 
     ctx.registerCapability('ai:ask', (question, projectData, history) => {

@@ -91,6 +91,34 @@ export function normalizeActionFields(fields) {
   return out
 }
 
+/** Max. délka zkráceného obsahu záznamu v přehledu projektu pro AI (znaky). */
+const CONTEXT_ABOUT_MAX_CHARS = 240
+
+/**
+ * Typy entit, které AI ze zápisníku vytváří a upravuje, a jejich pole pro prompt
+ * (hodnoty výčtů v závorce). Sdílí zpracování poznámek i slučování do existujícího záznamu.
+ */
+export const NOTEBOOK_ENTITY_FIELDS = {
+  persona: ['code', 'name', 'status (protopersona/persona)', 'description', 'motivation', 'needs', 'problems', 'barriers', 'quote', 'context', 'recruitmentCriteria', 'targetGroupSize', 'targetGroupValue', 'url'],
+  requirement: ['code', 'name', 'description', 'motivation', 'category (data/function/quality/constraint)', 'priority (must/should/could/wont)', 'wontHaveExplanation', 'url'],
+  goal: ['code', 'name', 'description', 'metrics', 'url'],
+  stakeholder: ['name', 'description', 'influenceLevel (high/medium/low)', 'interestLevel (high/medium/low)', 'attitude (positive/neutral/negative)', 'commFrequency', 'commChannel', 'commNeeds'],
+  competition: ['name', 'description', 'competitorType (direct/indirect)', 'strengths', 'weaknesses', 'inspiration', 'url'],
+  hypothesis: ['code', 'name', 'description', 'status (untested/tested/refuted)', 'explanation', 'url'],
+  scenario: ['code', 'name', 'type (main/secondary/error)', 'description', 'trigger', 'outcome', 'url'],
+  teamMember: ['name', 'role', 'email', 'phone', 'note'],
+  risk: ['code', 'name', 'description', 'likelihood (high/medium/low)', 'impact (high/medium/low)', 'mitigation', 'status (open/mitigated/occurred/closed)'],
+}
+
+/**
+ * Klíče polí, která AI smí u daného typu entity navrhnout (bez popisu výčtu).
+ * @param {string} entityType
+ * @returns {string[]}
+ */
+export function notebookFieldKeys(entityType) {
+  return (NOTEBOOK_ENTITY_FIELDS[entityType] || []).map((f) => f.split(' ')[0])
+}
+
 /**
  * Sestaví přehled existujících entit projektu pro prompt.
  * @param {Object} projectData
@@ -99,16 +127,22 @@ export function normalizeActionFields(fields) {
 export function buildProjectContext(projectData) {
   const lines = []
 
+  // Zkrácený obsah hlavních polí – AI podle něj pozná existující záznam i tehdy, když ho
+  // nové poznámky popisují jinými slovy nebo z jiného pohledu (a navrhne update místo duplicity)
+  const about = (item, keys) => {
+    const text = keys.map((k) => aiFieldToPlainString(item?.[k]).replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ')
+    return text ? ` O záznamu: ${truncateText(text, CONTEXT_ABOUT_MAX_CHARS)}` : ''
+  }
   const sections = [
-    { key: 'goals', label: 'Cíle', fields: (g) => `ID:${g.id} Kód:${g.code || '—'} Název:${g.name}` },
-    { key: 'stakeholders', label: 'Stakeholdeři', fields: (s) => `ID:${s.id} Název:${s.name}` },
-    { key: 'competitions', label: 'Konkurence', fields: (c) => `ID:${c.id} Název:${c.name}` },
-    { key: 'hypotheses', label: 'Hypotézy', fields: (h) => `ID:${h.id} Kód:${h.code || '—'} Název:${h.name} Stav:${h.status}` },
-    { key: 'personas', label: 'Persony', fields: (p) => `ID:${p.id} Kód:${p.code || '—'} Jméno:${p.name} Stav:${p.status}` },
-    { key: 'scenarios', label: 'Scénáře', fields: (s) => `ID:${s.id} Kód:${s.code || '—'} Název:${s.name}` },
-    { key: 'requirements', label: 'Požadavky', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Priorita:${r.priority}` },
+    { key: 'goals', label: 'Cíle', fields: (g) => `ID:${g.id} Kód:${g.code || '—'} Název:${g.name}${about(g, ['description'])}` },
+    { key: 'stakeholders', label: 'Stakeholdeři', fields: (s) => `ID:${s.id} Název:${s.name}${about(s, ['description'])}` },
+    { key: 'competitions', label: 'Konkurence', fields: (c) => `ID:${c.id} Název:${c.name}${about(c, ['description'])}` },
+    { key: 'hypotheses', label: 'Hypotézy', fields: (h) => `ID:${h.id} Kód:${h.code || '—'} Název:${h.name} Stav:${h.status}${about(h, ['description'])}` },
+    { key: 'personas', label: 'Persony', fields: (p) => `ID:${p.id} Kód:${p.code || '—'} Jméno:${p.name} Stav:${p.status}${about(p, ['description', 'context', 'needs', 'problems'])}` },
+    { key: 'scenarios', label: 'Scénáře', fields: (s) => `ID:${s.id} Kód:${s.code || '—'} Název:${s.name}${about(s, ['description'])}` },
+    { key: 'requirements', label: 'Požadavky', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Priorita:${r.priority}${about(r, ['description'])}` },
     { key: 'teamMembers', label: 'Tým', fields: (m) => `ID:${m.id} Jméno:${m.name} Role:${m.role}` },
-    { key: 'risks', label: 'Rizika', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Stav:${r.status || 'open'}` },
+    { key: 'risks', label: 'Rizika', fields: (r) => `ID:${r.id} Kód:${r.code || '—'} Název:${r.name} Stav:${r.status || 'open'}${about(r, ['description'])}` },
   ]
 
   for (const { key, label, fields } of sections) {
@@ -134,8 +168,80 @@ export const NOTEBOOK_METHOD_RULES = `Metodika formulace (použij, pokud z pozn�
 - competition: rozliš přímého a nepřímého konkurenta v competitorType.
 - risk: popiš, co se může stát a proč; opatření (jak riziku předejít nebo zmírnit dopad) dej do mitigation.`
 
-/** Max. délka citace zdroje u akce – odpověď AI musí zůstat krátká i u dlouhých poznámek. */
-const NOTEBOOK_SOURCE_MAX_CHARS = 200
+/** Max. délka jedné citace u akce – odpověď AI musí zůstat krátká i u dlouhých poznámek. */
+const NOTEBOOK_SOURCE_MAX_CHARS = 400
+/** Max. počet citací u jedné akce. */
+const NOTEBOOK_QUOTES_MAX = 8
+
+/** Max. délka názvu odvozeného z textu entity (znaky). */
+const DERIVED_NAME_MAX_CHARS = 60
+/** Pole, ze kterých se odvozuje název entity bez názvu (v pořadí priority). */
+const NAME_SOURCE_FIELDS = [
+  'description', 'needs', 'problems', 'motivation', 'context', 'outcome', 'trigger',
+  'expectedBehavior', 'actualBehavior', 'mitigation', 'explanation', 'metrics', 'note', 'role', 'commNeeds',
+]
+/** Pole, ze kterých se název neodvozuje (kódy, odkazy, výčty, kontakty). */
+const NAME_SKIP_FIELDS = new Set([
+  'name', 'code', 'url', 'email', 'phone', 'status', 'priority', 'category', 'type', 'competitorType',
+  'likelihood', 'impact', 'influenceLevel', 'interestLevel', 'attitude', 'targetGroupSize', 'targetGroupValue',
+])
+
+/**
+ * Odvodí krátký název entity z jejího textu (první věta popisu nebo jiného textového pole),
+ * když AI název nevyplnila. Dlouhou větu zkrátí na hranici slova s výpustkou.
+ * @param {Record<string, unknown>} fields
+ * @returns {string} '' pokud entita nemá žádný použitelný text
+ */
+export function deriveEntityName(fields) {
+  const f = fields && typeof fields === 'object' ? fields : {}
+  const keys = [...NAME_SOURCE_FIELDS, ...Object.keys(f).filter((k) => !NAME_SOURCE_FIELDS.includes(k) && !NAME_SKIP_FIELDS.has(k))]
+  for (const key of keys) {
+    const text = aiFieldToPlainString(f[key]).replace(/\s+/g, ' ').trim()
+    if (!text) continue
+    const sentence = (text.match(/^.+?[.!?…](?=\s|$)/)?.[0] || text).replace(/[.!?…]+$/, '').replace(/^[-–•*\s]+/, '').trim()
+    if (!sentence) continue
+    if (sentence.length <= DERIVED_NAME_MAX_CHARS) return sentence
+    const cut = sentence.slice(0, DERIVED_NAME_MAX_CHARS)
+    const space = cut.lastIndexOf(' ')
+    return `${(space > 20 ? cut.slice(0, space) : cut).replace(/[\s,;:–-]+$/, '')}…`
+  }
+  return ''
+}
+
+/**
+ * Zajistí, aby nová entita měla název: prázdné pole name doplní z entityName, jinak ho odvodí
+ * z textu entity. U úpravy prázdný název z návrhu vypustí (nesmí smazat stávající název).
+ * @param {Object} action - akce s normalizovanými fields
+ * @returns {Object}
+ */
+export function ensureActionName(action) {
+  const fields = { ...action.fields }
+  const name = String(fields.name ?? '').trim()
+  if (action.type === 'update') {
+    if (!name) delete fields.name
+    return { ...action, fields }
+  }
+  const resolved = name || String(action.entityName ?? '').trim() || deriveEntityName(fields)
+  if (resolved) fields.name = resolved
+  return { ...action, fields, entityName: String(action.entityName ?? '').trim() || resolved }
+}
+
+/**
+ * Citace z poznámek u akce: pole `quotes` (nebo starší jediný `sourceText`) → neprázdné řetězce
+ * bez duplicit. Citace se nezkracují výpustkou – musí zůstat doslovným výňatkem (případně jeho začátkem).
+ * @param {Object} action
+ * @returns {string[]}
+ */
+function actionQuotes(action) {
+  const raw = Array.isArray(action?.quotes) ? action.quotes : [action?.sourceText]
+  const out = []
+  for (const q of raw) {
+    const s = typeof q === 'string' ? q.trim().slice(0, NOTEBOOK_SOURCE_MAX_CHARS) : ''
+    if (s && !out.includes(s)) out.push(s)
+    if (out.length >= NOTEBOOK_QUOTES_MAX) break
+  }
+  return out
+}
 
 /**
  * Sestaví prompt pro zpracování zápisníku.
@@ -166,24 +272,16 @@ ${notebookText}
 Analyzuj poznámky a navrhni seznam konkrétních akcí pro vytvoření nebo úpravu záznamů v projektové databázi.
 
 Podporované typy entit a jejich pole:
-- persona: code, name, status (protopersona/persona), description, motivation, needs, problems, barriers, quote, context, recruitmentCriteria, targetGroupSize, targetGroupValue, url
-- requirement: code, name, description, motivation, category (data/function/quality/constraint), priority (must/should/could/wont), wontHaveExplanation, url
-- goal: code, name, description, metrics, url
-- stakeholder: name, description, influenceLevel (high/medium/low), interestLevel (high/medium/low), attitude (positive/neutral/negative), commFrequency, commChannel, commNeeds
-- competition: name, description, competitorType (direct/indirect), strengths, weaknesses, inspiration, url
-- hypothesis: code, name, description, status (untested/tested/refuted), explanation, url
-- scenario: code, name, type (main/secondary/error), description, trigger, outcome, url
-- teamMember: name, role, email, phone, note
-- risk: code, name, description, likelihood (high/medium/low), impact (high/medium/low), mitigation, status (open/mitigated/occurred/closed)
+${Object.entries(NOTEBOOK_ENTITY_FIELDS).map(([type, fields]) => `- ${type}: ${fields.join(', ')}`).join('\n')}
 
 ${NOTEBOOK_METHOD_RULES}
 
 Pravidla:
 1. Navrhuj POUZE akce, které jsou přímo a jednoznačně odvoditelné z textu.
-2. Pro úpravu existujícího záznamu použij "update" a příslušné ID z přehledu výše.
-3. Pro nový záznam použij "create" a entityId nastav na null.
-4. "sourceText" je krátká doslovná citace z poznámek, ze které akce vychází – nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
-5. Do "fields" zahrň POUZE pole, která text skutečně zmiňuje; texty piš stručně, poznámky neopisuj celé.
+2. Pro úpravu existujícího záznamu použij "update" a příslušné ID z přehledu výše. Mluví-li poznámky o TÉŽE entitě, která už v projektu je – i pod jiným jménem, z jiného pohledu nebo jinými slovy (porovnej s „O záznamu“) – použij "update", ne "create".
+3. Pro novou entitu použij "create" a entityId nastav na null. Novou entitu vždy založ, i když se některé existující podobá – podobnost (stejná oblast, příbuzné téma, podobná role) neznamená totožnost. Pokud si nejsi jistý, že jde o tutéž entitu, použij "create" (uživatel ji při revizi může do existující sloučit).
+4. "quotes" je pole 1–5 výňatků z poznámek, které se záznamu týkají. Každý výňatek zkopíruj z poznámek DOSLOVA, znak po znaku (bez oprav, zkracování uvnitř, přeformulování a překladu), nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
+5. U "create" je pole "name" v "fields" POVINNÉ a nesmí být prázdné. Pokud text entitu nepojmenovává, odvoď z jejího obsahu krátký výstižný název (nejvýše několik slov), např. „Nákupčí velkoobchodu“, „Sledování stavu dodávky“. Do "fields" dále zahrň POUZE pole, která text skutečně zmiňuje; texty piš stručně, poznámky neopisuj celé. U "update" uveď v "fields" jen nové informace (sloučení se stávajícím obsahem proběhne zvlášť). Přímé citace osob (text v uvozovkách, pole "quote") přenášej doslova.
 6. Jeden záznam navrhni jen jednou – všechny informace o něm dej do jedné akce.
 7. ${languageRule}
 
@@ -196,7 +294,7 @@ Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
       "entityId": null,
       "entityName": "Jméno nebo kód entity",
       "fields": { "name": "...", "description": "..." },
-      "sourceText": "krátká citace z poznámek"
+      "quotes": ["doslovný výňatek z poznámek", "další výňatek"]
     }
   ]
 }
@@ -277,11 +375,10 @@ export function parseActions(text) {
         a.fields &&
         typeof a.fields === 'object',
     )
-    .map((a) => ({
-      ...a,
-      fields: normalizeActionFields(a.fields),
-      sourceText: typeof a.sourceText === 'string' ? truncateText(a.sourceText, NOTEBOOK_SOURCE_MAX_CHARS) : '',
-    }))
+    .map((a) => {
+      const { sourceText: _legacy, ...rest } = a
+      return ensureActionName({ ...rest, fields: normalizeActionFields(a.fields), quotes: actionQuotes(a) })
+    })
   return { actions, residualText, truncated }
 }
 
@@ -356,7 +453,7 @@ export function mergeActions(lists) {
         if (!prev) existing.fields[k] = v
         else if (v && norm(prev) !== norm(v) && !norm(prev).includes(norm(v))) existing.fields[k] = `${prev}\n\n${v}`
       }
-      if (!existing.sourceText && a.sourceText) existing.sourceText = a.sourceText
+      existing.quotes = actionQuotes({ quotes: [...actionQuotes(existing), ...actionQuotes(a)] })
     }
   }
   return out
@@ -394,6 +491,104 @@ export async function processNotebookInParts(notebookText, projectContext, callM
   const actions = mergeActions(results)
   if (failedParts && !actions.length) throw firstError
   return { actions, residualText: '', failedParts, totalParts: parts.length }
+}
+
+// ---------------------------------------------------------------------------
+// Sloučení nových informací do existujícího záznamu (druhá fáze zpracování zápisníku)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sestaví prompt pro sloučení nových informací z poznámek do existujícího záznamu.
+ * AI dostane celé současné hodnoty polí a doslovné výňatky a vrátí celé sloučené znění změněných polí.
+ * @param {string} entityType - typ entity (např. 'persona')
+ * @param {Object} entity - současný záznam
+ * @param {string[]} quotes - výňatky z poznámek, které se záznamu týkají
+ * @param {{ proposed?: Object, languageSample?: string }} [options] - proposed: nové informace
+ *   navržené v první fázi; languageSample: text poznámek (určuje jazyk výstupu)
+ * @returns {string}
+ */
+export function buildMergePrompt(entityType, entity, quotes, { proposed = {}, languageSample = '' } = {}) {
+  const fieldDefs = NOTEBOOK_ENTITY_FIELDS[entityType] || []
+  const current = fieldDefs
+    .map((def) => {
+      const key = def.split(' ')[0]
+      const value = aiFieldToPlainString(entity?.[key]).trim()
+      return `### ${def}\n${value || '(prázdné)'}`
+    })
+    .join('\n\n')
+  const quoteList = (Array.isArray(quotes) ? quotes : [])
+    .filter((q) => typeof q === 'string' && q.trim())
+    .map((q, i) => `${i + 1}. <<<${q}>>>`)
+    .join('\n')
+  const proposedList = Object.entries(normalizeActionFields(proposed))
+    .filter(([, v]) => v.trim())
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join('\n')
+  const languageRule = buildLanguageRule(languageSample || quoteList, {
+    source: 'poznámky uživatele',
+    output: 'Všechny texty polí',
+    json: true,
+  })
+  return `Jsi asistent pro UX design týmy. Doplňuješ existující záznam projektové databáze (typ: ${entityType}) o nové informace z poznámek (např. z dalšího rozhovoru).
+
+## Současný záznam – pole a jejich hodnoty:
+${current || '(záznam nemá žádná pole)'}
+
+## Výňatky z nových poznámek, které se záznamu týkají (doslovně, ohraničené <<< >>>):
+${quoteList || '(žádné)'}
+${proposedList ? `\n## Nové informace navržené při prvním čtení poznámek:\n${proposedList}\n` : ''}
+## Tvůj úkol:
+Zapracuj nové informace do záznamu a vrať sloučené znění polí, která se tím mění.
+
+Pravidla:
+1. Vrať jen pole, jejichž hodnota se mění – vždy jejich CELÉ nové znění (stávající obsah + nové informace), ne jen přírůstek.
+2. Ze stávajícího obsahu nic nevypouštěj a neměň jeho význam. Nové informace zařaď věcně tam, kam patří; to, co už v záznamu je, neopakuj. Rozpory nezahlazuj – uveď obě verze.
+3. Přímé citace (text v uvozovkách ve výňatcích i ve stávajících hodnotách a celé pole "quote") přenes DOSLOVA, znak po znaku – bez oprav pravopisu, zkracování, přeformulování a překladu. Novou citaci vkládej v uvozovkách „…“ přesně tak, jak je ve výňatku.
+4. Pole "quote" může obsahovat jen doslovnou citaci z výňatků nebo zůstat beze změny. Pole "name" nikdy nevracej prázdné.
+5. Výčtová pole (hodnoty v závorce) měň jen tehdy, když to poznámky jednoznačně říkají, a jen na povolenou hodnotu.
+6. Vrať jen pole uvedená výše (klíče bez popisu v závorce).
+7. ${languageRule}
+
+Vrať POUZE validní JSON objekt (bez markdown bloků, bez komentářů):
+{ "fields": { "needs": "celé sloučené znění pole" } }
+
+Pokud není co doplnit, vrať: { "fields": {} }`
+}
+
+/**
+ * Parsuje odpověď AI se sloučenými poli; ponechá jen pole povolená pro typ entity.
+ * @param {string} text
+ * @param {string} entityType
+ * @returns {{ fields: Record<string, string> }}
+ * @throws {Error} když odpověď nejde přečíst
+ */
+export function parseMergeResult(text, entityType) {
+  const cleaned = String(text ?? '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim()
+  let parsed
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    const start = cleaned.indexOf('{')
+    const end = cleaned.lastIndexOf('}')
+    try {
+      parsed = start >= 0 && end > start ? JSON.parse(cleaned.slice(start, end + 1)) : null
+    } catch {
+      parsed = null
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('AI vrátila neplatnou odpověď při slučování záznamu.')
+  }
+  const raw = parsed.fields && typeof parsed.fields === 'object' ? parsed.fields : {}
+  const allowed = new Set(notebookFieldKeys(entityType))
+  const fields = {}
+  for (const [k, v] of Object.entries(normalizeActionFields(raw))) {
+    if (allowed.has(k)) fields[k] = v
+  }
+  return { fields }
 }
 
 // ---------------------------------------------------------------------------
