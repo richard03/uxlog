@@ -34,6 +34,7 @@ export default {
     document: 'Dokument',
   },
   project: {
+    listLabel: 'Projekty (pořadí změníte přetažením dlaždice)',
     label: 'Projekt',
     name: 'Název',
     scope: 'Rozsah',

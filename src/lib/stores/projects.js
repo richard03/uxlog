@@ -6,9 +6,11 @@ import { todayISO, addDays } from '../deadline.js'
 import { pickProjectColor } from '../projectColors.js'
 import { createNotebookEntry, appendNotebookEntry, updateNotebookEntry, getNotebookHistory } from '../notebookChat.js'
 import { cardKey, removeCanvasCards } from '../canvas.js'
+import { sortProjectsForList } from '../projectOrder.js'
 
+/** Projekty v pořadí přehledu: nepřesunuté od nejnovějšího, pak pořadí nastavené přetažením. */
 export function getProjects() {
-  return [...(state.projects || [])].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
+  return sortProjectsForList(state.projects)
 }
 
 export function getProject(id) {

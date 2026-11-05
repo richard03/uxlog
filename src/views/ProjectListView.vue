@@ -13,7 +13,7 @@
       <p>{{ t.common.emptyHint }}</p>
     </div>
 
-    <ul v-else class="project-list entity-list" role="list">
+    <ul v-else class="project-list" role="list" :aria-label="t.project.listLabel">
       <EntityCard
         v-for="p in projectCards"
         :key="p.id"
@@ -302,13 +302,54 @@ function saveProject() {
   gap: var(--space-sm);
 }
 
+/* Dlaždice projektů: 4 na řádek, na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
 .project-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .project-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 800px) {
+  .project-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .project-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Dlaždice: název nahoře, štítky pod ním přes celou výšku */
+.project-list > :deep(.entity-card) {
+  min-height: 9rem;
+}
+
+.project-list :deep(.ec-link) {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  height: 100%;
+}
+
+.project-list :deep(.card-header) {
+  min-width: 0;
+}
+
+.project-list :deep(.card-title) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-list :deep(.card-meta) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 }
 
 .project-list [draggable="true"] { cursor: grab; }
