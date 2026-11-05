@@ -1,20 +1,16 @@
 <template>
   <div class="container" v-if="template">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-row">
-        <h1>{{ template.name || t.config.activityTemplates }}</h1>
-          <div class="header-actions">
-          <KebabMenu
-            :items="[{ label: t.common.delete, action: 'delete', variant: 'danger' }]"
-            @action="confirmDelete"
-          />
-        </div>
-      </div>
-      <div class="header-meta">
-        <AppBadge :variant="`group-${template.group}`">{{ t.config.groupLabels[template.group] || template.group }}</AppBadge>
-      </div>
-    </header>
+    <ConfigScreenHeader :title="template.name || t.config.activityTemplates" :breadcrumbs="breadcrumbs">
+      <template #actions>
+        <KebabMenu
+          :items="[{ label: t.common.delete, action: 'delete', variant: 'danger' }]"
+          @action="confirmDelete"
+        />
+      </template>
+    </ConfigScreenHeader>
+    <div class="header-meta">
+      <AppBadge :variant="`group-${template.group}`">{{ t.config.groupLabels[template.group] || template.group }}</AppBadge>
+    </div>
 
     <section class="config-section" aria-labelledby="template-form-heading">
       <h2 id="template-form-heading" class="visually-hidden">{{ t.config.editTemplate }}</h2>
@@ -93,10 +89,10 @@
  */
 import { ref, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityHelpers } from '../composables/useEntityHelpers.js'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ConfigScreenHeader from '../components/ConfigScreenHeader.vue'
+import { useConfigScope } from '../composables/useConfigScope.js'
 import KebabMenu from '../components/KebabMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import AppBadge from '../components/AppBadge.vue'
@@ -105,7 +101,8 @@ import AppButton from '../components/AppButton.vue'
 
 const route = useRoute()
 const router = useRouter()
-const config = useConfig()
+const scope = useConfigScope()
+const { config } = scope
 const { generateId } = useEntityHelpers()
 const { t } = useI18n()
 
@@ -114,11 +111,10 @@ const templateKey = computed(() => route.params.templateKey)
 /** Aktuální šablona podle klíče. */
 const template = computed(() => config.getTemplate(templateKey.value))
 
-const breadcrumbs = computed(() => [
-  { label: t.nav.config, to: { name: 'config' } },
-  { label: t.config.activities, to: { name: 'configActivities' } },
+const breadcrumbs = computed(() => scope.breadcrumbs([
+  { label: t.config.activities, to: scope.to('configActivities') },
   { label: template.value?.name ?? '…' },
-])
+]))
 
 const form = reactive({
   name: '',
@@ -145,7 +141,7 @@ watch(template, (tpl) => {
 
 watch(templateKey, (key) => {
   if (key && !config.getTemplate(key)) {
-    router.replace({ name: 'configActivities' })
+    router.replace(scope.to('configActivities'))
   }
 }, { immediate: true })
 
@@ -174,7 +170,7 @@ function saveTemplate() {
 }
 
 function goBack() {
-  router.push({ name: 'configActivities' })
+  router.push(scope.to('configActivities'))
 }
 
 const showConfirmDelete = ref(false)
@@ -186,7 +182,7 @@ function confirmDelete() {
 function doDelete() {
   config.deleteTemplate(templateKey.value)
   showConfirmDelete.value = false
-  router.push({ name: 'configActivities' })
+  router.push(scope.to('configActivities'))
 }
 </script>
 

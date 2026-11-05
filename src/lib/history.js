@@ -2,7 +2,8 @@
  * Historie změn projektu – čisté funkce.
  *
  * Záznam historie (entry) vzniká z rozdílu stavu před a po uložení (persist):
- *   { id, projectId, at, kind: 'edit'|'revert', revertOf?, revertedBy?, changes: Change[] }
+ *   { id, projectId, at, kind: 'edit'|'revert'|'external', revertOf?, revertedBy?, changes: Change[] }
+ * kind 'external' = změny načtené ze Složky dat (soubory upravené mimo aplikaci).
  * Change = { collection, id, before, after } – celé záznamy (before = null → vytvořeno,
  * after = null → smazáno). Vrácení záznamu aplikuje inverzní změny na aktuální stav
  * a samo se zapíše do historie jako nový záznam (kind 'revert'), takže jde vrátit i vrácení.
@@ -14,7 +15,7 @@
  * Pole, která se mění automaticky nebo nepatří do historie (chat zápisníku má vlastní historii;
  * rozvržení plátna `canvas` by posouváním kartiček vytlačilo skutečné změny z limitu historie).
  */
-export const HISTORY_IGNORED_FIELDS = ['updatedAt', 'lastWorkedAt', '_ts', 'notebookHistory', 'notebook', 'canvas']
+export const HISTORY_IGNORED_FIELDS = ['updatedAt', 'lastWorkedAt', 'notebookHistory', 'notebook', 'canvas', 'config']
 
 /** Maximální počet záznamů historie na projekt (starší se zahazují). */
 export const HISTORY_LIMIT = 100
@@ -175,7 +176,7 @@ export function normalizeHistory(raw) {
       .map((e) => ({
         ...e,
         projectId: pid,
-        kind: e.kind === 'revert' ? 'revert' : 'edit',
+        kind: e.kind === 'revert' || e.kind === 'external' ? e.kind : 'edit',
         changes: e.changes.filter((c) => c && typeof c.collection === 'string' && c.id),
       }))
     if (entries.length) out[pid] = entries

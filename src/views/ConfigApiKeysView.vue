@@ -6,6 +6,9 @@
       <p class="page-hint">{{ t.settings.hint }}</p>
     </header>
 
+    <!-- Složka dat (jen desktop) -->
+    <VaultSettingsSection />
+
     <!-- Pluginy -->
     <SectionCard :title="t.plugins.title" :aria-label="t.plugins.title">
       <p class="service-hint">{{ t.plugins.hint }}</p>
@@ -160,6 +163,7 @@ import SectionCard from '../components/SectionCard.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import Modal from '../components/Modal.vue'
 import AppButton from '../components/AppButton.vue'
+import VaultSettingsSection from '../components/VaultSettingsSection.vue'
 
 const { t } = useI18n()
 const { state, getData, persist: persistStore } = useStore()

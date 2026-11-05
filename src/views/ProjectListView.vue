@@ -207,7 +207,8 @@ function getUncheckedCount(projectId) {
 }
 
 function projectDelayed(project) {
-  return isProjectDelayed(project, store.getAllActivities(project.id), config.getTemplateDurationDays)
+  // Délky aktivit podle konfigurace daného projektu
+  return isProjectDelayed(project, store.getAllActivities(project.id), useConfig(project.id).getTemplateDurationDays)
 }
 
 function defaultDeadlineForNewProject() {

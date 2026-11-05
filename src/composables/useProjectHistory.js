@@ -40,7 +40,9 @@ export function useProjectHistory(projectId) {
   const entries = computed(() => store.getProjectHistory(unref(projectId)).map((entry) => {
     const { main, items } = describeHistoryEntry(entry)
     const base = main ? itemText(main) : t.history.emptyChange
-    const summary = entry.kind === 'revert' ? t.history.revertSummary(base) : base
+    const summary = entry.kind === 'revert'
+      ? t.history.revertSummary(base)
+      : entry.kind === 'external' ? t.history.externalSummary(base) : base
     return {
       id: entry.id,
       at: entry.at,

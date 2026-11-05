@@ -34,11 +34,18 @@
         </div>
       </div>
       <nav class="nav" :aria-label="t.nav.mainNav">
-        <router-link to="/" custom v-slot="{ navigate, isActive }">
-          <AppButton variant="secondary" :class="{ 'nav-active': isActive }" @click="navigate">{{ t.nav.projects }}</AppButton>
+        <!-- Na přehledu projektů tlačítko Projekty nic nedělá – skryté -->
+        <router-link v-if="route.name !== 'projects'" to="/" custom v-slot="{ navigate }">
+          <AppButton variant="secondary" @click="navigate">{{ t.nav.projects }}</AppButton>
         </router-link>
-        <router-link to="/config" custom v-slot="{ navigate, isActive }">
-          <AppButton variant="secondary" :class="{ 'nav-active': isActive }" @click="navigate">{{ t.nav.config }}</AppButton>
+        <!-- V projektu vede na konfiguraci projektu, jinde na výchozí konfiguraci pro nové projekty -->
+        <router-link :to="configTarget" custom v-slot="{ navigate }">
+          <AppButton
+            variant="secondary"
+            :class="{ 'nav-active': onConfig }"
+            :aria-current="onConfig ? 'page' : undefined"
+            @click="navigate"
+          >{{ t.nav.config }}</AppButton>
         </router-link>
 <AppButton variant="secondary" @click="showSearch = true">
           {{ t.common.search }}
@@ -71,7 +78,15 @@ const projectColor = computed(() => project.value?.color || null)
 // Plátno včetně detailu entity v panelu nad ním (potomci routy projectCanvas)
 const onCanvas = computed(() => route.matched.some((r) => r.name === 'projectCanvas'))
 const onDocument = computed(() => route.name === 'projectDocument')
-const onData = computed(() => !onCanvas.value && !onDocument.value)
+/** Obrazovky konfigurace: v projektu konfigurace projektu, mimo projekt výchozí konfigurace. */
+const onConfig = computed(() => {
+  const name = String(route.name ?? '')
+  return projectId.value ? name.startsWith('projectConfig') : name.startsWith('config')
+})
+const onData = computed(() => !onCanvas.value && !onDocument.value && !onConfig.value)
+const configTarget = computed(() =>
+  projectId.value && project.value ? { name: 'projectConfig', params: { id: projectId.value } } : { name: 'config' },
+)
 
 /** Poslední obrazovka „Data“ (mimo Canvas a Dokument) pro každý projekt – tlačítko Data se na ni vrací. */
 const lastDataPath = ref({})

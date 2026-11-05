@@ -4,6 +4,11 @@
 # canvasCardColors     paleta barev kartiček na Canvasu (color = hex #rrggbb, labelKey = název barvy v cs.js canvas.colors);
 #                      barvu písma aplikace dopočítá podle kontrastu
 # projectDurationDays  výchozí délka projektu ve dnech podle rozsahu (uživatel ji může změnit v Konfiguraci)
+# vaultAutoImport      pojistka automatického načítání změn ze Složky dat – nezvykle velkou dávku změn
+#                      (synchronizace, git, smazaná složka) aplikace nenačte sama, jen přes náhled:
+#   maxDeletes         nejvýš tolik smazaných souborů najednou
+#   maxShare           nejvýš takový podíl záznamů jednoho projektu změněných/smazaných najednou (0–1)
+#   minChanges         podíl se posuzuje až od tohoto počtu změn v projektu
 # recommendations      doporučení dalších aktivit v panelu Aktivity
 #   minRequirementsForPrioritization  od kolika požadavků se stejnou prioritou doporučit prioritizační workshop
 
@@ -51,3 +56,7 @@ projectDurationDays:
   large: 120
 recommendations:
   minRequirementsForPrioritization: 5
+vaultAutoImport:
+  maxDeletes: 10
+  maxShare: 0.3
+  minChanges: 5

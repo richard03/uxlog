@@ -14,6 +14,20 @@ import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
 import { emit } from '../plugins/registry.js'
 import { diffStates } from '../history.js'
 import { recordChanges, initHistory } from './history.js'
+import { fillMissingProjectConfigs } from '../projectConfig.js'
+
+/**
+ * Továrna konfigurace nového projektu (kopie výchozí konfigurace) – registruje ji stores/config.js,
+ * aby state.js nezávisel na konfiguraci (jinak by vznikl cyklický import).
+ */
+let projectConfigFactory = null
+
+/**
+ * @param {() => Object} fn - vrací novou kopii výchozí konfigurace
+ */
+export function setProjectConfigFactory(fn) {
+  projectConfigFactory = typeof fn === 'function' ? fn : null
+}
 
 const _initialData = Object.assign(getEmptyData(), loadData())
 export const state = reactive(_initialData)
@@ -31,12 +45,14 @@ export function initStore() {
 
 /**
  * Obnoví reaktivní state ze storage po externí změně (např. lokální HTTP API).
- * Neemituje data:persisted, protože nejde o lokální editaci v UI.
+ * Neemituje data:persisted, protože nejde o lokální editaci v UI – jen data:replaced.
  */
 export function replaceStateFromStorage() {
   const loaded = loadData()
   Object.assign(state, loaded)
   persistedSnapshot = JSON.parse(JSON.stringify(loaded))
+  // Pluginy, které jen zrcadlí data (složka dat), potřebují vědět i o změně zvenku
+  emit('data:replaced', { state: toRaw(state) })
   console.log('[UXLog] replaceStateFromStorage, projektů:', state.projects?.length ?? 0)
 }
 
@@ -77,6 +93,9 @@ function deduplicateState() {
  *   (synchronizace z API) – nezapisují se do historie
  */
 export function persist({ history = true } = {}) {
+  // Projekt bez vlastní konfigurace (nový, importovaný, ze složky dat) dostane kopii výchozí
+  fillMissingProjectConfigs(state, projectConfigFactory)
+
   // Odstraň duplikáty vzniklé synchem z API (před snapshotem i uložením)
   deduplicateState()
 

@@ -1,7 +1,12 @@
 /**
- * Správa konfigurace aplikace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů).
- * Konfigurace je uložena v localStorage pod klíčem 'uxlog_config'.
- * V Tauri prostředí se zrcadlí do souborů přes tauriBridge.
+ * Správa konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů, délky projektů).
+ *
+ * Výchozí konfigurace (Konfigurace na přehledu projektů) je uložena v localStorage pod klíčem
+ * 'uxlog_config' a slouží jen jako vzor pro nové projekty. Každý projekt má vlastní kopii
+ * v `project.config` (ukládá se s daty projektu); její úpravy ostatní projekty neovlivní.
+ *
+ * Exportované funkce pracují s výchozí konfigurací; konfiguraci projektu vrací configFor(projectId)
+ * se stejnými funkcemi. V Tauri prostředí se výchozí konfigurace zrcadlí do souborů přes tauriBridge.
  */
 
 import { reactive, toRaw } from 'vue'
@@ -10,17 +15,19 @@ import { ENTITY_FIELD_DEFAULTS } from '../entityFieldDefaults.js'
 import { generateId } from '../id.js'
 import { APP_CONFIG } from '../dataConfig.js'
 import { mirrorToTauri } from '../tauriBridge.js'
+import { getEmptyConfig as emptyConfig, normalizeConfig, fillMissingProjectConfigs } from '../projectConfig.js'
+import { state, persist as persistData, setProjectConfigFactory } from './state.js'
 
 const STORAGE_KEY = 'uxlog_config'
 
 /**
- * Načte konfiguraci z localStorage.
+ * Načte výchozí konfiguraci z localStorage.
  * @returns {Object}
  */
 function loadConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : getEmptyConfig()
+    return raw ? normalizeConfig(JSON.parse(raw), APP_CONFIG.projectDurationDays) : getEmptyConfig()
   } catch {
     return getEmptyConfig()
   }
@@ -31,26 +38,46 @@ function loadConfig() {
  * @returns {Object}
  */
 function getEmptyConfig() {
-  return {
-    activityTemplateOverrides: {},
-    customActivityTemplates: [],
-    entityCustomFields: {},
-    entityFieldOverrides: {},
-    projectDurationDays: { ...APP_CONFIG.projectDurationDays },
-  }
+  return emptyConfig(APP_CONFIG.projectDurationDays)
 }
 
+/** Výchozí konfigurace (vzor pro nové projekty). */
 export const configState = reactive(Object.assign(getEmptyConfig(), loadConfig()))
 
+/** Nová kopie výchozí konfigurace pro projekt. */
+function cloneDefaultConfig() {
+  return normalizeConfig(toRaw(configState), APP_CONFIG.projectDurationDays)
+}
+
+// Projekty bez vlastní konfigurace (nové, importované, ze složky dat) dostanou při uložení kopii výchozí
+setProjectConfigFactory(cloneDefaultConfig)
+
 /**
- * Uloží aktuální stav konfigurace do localStorage a zrcadlí do Tauri souboru.
+ * Uloží výchozí konfiguraci do localStorage a zrcadlí do Tauri souboru.
  */
-function persist() {
+function persistDefault() {
   const json = JSON.stringify(toRaw(configState))
   localStorage.setItem(STORAGE_KEY, json)
   mirrorToTauri(STORAGE_KEY, json)
 }
 
+/**
+ * Doplní projektům bez vlastní konfigurace kopii výchozí (starší data) a uloží je.
+ * Volá se při startu aplikace.
+ * @returns {number} počet doplněných projektů
+ */
+export function ensureProjectConfigs() {
+  const filled = fillMissingProjectConfigs(state, cloneDefaultConfig)
+  if (filled) persistData({ history: false })
+  return filled
+}
+
+/**
+ * Sestaví API konfigurace nad zvoleným objektem konfigurace.
+ * @param {() => Object} getCfg - vrací (reaktivní) objekt konfigurace
+ * @param {() => void} persist - uloží změny
+ */
+function createConfigApi(getCfg, persist) {
 // ─────────────────────────────────────────────────────────────
 // Šablony aktivit
 // ─────────────────────────────────────────────────────────────
@@ -59,8 +86,8 @@ function persist() {
  * Vrátí efektivní seznam šablon aktivit (zabudované + přizpůsobení + vlastní).
  * @returns {Array}
  */
-export function getEffectiveTemplates() {
-  const overrides = configState.activityTemplateOverrides || {}
+function getEffectiveTemplates() {
+  const overrides = getCfg().activityTemplateOverrides || {}
 
   const builtIn = ACTIVITY_TYPES
     .filter((t) => !overrides[t.key]?.deleted)
@@ -81,7 +108,7 @@ export function getEffectiveTemplates() {
       }
     })
 
-  const custom = (configState.customActivityTemplates || []).map((t) => ({
+  const custom = (getCfg().customActivityTemplates || []).map((t) => ({
     ...t,
     isBuiltIn: false,
     isCustom: true,
@@ -95,7 +122,7 @@ export function getEffectiveTemplates() {
  * @param {string} key
  * @returns {Object|undefined}
  */
-export function getTemplate(key) {
+function getTemplate(key) {
   return getEffectiveTemplates().find((t) => t.key === key)
 }
 
@@ -103,8 +130,8 @@ export function getTemplate(key) {
  * Vrátí smazané zabudované šablony.
  * @returns {Array}
  */
-export function getDeletedBuiltInTemplates() {
-  const overrides = configState.activityTemplateOverrides || {}
+function getDeletedBuiltInTemplates() {
+  const overrides = getCfg().activityTemplateOverrides || {}
   return ACTIVITY_TYPES
     .filter((t) => overrides[t.key]?.deleted)
     .map((t) => {
@@ -124,10 +151,10 @@ export function getDeletedBuiltInTemplates() {
  * @param {Object} fields
  * @returns {string} klíč nové šablony
  */
-export function addCustomTemplate(fields = {}) {
-  if (!configState.customActivityTemplates) configState.customActivityTemplates = []
+function addCustomTemplate(fields = {}) {
+  if (!getCfg().customActivityTemplates) getCfg().customActivityTemplates = []
   const key = generateId()
-  configState.customActivityTemplates.push({
+  getCfg().customActivityTemplates.push({
     key,
     group: 'project',
     name: '',
@@ -146,16 +173,16 @@ export function addCustomTemplate(fields = {}) {
  * @param {string} key
  * @param {Object} updates
  */
-export function updateTemplate(key, updates) {
+function updateTemplate(key, updates) {
   const isBuiltIn = ACTIVITY_TYPES.some((t) => t.key === key)
   if (isBuiltIn) {
-    if (!configState.activityTemplateOverrides) configState.activityTemplateOverrides = {}
-    configState.activityTemplateOverrides[key] = {
-      ...(configState.activityTemplateOverrides[key] || {}),
+    if (!getCfg().activityTemplateOverrides) getCfg().activityTemplateOverrides = {}
+    getCfg().activityTemplateOverrides[key] = {
+      ...(getCfg().activityTemplateOverrides[key] || {}),
       ...updates,
     }
   } else {
-    const arr = configState.customActivityTemplates || []
+    const arr = getCfg().customActivityTemplates || []
     const idx = arr.findIndex((t) => t.key === key)
     if (idx !== -1) {
       arr[idx] = { ...arr[idx], ...updates }
@@ -168,16 +195,16 @@ export function updateTemplate(key, updates) {
  * Smaže šablonu aktivity (zabudovanou soft-delete, vlastní hard-delete).
  * @param {string} key
  */
-export function deleteTemplate(key) {
+function deleteTemplate(key) {
   const isBuiltIn = ACTIVITY_TYPES.some((t) => t.key === key)
   if (isBuiltIn) {
-    if (!configState.activityTemplateOverrides) configState.activityTemplateOverrides = {}
-    configState.activityTemplateOverrides[key] = {
-      ...(configState.activityTemplateOverrides[key] || {}),
+    if (!getCfg().activityTemplateOverrides) getCfg().activityTemplateOverrides = {}
+    getCfg().activityTemplateOverrides[key] = {
+      ...(getCfg().activityTemplateOverrides[key] || {}),
       deleted: true,
     }
   } else {
-    configState.customActivityTemplates = (configState.customActivityTemplates || []).filter(
+    getCfg().customActivityTemplates = (getCfg().customActivityTemplates || []).filter(
       (t) => t.key !== key
     )
   }
@@ -188,11 +215,11 @@ export function deleteTemplate(key) {
  * Obnoví smazanou zabudovanou šablonu.
  * @param {string} key
  */
-export function restoreTemplate(key) {
-  if (configState.activityTemplateOverrides?.[key]) {
-    const o = { ...configState.activityTemplateOverrides[key] }
+function restoreTemplate(key) {
+  if (getCfg().activityTemplateOverrides?.[key]) {
+    const o = { ...getCfg().activityTemplateOverrides[key] }
     delete o.deleted
-    configState.activityTemplateOverrides[key] = o
+    getCfg().activityTemplateOverrides[key] = o
     persist()
   }
 }
@@ -205,10 +232,10 @@ export function restoreTemplate(key) {
  * Vrátí konfiguraci výchozích délek projektů (dny per rozsah).
  * @returns {{ small: number, medium: number, large: number }}
  */
-export function getProjectDurationDays() {
+function getProjectDurationDays() {
   return {
     ...APP_CONFIG.projectDurationDays,
-    ...(configState.projectDurationDays || {}),
+    ...(getCfg().projectDurationDays || {}),
   }
 }
 
@@ -217,9 +244,9 @@ export function getProjectDurationDays() {
  * @param {'small'|'medium'|'large'} scope
  * @param {number} days
  */
-export function updateProjectDurationDays(scope, days) {
-  if (!configState.projectDurationDays) configState.projectDurationDays = {}
-  configState.projectDurationDays[scope] = days
+function updateProjectDurationDays(scope, days) {
+  if (!getCfg().projectDurationDays) getCfg().projectDurationDays = {}
+  getCfg().projectDurationDays[scope] = days
   persist()
 }
 
@@ -228,7 +255,7 @@ export function updateProjectDurationDays(scope, days) {
  * @param {string} templateKey
  * @returns {number|null}
  */
-export function getTemplateDurationDays(templateKey) {
+function getTemplateDurationDays(templateKey) {
   const tpl = getTemplate(templateKey)
   return tpl?.defaultDurationDays ?? null
 }
@@ -242,8 +269,8 @@ export function getTemplateDurationDays(templateKey) {
  * @param {string} entityType
  * @returns {Array}
  */
-export function getEntityCustomFields(entityType) {
-  return [...(configState.entityCustomFields?.[entityType] || [])].sort(
+function getEntityCustomFields(entityType) {
+  return [...(getCfg().entityCustomFields?.[entityType] || [])].sort(
     (a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999)
   )
 }
@@ -253,14 +280,14 @@ export function getEntityCustomFields(entityType) {
  * @param {string} entityType
  * @param {Object} field - { label, type, sortOrder, options? }
  */
-export function addEntityField(entityType, field = {}) {
-  if (!configState.entityCustomFields) configState.entityCustomFields = {}
-  if (!configState.entityCustomFields[entityType]) configState.entityCustomFields[entityType] = []
-  configState.entityCustomFields[entityType].push({
+function addEntityField(entityType, field = {}) {
+  if (!getCfg().entityCustomFields) getCfg().entityCustomFields = {}
+  if (!getCfg().entityCustomFields[entityType]) getCfg().entityCustomFields[entityType] = []
+  getCfg().entityCustomFields[entityType].push({
     id: generateId(),
     label: '',
     type: 'text',
-    sortOrder: (configState.entityCustomFields[entityType].length) * 10,
+    sortOrder: (getCfg().entityCustomFields[entityType].length) * 10,
     ...field,
   })
   persist()
@@ -272,8 +299,8 @@ export function addEntityField(entityType, field = {}) {
  * @param {string} fieldId
  * @param {Object} updates
  */
-export function updateEntityField(entityType, fieldId, updates) {
-  const fields = configState.entityCustomFields?.[entityType]
+function updateEntityField(entityType, fieldId, updates) {
+  const fields = getCfg().entityCustomFields?.[entityType]
   if (!fields) return
   const idx = fields.findIndex((f) => f.id === fieldId)
   if (idx !== -1) {
@@ -287,9 +314,9 @@ export function updateEntityField(entityType, fieldId, updates) {
  * @param {string} entityType
  * @param {string} fieldId
  */
-export function deleteEntityField(entityType, fieldId) {
-  if (configState.entityCustomFields?.[entityType]) {
-    configState.entityCustomFields[entityType] = configState.entityCustomFields[entityType].filter(
+function deleteEntityField(entityType, fieldId) {
+  if (getCfg().entityCustomFields?.[entityType]) {
+    getCfg().entityCustomFields[entityType] = getCfg().entityCustomFields[entityType].filter(
       (f) => f.id !== fieldId
     )
     persist()
@@ -306,8 +333,8 @@ export function deleteEntityField(entityType, fieldId) {
  * @param {string} fieldKey
  * @returns {Object}
  */
-export function getFieldOverride(entityType, fieldKey) {
-  return configState.entityFieldOverrides?.[entityType]?.[fieldKey] || {}
+function getFieldOverride(entityType, fieldKey) {
+  return getCfg().entityFieldOverrides?.[entityType]?.[fieldKey] || {}
 }
 
 /**
@@ -316,11 +343,11 @@ export function getFieldOverride(entityType, fieldKey) {
  * @param {string} fieldKey
  * @param {Object} updates - { label?, sortOrder?, hidden?, options? }
  */
-export function updateFieldOverride(entityType, fieldKey, updates) {
-  if (!configState.entityFieldOverrides) configState.entityFieldOverrides = {}
-  if (!configState.entityFieldOverrides[entityType]) configState.entityFieldOverrides[entityType] = {}
-  configState.entityFieldOverrides[entityType][fieldKey] = {
-    ...(configState.entityFieldOverrides[entityType][fieldKey] || {}),
+function updateFieldOverride(entityType, fieldKey, updates) {
+  if (!getCfg().entityFieldOverrides) getCfg().entityFieldOverrides = {}
+  if (!getCfg().entityFieldOverrides[entityType]) getCfg().entityFieldOverrides[entityType] = {}
+  getCfg().entityFieldOverrides[entityType][fieldKey] = {
+    ...(getCfg().entityFieldOverrides[entityType][fieldKey] || {}),
     ...updates,
   }
   persist()
@@ -331,11 +358,11 @@ export function updateFieldOverride(entityType, fieldKey, updates) {
  * @param {string} entityType
  * @param {string} fieldKey
  */
-export function resetFieldOverride(entityType, fieldKey) {
-  if (configState.entityFieldOverrides?.[entityType]?.[fieldKey]) {
-    delete configState.entityFieldOverrides[entityType][fieldKey]
-    if (Object.keys(configState.entityFieldOverrides[entityType]).length === 0) {
-      delete configState.entityFieldOverrides[entityType]
+function resetFieldOverride(entityType, fieldKey) {
+  if (getCfg().entityFieldOverrides?.[entityType]?.[fieldKey]) {
+    delete getCfg().entityFieldOverrides[entityType][fieldKey]
+    if (Object.keys(getCfg().entityFieldOverrides[entityType]).length === 0) {
+      delete getCfg().entityFieldOverrides[entityType]
     }
     persist()
   }
@@ -347,8 +374,8 @@ export function resetFieldOverride(entityType, fieldKey) {
  * @param {string} fieldKey
  * @returns {boolean}
  */
-export function isFieldOverridden(entityType, fieldKey) {
-  const o = configState.entityFieldOverrides?.[entityType]?.[fieldKey]
+function isFieldOverridden(entityType, fieldKey) {
+  const o = getCfg().entityFieldOverrides?.[entityType]?.[fieldKey]
   return o != null && Object.keys(o).length > 0
 }
 
@@ -375,9 +402,9 @@ function resolveLabel(labelKey, tPath) {
  * @param {Function} tPath - Funkce pro překlad labelKey → text
  * @returns {Array} Pole definic atributů seřazených podle sortOrder
  */
-export function getEffectiveEntityFields(entityType, tPath) {
+function getEffectiveEntityFields(entityType, tPath) {
   const defaults = ENTITY_FIELD_DEFAULTS[entityType] || []
-  const overrides = configState.entityFieldOverrides?.[entityType] || {}
+  const overrides = getCfg().entityFieldOverrides?.[entityType] || {}
   const customFields = getEntityCustomFields(entityType)
 
   const builtIn = defaults
@@ -443,9 +470,9 @@ export function getEffectiveEntityFields(entityType, tPath) {
  * @param {Function} tPath
  * @returns {Array}
  */
-export function getHiddenBuiltInFields(entityType, tPath) {
+function getHiddenBuiltInFields(entityType, tPath) {
   const defaults = ENTITY_FIELD_DEFAULTS[entityType] || []
-  const overrides = configState.entityFieldOverrides?.[entityType] || {}
+  const overrides = getCfg().entityFieldOverrides?.[entityType] || {}
 
   return defaults
     .filter((f) => overrides[f.key]?.hidden)
@@ -459,3 +486,84 @@ export function getHiddenBuiltInFields(entityType, tPath) {
       }
     })
 }
+
+  return {
+    get state() { return getCfg() },
+    getEffectiveTemplates,
+    getTemplate,
+    getDeletedBuiltInTemplates,
+    addCustomTemplate,
+    updateTemplate,
+    deleteTemplate,
+    restoreTemplate,
+    getProjectDurationDays,
+    updateProjectDurationDays,
+    getTemplateDurationDays,
+    getEntityCustomFields,
+    addEntityField,
+    updateEntityField,
+    deleteEntityField,
+    getFieldOverride,
+    updateFieldOverride,
+    resetFieldOverride,
+    isFieldOverridden,
+    getEffectiveEntityFields,
+    getHiddenBuiltInFields,
+  }
+}
+
+/** API výchozí konfigurace (vzor pro nové projekty). */
+const defaultApi = createConfigApi(() => configState, persistDefault)
+
+/** Uložení konfigurace projektu: s daty projektu, mimo historii změn. */
+function persistProjectConfig() {
+  persistData({ history: false })
+}
+
+const projectApis = new Map()
+
+/**
+ * Konfigurace projektu (stejné funkce jako výchozí konfigurace). Bez projectId, nebo když projekt
+ * neexistuje, vrací výchozí konfiguraci.
+ * @param {string|null|undefined} projectId
+ * @returns {ReturnType<typeof createConfigApi>}
+ */
+export function configFor(projectId) {
+  if (!projectId) return defaultApi
+  if (!projectApis.has(projectId)) {
+    projectApis.set(projectId, createConfigApi(() => {
+      const project = (state.projects || []).find((p) => p?.id === projectId)
+      if (!project) return configState
+      // Projekt bez konfigurace (např. právě načtený zvenku) dostane kopii výchozí hned – úprava
+      // konfigurace projektu nesmí nikdy zasáhnout výchozí konfiguraci
+      if (!project.config || typeof project.config !== 'object' || Array.isArray(project.config)) {
+        project.config = cloneDefaultConfig()
+      }
+      return project.config
+    }, persistProjectConfig))
+  }
+  return projectApis.get(projectId)
+}
+
+export const {
+  getEffectiveTemplates,
+  getTemplate,
+  getDeletedBuiltInTemplates,
+  addCustomTemplate,
+  updateTemplate,
+  deleteTemplate,
+  restoreTemplate,
+  getProjectDurationDays,
+  updateProjectDurationDays,
+  getTemplateDurationDays,
+  getEntityCustomFields,
+  addEntityField,
+  updateEntityField,
+  deleteEntityField,
+  getFieldOverride,
+  updateFieldOverride,
+  resetFieldOverride,
+  isFieldOverridden,
+  getEffectiveEntityFields,
+  getHiddenBuiltInFields,
+} = defaultApi

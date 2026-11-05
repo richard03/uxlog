@@ -4,6 +4,7 @@
  */
 
 export { state, initStore, getData, persist, subscribe } from './state.js'
+export { ensureProjectConfigs, configFor } from './config.js'
 export {
   getProjects, getProject, addProject, updateProject, deleteProject,
   reorderProjects, reorderEntities, moveEntityToProject, copyEntityToProject, moveEntitiesToProject, copyEntitiesToProject,

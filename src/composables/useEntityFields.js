@@ -9,7 +9,7 @@
  * @param {Array} headerFields - Pole definic hlavičkových atributů [{key, label, type}]
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, toValue } from 'vue'
 import { useConfig } from './useConfig.js'
 import { useI18n } from './useI18n.js'
 import { formatCalendarDate } from '../utils/formatDate.js'
@@ -39,7 +39,8 @@ function storageValueToEditableString(raw) {
 }
 
 export function useEntityFields(entityType, entityRef, updateFn, headerFields = []) {
-  const { getEffectiveEntityFields } = useConfig()
+  // Atributy podle konfigurace projektu, kam záznam patří
+  const { getEffectiveEntityFields } = useConfig(() => toValue(entityRef)?.projectId)
   const { t, tPath } = useI18n()
 
   /** Konfigurací řízené atributy (bez hlavičkových). */

@@ -10,19 +10,37 @@ const STORAGE_KEY = 'uxlog_data'
 
 /**
  * Porovná dva záznamy se stejným id a vrátí ten novější.
- * Priorita: _ts (číslo z API syncu) > lastWorkedAt (ISO) > createdAt (ISO).
- * Pokud nelze určit, vrátí a (první).
+ * Priorita: updatedAt > lastWorkedAt > createdAt (ISO řetězce). Pokud nelze určit, vrátí a (první).
  * @param {Object} a
  * @param {Object} b
  * @returns {Object}
  */
 export function pickNewer(a, b) {
-  const tsA = a._ts ?? 0
-  const tsB = b._ts ?? 0
-  if (tsA !== tsB) return tsA > tsB ? a : b
   const dateA = a.updatedAt ?? a.lastWorkedAt ?? a.createdAt ?? ''
   const dateB = b.updatedAt ?? b.lastWorkedAt ?? b.createdAt ?? ''
   return dateA >= dateB ? a : b
+}
+
+/**
+ * Pole, která do záznamů zapisovala starší verze synchronizace s Flexi API (`_ts` čas změny,
+ * `_uxlog_id` párovací id). Současná synchronizace je drží mimo záznamy, v datech jsou jen přežitek.
+ */
+export const LEGACY_SYNC_FIELDS = ['_ts', '_uxlog_id']
+
+/**
+ * Odstraní ze záznamů přežitá pole synchronizace (LEGACY_SYNC_FIELDS).
+ * @param {Object} data
+ * @returns {Object} data (mutováno in-place)
+ */
+export function stripLegacySyncFields(data) {
+  for (const key of Object.keys(getEmptyData())) {
+    if (!Array.isArray(data?.[key])) continue
+    for (const record of data[key]) {
+      if (!record || typeof record !== 'object') continue
+      for (const field of LEGACY_SYNC_FIELDS) delete record[field]
+    }
+  }
+  return data
 }
 
 /** Klíče entit, které patří projektu přes projectId. */
@@ -85,9 +103,10 @@ export function loadData() {
     const before = raw ?? ''
     pruneOrphanEntities(data)
     deduplicateData(data)
+    stripLegacySyncFields(data)
     const after = JSON.stringify(data)
     if (after !== before) {
-      // Deduplikace něco odstranila – okamžitě zapíšeme zpět do localStorage
+      // Úklid (sirotci, duplicity, přežitá pole) něco změnil – okamžitě zapíšeme zpět do localStorage
       localStorage.setItem(STORAGE_KEY, after)
     }
     return data

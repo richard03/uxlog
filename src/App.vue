@@ -29,6 +29,7 @@ import ToastNotification from './components/ToastNotification.vue'
 import { useI18n } from './composables/useI18n.js'
 import { state, getData, persist } from './lib/stores/index.js'
 import { replaceStateFromStorage } from './lib/stores/state.js'
+import { useVaultNotifications } from './composables/useVaultSettings.js'
 import { hasCapability, callCapability } from './lib/plugins/registry.js'
 import {
   isTauri,
@@ -39,6 +40,7 @@ import {
 } from './lib/tauriBridge.js'
 
 const { t } = useI18n()
+useVaultNotifications()
 /** Obrazovky s meta.fullScreen (Canvas) vyplní celé okno mezi AppHeaderem a StatusBarem. */
 const route = useRoute()
 

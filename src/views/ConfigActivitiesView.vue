@@ -1,12 +1,10 @@
 <template>
   <div class="container">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="header-row">
-        <h1>{{ t.config.activityTemplates }}</h1>
+    <ConfigScreenHeader :title="t.config.activityTemplates" :breadcrumbs="breadcrumbs">
+      <template #actions>
         <AppButton variant="primary" size="sm" @click="openAddTemplate">{{ t.config.addTemplate }}</AppButton>
-      </div>
-    </header>
+      </template>
+    </ConfigScreenHeader>
 
     <p v-if="templates.length === 0" class="empty-state">
       {{ t.common.empty }}
@@ -16,7 +14,7 @@
       <EntityCard
         v-for="tpl in templates"
         :key="tpl.key"
-        :to="{ name: 'configActivityTemplate', params: { templateKey: tpl.key } }"
+        :to="scope.to('configActivityTemplate', { templateKey: tpl.key })"
         :entity-id="tpl.key"
       >
         <h3 class="card-title">{{ tpl.name }}</h3>
@@ -97,24 +95,22 @@
  */
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityHelpers } from '../composables/useEntityHelpers.js'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ConfigScreenHeader from '../components/ConfigScreenHeader.vue'
+import { useConfigScope } from '../composables/useConfigScope.js'
 import EntityCard from '../components/EntityCard.vue'
 import Modal from '../components/Modal.vue'
 import AppBadge from '../components/AppBadge.vue'
 import AppButton from '../components/AppButton.vue'
 
 const router = useRouter()
-const config = useConfig()
+const scope = useConfigScope()
+const { config } = scope
 const { t } = useI18n()
 const { generateId } = useEntityHelpers()
 
-const breadcrumbs = computed(() => [
-  { label: t.nav.config, to: { name: 'config' } },
-  { label: t.config.activities },
-])
+const breadcrumbs = computed(() => scope.breadcrumbs([{ label: t.config.activities }]))
 
 const templates = computed(() => config.getEffectiveTemplates())
 const deletedTemplates = computed(() => config.getDeletedBuiltInTemplates())
@@ -166,7 +162,7 @@ function saveTemplate() {
     checklist: templateForm.checklist.map((ci) => ({ id: ci.id, label: ci.label })),
   })
   closeTemplateModal()
-  router.push({ name: 'configActivityTemplate', params: { templateKey: key } })
+  router.push(scope.to('configActivityTemplate', { templateKey: key }))
 }
 </script>
 

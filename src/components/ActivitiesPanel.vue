@@ -94,7 +94,7 @@ const emit = defineEmits(['dismiss', 'move', 'assign-task'])
 
 const { t } = useI18n()
 const store = useStore()
-const { getTemplate, getEffectiveTemplates } = useConfig()
+const { getTemplate, getEffectiveTemplates } = useConfig(() => props.projectId)
 
 const activities = computed(() => store.getActivities(props.projectId))
 /** Nejvýš tři doporučené aktivity podle stavu artefaktů projektu. */

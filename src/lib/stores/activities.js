@@ -2,7 +2,7 @@ import { state, getData, persist } from './state.js'
 import { updateProject } from './projects.js'
 import { createActivity } from '../models.js'
 import { ACTIVITY_TYPES } from '../activityTypes.js'
-import { getTemplate, getEffectiveTemplates } from './config.js'
+import { configFor } from './config.js'
 import { getActivityRecommendations } from '../activityRecommendations.js'
 import { getActivityDeadlineDefault } from '../deadline.js'
 import { generateId } from '../id.js'
@@ -20,7 +20,7 @@ import {
  */
 function resolveTemplateChecklist(activity) {
   if (activity.typeKey) {
-    const cfg = getTemplate(activity.typeKey)?.checklist
+    const cfg = configFor(activity.projectId).getTemplate(activity.typeKey)?.checklist
     if (cfg !== undefined && cfg !== null) return cfg
   }
   return ACTIVITY_TYPES.find((t) => t.key === activity.typeKey)?.checklist || []
@@ -44,7 +44,7 @@ export function getAllActivities(projectId) {
 export function getRecommendedActivities(projectId) {
   const data = getData()
   const of = (key) => (data[key] || []).filter((x) => x?.projectId === projectId)
-  const templates = new Map(getEffectiveTemplates().map((t) => [t.key, t]))
+  const templates = new Map(configFor(projectId).getEffectiveTemplates().map((t) => [t.key, t]))
   return getActivityRecommendations({
     activities: of('activities'),
     stakeholders: of('stakeholders'),
@@ -65,7 +65,7 @@ export function getActivity(id) {
 export function addActivity(projectId, overrides = {}) {
   let finalOverrides = { ...overrides }
   if (overrides.typeKey && !overrides.baseChecklist) {
-    const template = getTemplate(overrides.typeKey)
+    const template = configFor(projectId).getTemplate(overrides.typeKey)
     if (template?.checklist) {
       finalOverrides.baseChecklist = [...template.checklist]
     }

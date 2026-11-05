@@ -1,7 +1,7 @@
 <template>
   <div
     class="project-layout"
-    :class="fullScreen ? 'project-layout--full' : 'container'"
+    :class="fullScreen ? 'project-layout--full' : ['container', { 'project-layout--no-chat': !showChat }]"
     :style="{ '--project-header-height': `${headerHeight}px` }"
   >
     <!-- Hlavička aktuální obrazovky (ProjectPageHeader ji sem teleportuje) – přes celou šířku -->
@@ -10,9 +10,9 @@
     <div class="project-layout-content">
       <router-view />
     </div>
-    <!-- Zápisník (chat) vpravo – stejný na všech obrazovkách projektu; jedna instance, přežije navigaci.
-         Na celoobrazovkové obrazovce (Canvas) je jen skrytý, aby neodeslaný koncept zůstal zachovaný. -->
-    <aside v-if="project" v-show="!fullScreen" class="project-layout-chat">
+    <!-- Zápisník (chat) vpravo – zatím jen na detailu projektu; jedna instance, přežije navigaci.
+         Na ostatních obrazovkách je jen skrytý, aby neodeslaný koncept zůstal zachovaný. -->
+    <aside v-if="project" v-show="showChat" class="project-layout-chat">
       <NotebookChat :project-id="projectId" />
     </aside>
   </div>
@@ -32,6 +32,8 @@ const projectId = computed(() => String(route.params.id || ''))
 const project = computed(() => store.getProject(projectId.value))
 /** Obrazovka přes celé okno (meta.fullScreen, např. Canvas) – bez hlavičky a Zápisníku. */
 const fullScreen = computed(() => route.meta.fullScreen === true)
+/** Zápisník se zatím ukazuje jen na detailu projektu (routa 'project'); jinde obsah přes celou šířku. */
+const showChat = computed(() => !fullScreen.value && route.name === 'project')
 
 /** Výška hlavičky – chat pod ní musí se vstupním polem zůstat celý na obrazovce. */
 const headerEl = ref(null)
@@ -56,6 +58,11 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: var(--space-lg);
   align-items: start;
+}
+
+/* Bez Zápisníku: obsah obrazovky přes celou šířku */
+.project-layout--no-chat {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .project-layout-header {

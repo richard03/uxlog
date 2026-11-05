@@ -10,7 +10,7 @@ import App from './App.vue'
 import router from './router/index.js'
 import './style.css'
 import './components/pending-review.css'
-import { initStore } from './lib/store.js'
+import { initStore, ensureProjectConfigs } from './lib/store.js'
 import { installPlugins } from './lib/plugins/install.js'
 import { isTauri, restoreAllFromTauri } from './lib/tauriBridge.js'
 
@@ -22,6 +22,9 @@ async function bootstrap() {
     initStore()
     console.log('[UXLog] Tauri: data obnovena z nativního storage')
   }
+
+  // Starší projekty bez vlastní konfigurace dostanou kopii výchozí (pak už jsou na ní nezávislé)
+  ensureProjectConfigs()
 
   installPlugins()
 

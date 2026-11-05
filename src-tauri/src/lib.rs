@@ -5,6 +5,8 @@ use tauri::Manager;
 mod http_api;
 mod repository;
 mod storage;
+mod vault;
+mod vault_watch;
 
 /// Uloží hodnotu do embedded storage backendu (volá WebView přes invoke).
 #[tauri::command]
@@ -97,6 +99,74 @@ fn open_download_file(path: String, reveal: bool) -> Result<(), String> {
     result.map(|_| ()).map_err(|e| format!("Nelze otevřít soubor: {e}"))
 }
 
+/// Výchozí složka vaultu (Dokumenty/UXLog/Data).
+#[tauri::command]
+fn vault_default_root() -> String {
+    vault::default_root()
+}
+
+/// Seznam spravovaných souborů vaultu s hashi obsahu.
+#[tauri::command]
+fn vault_scan(root: String, layout: Option<String>) -> Result<Vec<vault::VaultFileInfo>, String> {
+    vault::scan(&root, vault::Layout::parse(layout.as_deref()))
+}
+
+/// Přečte soubor vaultu (None = neexistuje).
+#[tauri::command]
+fn vault_read_file(root: String, path: String, layout: Option<String>) -> Result<Option<String>, String> {
+    vault::read_file(&root, &path, vault::Layout::parse(layout.as_deref()))
+}
+
+/// Přečte datové soubory vaultu (projects/, .uxlog/) s obsahem – pro načtení změn do aplikace.
+#[tauri::command]
+fn vault_read_files(root: String, layout: Option<String>) -> Result<Vec<vault::VaultWrite>, String> {
+    vault::read_data_files(&root, vault::Layout::parse(layout.as_deref()))
+}
+
+/// Zapíše a smaže soubory vaultu (atomicky po souborech).
+#[tauri::command]
+fn vault_apply(
+    root: String,
+    writes: Vec<vault::VaultWrite>,
+    deletes: Vec<String>,
+    layout: Option<String>,
+) -> Result<vault::VaultApplyResult, String> {
+    vault::apply(&root, writes, deletes, vault::Layout::parse(layout.as_deref()))
+}
+
+/// Nastaví sledované složky dat (událost uxlog-vault-changed); ostatní sledování ukončí.
+#[tauri::command]
+fn vault_watch(app: tauri::AppHandle, targets: Vec<vault_watch::WatchTarget>) -> Result<Vec<String>, String> {
+    vault_watch::watch_all(app, targets)
+}
+
+/// Ukončí sledování všech složek dat.
+#[tauri::command]
+fn vault_unwatch() {
+    vault_watch::unwatch()
+}
+
+/// Otevře složku vaultu ve správci souborů (vytvoří ji, pokud neexistuje).
+#[tauri::command]
+fn vault_open_root(root: String) -> Result<(), String> {
+    use std::process::Command;
+
+    let path = std::path::PathBuf::from(root.trim());
+    if !path.is_absolute() {
+        return Err("Složka dat musí být absolutní cesta".into());
+    }
+    std::fs::create_dir_all(&path).map_err(|e| format!("Nelze vytvořit složku: {e}"))?;
+
+    #[cfg(target_os = "windows")]
+    let result = Command::new("explorer").arg(&path).spawn();
+    #[cfg(target_os = "macos")]
+    let result = Command::new("open").arg(&path).spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let result = Command::new("xdg-open").arg(&path).spawn();
+
+    result.map(|_| ()).map_err(|e| format!("Nelze otevřít složku: {e}"))
+}
+
 /// Jednoduchý base64 dekodér (standard alphabet).
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     const TABLE: [u8; 128] = {
@@ -163,6 +233,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = app
                 .path()
@@ -181,6 +252,14 @@ pub fn run() {
             get_api_port,
             save_download_file,
             open_download_file,
+            vault_default_root,
+            vault_scan,
+            vault_read_file,
+            vault_read_files,
+            vault_apply,
+            vault_open_root,
+            vault_watch,
+            vault_unwatch,
         ])
         .run(tauri::generate_context!())
         .expect("Chyba při spuštění UXLog");

@@ -54,9 +54,8 @@ export function useNotebookChat(projectIdRef) {
   const store = useStore()
   const { generateNextCode, getCodePrefix } = useEntityHelpers()
   const { t, tPath } = useI18n()
-  const { getTemplate, getEffectiveEntityFields } = useConfig()
-
   const projectId = computed(() => toValue(projectIdRef))
+  const { getTemplate, getEffectiveEntityFields } = useConfig(() => projectId.value)
   const history = computed(() => store.getProjectNotebookHistory(projectId.value))
 
   /** Dostupnost AI – hasCapability() sleduje reaktivní verzi registru, klíč se ověřuje při každém volání. */

@@ -49,6 +49,7 @@ Figma plugin (`figma-plugin/`) komunikuje s UXLog přes lokální HTTP API serve
 npm install
 npm run dev          # Vite dev server (:5173)
 npm test             # Vitest - jednorázový běh
+npm run build:cli    # CLI pro Claude Code → src/generated/uxlog-cli.mjs (spouští se samo před dev/build/test)
 npm run test:watch   # Vitest - watch mód
 ```
 
@@ -85,7 +86,7 @@ Konfigurovatelná data jsou v YAML souborech ve složce `data/` (komentáře `#`
 - `data/entities.yaml` – datová struktura entit (persony, scénáře, požadavky, rizika, …): prefix kódu, výchozí hodnoty nové entity, atributy formuláře/detailu (typy polí, volby selectů, pořadí) a pole pro skóre úplnosti. Popisky jsou klíče do `src/i18n/cs.js`.
 - `data/app.yaml` – paleta barev projektů, výchozí délky projektů podle rozsahu, práh pro doporučení aktivit.
 
-Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Konfigurace); soubory v `data/` určují výchozí stav.
+Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Konfigurace); soubory v `data/` určují výchozí stav. Konfigurace v aplikaci má dvě úrovně: výchozí (`uxlog_config`, vzor pro nové projekty) a konfiguraci každého projektu (`project.config`, kopie při založení) – store `stores/config.js` (`configFor(projectId)`), čistá logika `lib/projectConfig.js`, obrazovky pro oba rozsahy přes `useConfigScope` + `ConfigScreenHeader`.
 
 ## Architektura
 
@@ -94,6 +95,22 @@ Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Ko
 - **Historie změn projektu:** samostatný klíč `uxlog_history` (zápis v `persist()` → `stores/history.js`, logika rozdílů a vracení v `lib/history.js`)
 - **Dokument:** logika `lib/projectDocument.js` (sestavení dokumentu, uložení pole, Markdown, hledání), store `stores/document.js`, UI `useProjectDocument` + `useDocumentSearch` + `DocumentView.vue`
 - **Canvas:** rozvržení kartiček v `project.canvas` (logika `lib/canvas.js`, store `stores/canvas.js`, UI `useProjectCanvas` + `CanvasView.vue`); okna detailů nad plátnem: logika `lib/canvasWindows.js`, stav a tažení `useCanvasWindows`, okno `CanvasEntityWindow.vue` (stejná komponenta detailu jako v Datech, navigaci podle kontextu řeší `useEntityNavigation`)
+- **Složka dat (vault):** data jako složka souborů `.md`/`.yaml` pro Claude Code (karta Složka dat v Konfigurace → Konektory, jen desktop). Aplikace data zapisuje a složku `projects/` za běhu sleduje; změny ze souborů se načítají vždy automaticky (trojcestné sloučení; konflikty a nezvykle velkou dávku rozhoduje uživatel v náhledu). Čistá logika v `src/lib/vault/`:
+  - `paths.js` – názvy složek a souborů,
+  - `format.js` – entita ↔ Markdown s YAML frontmatterem,
+  - `workspace.js` – celý stav ↔ seznam souborů a `INDEX.md`,
+  - `sync.js` – manifest, plán zápisu a ochrana souborů změněných mimo aplikaci,
+  - `validate.js` – kontrola složky,
+  - `importChanges.js` – změny ze souborů,
+  - `merge.js` – trojcestné sloučení se základem a pojistka proti hromadné změně,
+  - `rebuild.js` – složka jako zdroj pravdy: porovnání značky synchronizace (`syncId`) a obnova databáze ze složky,
+  - `cli.js` – příkazy CLI,
+  - `claudeFiles.js` a `claudeTemplates.js` – soubory pro Claude Code ze šablon v `data/vault/`,
+  - `settings.js` – nastavení včetně složek projektů (`projects`: id → `{ root }` / `{ off: true }`),
+  - `targets.js` – rozdělení projektů do složek (výchozí složka, vlastní složky projektů), kontrola kolizí složek,
+  - rozložení složky (`paths.js`: `VAULT_LAYOUT`, `toPhysicalPath`/`toLogicalPath`) – vlastní složka projektu má projekt přímo v kořeni, uvnitř aplikace se pracuje s logickými cestami `projects/__project__/…`.
+
+  Řízení: plugin `src/lib/plugins/vault/`. Zápis potvrzených změn: store `stores/vaultImport.js`. UI: `useVaultSettings`, `VaultSettingsSection.vue` (karta na obrazovce Konektory), `VaultImportModal.vue` a složka projektu `ProjectVaultFolderModal.vue` + `useProjectVaultFolder` (menu v detailu projektu). Souborové operace: `src-tauri/src/vault.rs` (příkazy `vault_*`; složku vybírá `tauri-plugin-dialog`). Sledování složky: `src-tauri/src/vault_watch.rs` (knihovna `notify`, událost `uxlog-vault-changed`; frontend ji smí poslouchat díky oprávnění `core:event:default` v `capabilities/default.json`). CLI pro Clauda: `src/cli/uxlog.js`, sestavuje ho `npm run build:cli` (`vite.cli.config.js`) do `src/generated/uxlog-cli.mjs`. Ten není v gitu a vzniká automaticky před `dev`, `build` a `test`. YAML čte a zapisuje knihovna `yaml`.
 - Obchodní logika v `src/lib/` (čisté, testovatelné funkce)
 - Stav v `src/lib/stores/` (reaktivní store moduly)
 - Plugin systém v `src/lib/plugins/` (event bus, capabilities)

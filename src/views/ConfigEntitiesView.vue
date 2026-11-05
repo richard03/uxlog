@@ -1,9 +1,6 @@
 <template>
   <div class="container">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <h1>{{ t.config.entities }}</h1>
-    </header>
+    <ConfigScreenHeader :title="t.config.entities" :breadcrumbs="breadcrumbs" />
 
     <p v-if="entityTypes.length === 0" class="empty-state">
       {{ t.common.empty }}
@@ -13,7 +10,7 @@
       <EntityCard
         v-for="entityType in entityTypes"
         :key="entityType"
-        :to="{ name: 'configEntityAttrs', params: { entityType } }"
+        :to="scope.to('configEntityAttrs', { entityType })"
         :entity-id="entityType"
       >
         <div class="card-header">
@@ -42,17 +39,15 @@
  */
 import { computed } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
-import { useConfig } from '../composables/useConfig.js'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ConfigScreenHeader from '../components/ConfigScreenHeader.vue'
+import { useConfigScope } from '../composables/useConfigScope.js'
 import EntityCard from '../components/EntityCard.vue'
 
 const { t, tPath } = useI18n()
-const config = useConfig()
+const scope = useConfigScope()
+const { config } = scope
 
-const breadcrumbs = computed(() => [
-  { label: t.nav.config, to: { name: 'config' } },
-  { label: t.config.entities },
-])
+const breadcrumbs = computed(() => scope.breadcrumbs([{ label: t.config.entities }]))
 
 /** Seznam klíčů typů entit. */
 const entityTypes = computed(() => Object.keys(config.ENTITY_FIELD_DEFAULTS))

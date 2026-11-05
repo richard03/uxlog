@@ -37,7 +37,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update'])
 
-const { getEntityCustomFields } = useConfig()
+/** Atributy podle konfigurace projektu, kam záznam patří. */
+const { getEntityCustomFields } = useConfig(() => props.entity?.projectId)
 const { t } = useI18n()
 
 const customFields = computed(() => getEntityCustomFields(props.entityType))

@@ -1,10 +1,6 @@
 <template>
   <div class="container">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <h1>{{ t.config.deadlinesTitle }}</h1>
-      <p class="page-hint">{{ t.config.deadlinesHint }}</p>
-    </header>
+    <ConfigScreenHeader :title="t.config.deadlinesTitle" :hint="t.config.deadlinesHint" :breadcrumbs="breadcrumbs" />
 
     <section class="config-section" aria-labelledby="project-duration-heading">
       <h2 id="project-duration-heading">{{ t.project.label }}</h2>
@@ -43,18 +39,16 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ConfigScreenHeader from '../components/ConfigScreenHeader.vue'
+import { useConfigScope } from '../composables/useConfigScope.js'
 import { FormInput } from '../components/form'
 
-const config = useConfig()
+const scope = useConfigScope()
+const { config } = scope
 const { t } = useI18n()
 
-const breadcrumbs = computed(() => [
-  { label: t.nav.config, to: { name: 'config' } },
-  { label: t.config.deadlines },
-])
+const breadcrumbs = computed(() => scope.breadcrumbs([{ label: t.config.deadlines }]))
 
 const durations = computed(() => config.getProjectDurationDays())
 

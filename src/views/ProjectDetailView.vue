@@ -8,8 +8,8 @@
         <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
         <KebabMenu
-          :items="[{ label: t.common.edit, action: 'edit' }, { label: t.common.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'edit') openForm(); else if (a === 'delete') confirmDelete() }"
+          :items="menuItems"
+          @action="(a) => { if (a === 'edit') openForm(); else if (a === 'vault') showVaultFolder = true; else if (a === 'delete') confirmDelete() }"
         />
       </template>
     </ProjectPageHeader>
@@ -96,6 +96,7 @@
       @confirm="doDelete"
       @cancel="showConfirm = false"
     />
+    <ProjectVaultFolderModal v-if="showVaultFolder" :project-id="projectId" @close="showVaultFolder = false" />
     <MoveToProjectModal v-if="moveActivityTarget" state-key="activities" :entity-id="moveActivityTarget" :current-project-id="projectId" @close="moveActivityTarget = null" @moved="moveActivityTarget = null" />
   </div>
   <div v-else class="container">
@@ -122,6 +123,8 @@ import { FormGroup, FormInput, FormSelect, FormActions } from '../components/for
 import AppButton from '../components/AppButton.vue'
 import CounterCard from '../components/CounterCard.vue'
 import AppCardGrid from '../components/AppCardGrid.vue'
+import ProjectVaultFolderModal from '../components/ProjectVaultFolderModal.vue'
+import { useProjectVaultFolder } from '../composables/useProjectVaultFolder.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,6 +134,7 @@ const { t, tPath } = useI18n()
 const showForm = ref(false)
 const showConfirm = ref(false)
 const showImport = ref(false)
+const showVaultFolder = ref(false)
 const assignTaskModalOpen = ref(false)
 const assignTaskModalPreset = ref({})
 const assignTaskActivityId = ref('')
@@ -173,6 +177,14 @@ const form = ref({
 
 const projectId = computed(() => route.params.id)
 const project = computed(() => store.getProject(projectId.value))
+
+/** Složka dat projektu – položka menu jen v desktopové aplikaci se zapnutou Složkou dat. */
+const { available: vaultFolderAvailable } = useProjectVaultFolder(() => projectId.value)
+const menuItems = computed(() => [
+  { label: t.common.edit, action: 'edit' },
+  ...(vaultFolderAvailable.value ? [{ label: t.vault.projectFolderMenu, action: 'vault' }] : []),
+  { label: t.common.delete, action: 'delete', variant: 'danger' },
+])
 
 const breadcrumbs = computed(() => [
   { label: t.nav.projects, to: { name: 'projects' } },

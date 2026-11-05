@@ -58,7 +58,7 @@ export function flushHistory() {
       id: generateId(),
       projectId,
       at,
-      kind: meta?.kind === 'revert' ? 'revert' : 'edit',
+      kind: meta?.kind === 'revert' || meta?.kind === 'external' ? meta.kind : 'edit',
       ...(meta?.revertOf ? { revertOf: meta.revertOf } : {}),
       changes: projectChanges,
     })
@@ -127,4 +127,12 @@ export function restoreDeletedProject(projectId) {
   const item = getDeletedProjects().find((d) => d.projectId === projectId)
   if (!item) return false
   return revertHistoryEntry(projectId, item.entryId)
+}
+
+/**
+ * Označí záznamy historie, které vzniknou právě probíhající synchronní akcí, jako změny
+ * načtené ze Složky dat (kind 'external').
+ */
+export function markNextHistoryAsExternal() {
+  pendingMeta = { kind: 'external' }
 }

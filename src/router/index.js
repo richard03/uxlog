@@ -168,6 +168,43 @@ const routes = [
         component: () => import('../views/ProjectHistoryView.vue'),
         meta: { title: 'Historie změn' },
       },
+      // Konfigurace projektu – stejné obrazovky jako výchozí konfigurace (/config), rozsah určuje useConfigScope
+      {
+        path: 'config',
+        name: 'projectConfig',
+        component: () => import('../views/ConfigView.vue'),
+        meta: { title: 'Konfigurace projektu' },
+      },
+      {
+        path: 'config/entities',
+        name: 'projectConfigEntities',
+        component: () => import('../views/ConfigEntitiesView.vue'),
+        meta: { title: 'Entity' },
+      },
+      {
+        path: 'config/entities/:entityType',
+        name: 'projectConfigEntityAttrs',
+        component: () => import('../views/ConfigEntityAttrsView.vue'),
+        meta: { title: 'Atributy entity' },
+      },
+      {
+        path: 'config/activities',
+        name: 'projectConfigActivities',
+        component: () => import('../views/ConfigActivitiesView.vue'),
+        meta: { title: 'Aktivity' },
+      },
+      {
+        path: 'config/activities/:templateKey',
+        name: 'projectConfigActivityTemplate',
+        component: () => import('../views/ConfigActivityTemplateView.vue'),
+        meta: { title: 'Šablona aktivity' },
+      },
+      {
+        path: 'config/deadlines',
+        name: 'projectConfigDeadlines',
+        component: () => import('../views/ConfigDeadlinesView.vue'),
+        meta: { title: 'Termíny' },
+      },
       {
         path: 'bugs',
         name: 'bugs',

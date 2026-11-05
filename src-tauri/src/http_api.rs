@@ -178,6 +178,9 @@ fn handle_put_entity(
             "id".to_string(),
             serde_json::Value::String(uxlog_id.to_string()),
         );
+        // Přežitá pole starší Flexi synchronizace se do záznamů neukládají
+        obj.remove("_uxlog_id");
+        obj.remove("_ts");
     } else {
         return cors_response(
             StatusCode(400),

@@ -19,3 +19,4 @@ api/config.example.php
 
 # Interní knihovna technik (lokální podklad, obsahuje interní data)
 /knowledge
+src/generated/

@@ -1,14 +1,12 @@
 <template>
   <div class="container">
-    <header class="page-header">
-      <Breadcrumb :items="breadcrumbs" />
-      <div class="section-header">
-        <h1>{{ t.config.entityFields }}: {{ entityLabel }}</h1>
+    <ConfigScreenHeader :title="`${t.config.entityFields}: ${entityLabel}`" :breadcrumbs="breadcrumbs">
+      <template #actions>
         <AppButton variant="primary" size="sm" @click="openAddField">
           {{ t.config.addField }}
         </AppButton>
-      </div>
-    </header>
+      </template>
+    </ConfigScreenHeader>
 
     <section class="config-section" aria-labelledby="fields-heading">
       <h2 id="fields-heading" class="visually-hidden">{{ t.config.entityFields }}</h2>
@@ -193,32 +191,32 @@
  */
 import { ref, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useConfig } from '../composables/useConfig.js'
 import { useI18n } from '../composables/useI18n.js'
 import Modal from '../components/Modal.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Breadcrumb from '../components/Breadcrumb.vue'
+import ConfigScreenHeader from '../components/ConfigScreenHeader.vue'
+import { useConfigScope } from '../composables/useConfigScope.js'
 import AppButton from '../components/AppButton.vue'
 import { FormActions } from '../components/form'
 
 const route = useRoute()
 const router = useRouter()
-const config = useConfig()
+const scope = useConfigScope()
+const { config } = scope
 const { t, tPath } = useI18n()
 
 const entityType = computed(() => route.params.entityType)
 
 watch(entityType, (type) => {
   if (type && !config.ENTITY_FIELD_DEFAULTS[type]) {
-    router.replace({ name: 'configEntities' })
+    router.replace(scope.to('configEntities'))
   }
 }, { immediate: true })
 
-const breadcrumbs = computed(() => [
-  { label: t.nav.config, to: { name: 'config' } },
-  { label: t.config.entities, to: { name: 'configEntities' } },
+const breadcrumbs = computed(() => scope.breadcrumbs([
+  { label: t.config.entities, to: scope.to('configEntities') },
   { label: entityLabel.value },
-])
+]))
 
 /** Lokalizovaný název typu entity. */
 const entityLabel = computed(() => t.config.entityTypes[entityType.value] || entityType.value)

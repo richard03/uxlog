@@ -153,7 +153,7 @@ const route = useRoute()
 const { leaveDetail, openDetail, inCanvas } = useEntityNavigation()
 const store = useStore()
 const { t } = useI18n()
-const { getTemplate } = useConfig()
+const { getTemplate } = useConfig(() => route.params.id)
 const { daysRemaining } = useDeadline()
 
 const projectId = computed(() => route.params.id)

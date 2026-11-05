@@ -23,6 +23,8 @@ const MIRRORED_KEYS = [
   'uxlog_ai_keys',
   'uxlog_last_save_ts',
   'uxlog_last_api_ts',
+  'uxlog_vault',
+  'uxlog_vault_sync',
 ]
 
 /**
@@ -190,6 +192,125 @@ export async function listenToTauriStorageUpdates(onChange) {
       onChange((event && event.payload) || {})
     } catch (err) {
       console.error('[TauriBridge] storage update handler failed:', err)
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Vault – data jako složka souborů (jen desktop). Formát a plán zápisu jsou v lib/vault/.
+// ---------------------------------------------------------------------------
+
+async function invokeTauri(command, args) {
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke(command, args)
+}
+
+/**
+ * Výchozí složka vaultu (Dokumenty/UXLog/Data); mimo Tauri ''.
+ * @returns {Promise<string>}
+ */
+export async function vaultDefaultRoot() {
+  if (!isTauri) return ''
+  return invokeTauri('vault_default_root')
+}
+
+/**
+ * Seznam spravovaných souborů vaultu s SHA-256 obsahu (logické cesty projects/…, .uxlog/…).
+ * @param {string} root
+ * @param {string} [layout] - 'shared' (výchozí složka) nebo 'project' (vlastní složka projektu)
+ * @returns {Promise<Array<{ path: string, hash: string }>>}
+ */
+export async function vaultScan(root, layout = 'shared') {
+  return invokeTauri('vault_scan', { root, layout })
+}
+
+/**
+ * Přečte soubor vaultu; neexistující = null.
+ * @param {string} root
+ * @param {string} path - logická relativní cesta
+ * @param {string} [layout]
+ * @returns {Promise<string|null>}
+ */
+export async function vaultReadFile(root, path, layout = 'shared') {
+  return invokeTauri('vault_read_file', { root, path, layout })
+}
+
+/**
+ * Přečte datové soubory vaultu (projects/, .uxlog/) s obsahem – pro načtení změn do aplikace.
+ * @param {string} root
+ * @param {string} [layout]
+ * @returns {Promise<Array<{ path: string, content: string }>>}
+ */
+export async function vaultReadFiles(root, layout = 'shared') {
+  return invokeTauri('vault_read_files', { root, layout })
+}
+
+/**
+ * Zapíše a smaže soubory vaultu; chyba jednoho souboru nezastaví ostatní.
+ * @param {string} root
+ * @param {Array<{ path: string, content: string }>} writes
+ * @param {string[]} deletes
+ * @param {string} [layout]
+ * @returns {Promise<{ written: string[], deleted: string[], errors: Array<{ path: string, message: string }> }>}
+ */
+export async function vaultApply(root, writes, deletes, layout = 'shared') {
+  return invokeTauri('vault_apply', { root, writes, deletes, layout })
+}
+
+/**
+ * Otevře složku vaultu ve správci souborů.
+ * @param {string} root
+ * @returns {Promise<void>}
+ */
+export async function vaultOpenRoot(root) {
+  return invokeTauri('vault_open_root', { root })
+}
+
+/**
+ * Nechá uživatele vybrat složku (systémový dialog). Zrušení = null.
+ * @param {string} [defaultPath]
+ * @returns {Promise<string|null>}
+ */
+export async function pickDirectory(defaultPath) {
+  if (!isTauri) return null
+  const { open } = await import('@tauri-apps/plugin-dialog')
+  const selected = await open({ directory: true, multiple: false, defaultPath: defaultPath || undefined })
+  return typeof selected === 'string' ? selected : null
+}
+
+/**
+ * Nastaví sledované složky vaultu (změny souborů dat hlásí událost uxlog-vault-changed);
+ * složky, které v seznamu nejsou, se přestanou sledovat.
+ * @param {Array<{ root: string, layout: string }>} targets
+ * @returns {Promise<string[]>} chyby jednotlivých složek
+ */
+export async function vaultWatch(targets) {
+  if (!isTauri) return []
+  return invokeTauri('vault_watch', { targets })
+}
+
+/**
+ * Zastaví sledování složky vaultu.
+ * @returns {Promise<void>}
+ */
+export async function vaultUnwatch() {
+  if (!isTauri) return
+  return invokeTauri('vault_unwatch')
+}
+
+/**
+ * Přihlásí listener na změny souborů ve sledované složce vaultu.
+ * @param {(payload: { root?: string, paths?: string[] }) => void} onChange
+ * @returns {Promise<Function>} unsubscribe (mimo Tauri no-op)
+ */
+export async function listenToVaultChanges(onChange) {
+  if (!isTauri) return () => {}
+  const { listen } = await import('@tauri-apps/api/event')
+  return listen('uxlog-vault-changed', (event) => {
+    try {
+      onChange((event && event.payload) || {})
+    } catch (err) {
+      console.error('[TauriBridge] vault change handler failed:', err)
     }
   })
 }

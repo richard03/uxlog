@@ -11,14 +11,20 @@
     "test:watch": "vitest",
     "tauri": "tauri",
     "tauri:dev": "node scripts/check-build-cache.js && tauri dev",
-    "tauri:build": "node scripts/check-build-cache.js && tauri build && node scripts/copy-installers.js"
+    "tauri:build": "node scripts/check-build-cache.js && tauri build && node scripts/copy-installers.js",
+    "build:cli": "vite build --config vite.cli.config.js --logLevel warn",
+    "predev": "npm run build:cli",
+    "prebuild": "npm run build:cli",
+    "pretest": "npm run build:cli"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-shell": "^2",
     "jspdf": "^4.2.1",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue-router": "^4.3.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

@@ -1,56 +1,33 @@
 /**
- * Composable pro přístup ke konfiguraci aplikace.
- * Obaluje funkce z stores/config.js a poskytuje je komponentám.
+ * Composable pro přístup ke konfiguraci.
+ * Bez projektu pracuje s výchozí konfigurací (vzor pro nové projekty), s projektem s konfigurací
+ * toho projektu (stores/config.js → configFor). Funkce se vyhodnocují vždy pro aktuální projekt,
+ * takže fungují i při přechodu mezi projekty bez nového připojení komponenty.
  */
 
-import {
-  configState,
-  getEffectiveTemplates,
-  getTemplate,
-  getDeletedBuiltInTemplates,
-  getEntityCustomFields,
-  addCustomTemplate,
-  updateTemplate,
-  deleteTemplate,
-  restoreTemplate,
-  addEntityField,
-  updateEntityField,
-  deleteEntityField,
-  getEffectiveEntityFields,
-  getHiddenBuiltInFields,
-  getFieldOverride,
-  updateFieldOverride,
-  resetFieldOverride,
-  isFieldOverridden,
-  getProjectDurationDays,
-  updateProjectDurationDays,
-  getTemplateDurationDays,
-} from '../lib/stores/config.js'
+import { configFor } from '../lib/stores/config.js'
 import { ENTITY_FIELD_DEFAULTS } from '../lib/entityFieldDefaults.js'
 
-export function useConfig() {
-  return {
-    state: configState,
+const FUNCTIONS = [
+  'getEffectiveTemplates', 'getTemplate', 'getDeletedBuiltInTemplates', 'getEntityCustomFields',
+  'addCustomTemplate', 'updateTemplate', 'deleteTemplate', 'restoreTemplate',
+  'addEntityField', 'updateEntityField', 'deleteEntityField',
+  'getEffectiveEntityFields', 'getHiddenBuiltInFields', 'getFieldOverride', 'updateFieldOverride', 'resetFieldOverride',
+  'isFieldOverridden', 'getProjectDurationDays', 'updateProjectDurationDays', 'getTemplateDurationDays',
+]
+
+/**
+ * @param {string|(() => string|null|undefined)|null} [project] - id projektu nebo funkce, která ho vrací
+ *   (např. () => route.params.id); bez projektu = výchozí konfigurace
+ */
+export function useConfig(project = null) {
+  const projectId = () => (typeof project === 'function' ? project() : project) || null
+  const api = {
+    get state() { return configFor(projectId()).state },
     ENTITY_FIELD_DEFAULTS,
-    getEffectiveTemplates,
-    getTemplate,
-    getDeletedBuiltInTemplates,
-    getEntityCustomFields,
-    addCustomTemplate,
-    updateTemplate,
-    deleteTemplate,
-    restoreTemplate,
-    addEntityField,
-    updateEntityField,
-    deleteEntityField,
-    getEffectiveEntityFields,
-    getHiddenBuiltInFields,
-    getFieldOverride,
-    updateFieldOverride,
-    resetFieldOverride,
-    isFieldOverridden,
-    getProjectDurationDays,
-    updateProjectDurationDays,
-    getTemplateDurationDays,
+    /** Je to konfigurace projektu (ne výchozí)? */
+    get isProjectScope() { return Boolean(projectId()) },
   }
+  for (const name of FUNCTIONS) api[name] = (...args) => configFor(projectId())[name](...args)
+  return api
 }

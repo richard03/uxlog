@@ -17,7 +17,7 @@
             {{ t.common.cancel }}
           </AppButton>
           <AppButton variant="danger" @click="confirm">
-            {{ t.common.delete }}
+            {{ confirmLabel || t.common.delete }}
           </AppButton>
         </div>
       </div>
@@ -33,6 +33,8 @@ import AppButton from './AppButton.vue'
 const props = defineProps({
   title: { type: String, default: '' },
   message: { type: String, default: '' },
+  /** Text potvrzovacího tlačítka (výchozí „Smazat“). */
+  confirmLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['confirm', 'cancel'])

@@ -20,7 +20,7 @@ import { formatCalendarDate } from '../utils/formatDate.js'
 export function useProjectDocument(projectId) {
   const store = useStore()
   const { t, tPath } = useI18n()
-  const { getEffectiveEntityFields } = useConfig()
+  const { getEffectiveEntityFields } = useConfig(() => projectId.value)
 
   const project = computed(() => store.getProject(projectId.value))
 
