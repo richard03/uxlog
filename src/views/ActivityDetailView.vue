@@ -20,51 +20,57 @@
       :on-edit="() => openEdit('name')"
       :edit-label="`${t.common.edit} – ${t.activity.name}`" />
 
-    <p v-if="activityType?.description" class="activity-type-desc">{{ activityType.description }}</p>
-    <ActivityGuide v-if="activityType" :guide="activityType.guide" part="intro" />
+    <!-- Sloupce: stav, termín, popis typu a poznámky | checklist | „Jak na to“; souvislosti pod nimi -->
+    <div class="activity-layout-wrap">
+    <div class="activity-layout" :class="`activity-layout--cols-${columnCount}`">
+      <div class="activity-layout-main">
+        <section class="detail-section">
+          <dl class="detail-list">
+            <InlineEditableDetailField
+              :label="t.activity.status"
+              :empty="!item.status"
+              :display-value="t.activity.statusOptions[item.status] ?? '—'"
+              :raw-value="item.status ?? ''"
+              :field="{ key: 'status', type: 'select', options: statusOptions }"
+              :cancel-text="t.common.cancel"
+              :save-text="t.common.save"
+              @save="(val) => saveField('status', val)"
+            />
+            <InlineEditableDetailField
+              :label="t.activity.deadline"
+              :empty="!item.deadline"
+              :display-value="item.deadline ? formatCalendarDate(item.deadline) : '—'"
+              :raw-value="item.deadline ?? ''"
+              :field="{ key: 'deadline', type: 'date' }"
+              :value-class="deadlineOverdue ? 'deadline-overdue' : ''"
+              :cancel-text="t.common.cancel"
+              :save-text="t.common.save"
+              @save="(val) => saveField('deadline', val)"
+            />
+          </dl>
+        </section>
 
-    <section class="detail-section">
-      <dl class="detail-list">
-        <InlineEditableDetailField
-          :label="t.activity.description"
-          :empty="!item.description"
-          :display-value="item.description || '—'"
-          :raw-value="item.description ?? ''"
-          :field="{ key: 'description', type: 'textarea' }"
-          :cancel-text="t.common.cancel"
-          :save-text="t.common.save"
-          @save="(val) => saveField('description', val)"
-        />
-        <InlineEditableDetailField
-          :label="t.activity.status"
-          :empty="!item.status"
-          :display-value="t.activity.statusOptions[item.status] ?? '—'"
-          :raw-value="item.status ?? ''"
-          :field="{ key: 'status', type: 'select', options: statusOptions }"
-          :cancel-text="t.common.cancel"
-          :save-text="t.common.save"
-          @save="(val) => saveField('status', val)"
-        />
-        <InlineEditableDetailField
-          :label="t.activity.deadline"
-          :empty="!item.deadline"
-          :display-value="item.deadline ? formatCalendarDate(item.deadline) : '—'"
-          :raw-value="item.deadline ?? ''"
-          :field="{ key: 'deadline', type: 'date' }"
-          :value-class="deadlineOverdue ? 'deadline-overdue' : ''"
-          :cancel-text="t.common.cancel"
-          :save-text="t.common.save"
-          @save="(val) => saveField('deadline', val)"
-        />
-      </dl>
-    </section>
+        <p v-if="activityType?.description" class="activity-type-desc">{{ activityType.description }}</p>
+        <ActivityGuide v-if="activityType" :guide="activityType.guide" part="intro" />
 
-    <SectionCard v-if="activityType?.guide?.steps?.length || activityType?.guide?.outputs?.length" :aria-label="t.activity.typeInfo">
-      <ActivityGuide :guide="activityType.guide" part="steps" />
-    </SectionCard>
+        <section class="detail-section">
+          <dl class="detail-list">
+            <InlineEditableDetailField
+              :label="t.activity.description"
+              :empty="!item.description"
+              :display-value="item.description || '—'"
+              :raw-value="item.description ?? ''"
+              :field="{ key: 'description', type: 'textarea' }"
+              :cancel-text="t.common.cancel"
+              :save-text="t.common.save"
+              @save="(val) => saveField('description', val)"
+            />
+          </dl>
+        </section>
+      </div>
 
+      <div v-if="hasChecklist" class="activity-layout-checklist">
     <ActivityChecklist
-      v-if="activityType || activityItem?.customChecklistItems?.length"
       :title="t.activity.checklist"
       :items="effectiveChecklist"
       :checked-ids="activityItem?.checkedItems || []"
@@ -90,6 +96,18 @@
       @create-task-from-item="onCreateTaskFromChecklistItem"
       @open-linked-task="onOpenChecklistLinkedTask"
     />
+      </div>
+
+      <!-- „Jak na to“ – po příchodu sbalené -->
+      <div v-if="hasSteps" class="activity-layout-guide">
+        <SectionCard :aria-label="t.activity.typeInfo">
+          <ActivityGuide :guide="activityType.guide" part="steps" />
+        </SectionCard>
+      </div>
+    </div>
+    </div>
+
+    <EntityConnections :project-id="projectId" entity-type="activities" :entity-id="item.id" />
 
     <Modal v-if="editingField" :title="editingLabel" @close="closeEdit">
       <form @submit.prevent="saveFieldModal">
@@ -102,8 +120,6 @@
         </FormActions>
       </form>
     </Modal>
-
-    <EntityConnections :project-id="projectId" entity-type="activities" :entity-id="item.id" />
 
     <ConfirmDialog v-if="showConfirm" :title="t.activity.delete" :message="t.activity.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
@@ -161,6 +177,12 @@ const activityItem = computed(() => store.getActivity(route.params.activityId))
 const item = activityItem
 const project = computed(() => store.getProject(projectId.value))
 const activityType = computed(() => activityItem.value?.typeKey ? getTemplate(activityItem.value.typeKey) : null)
+/** Prostřední sloupec s checklistem jen u aktivity se šablonou nebo s vlastními kroky. */
+const hasChecklist = computed(() => Boolean(activityType.value || activityItem.value?.customChecklistItems?.length))
+/** Pravý sloupec „Jak na to“ jen u typu aktivity s postupem nebo výstupy. */
+const hasSteps = computed(() => Boolean(activityType.value?.guide?.steps?.length || activityType.value?.guide?.outputs?.length))
+/** Počet sloupců rozložení (hlavní + checklist + „Jak na to“). */
+const columnCount = computed(() => 1 + (hasChecklist.value ? 1 : 0) + (hasSteps.value ? 1 : 0))
 
 const effectiveChecklist = computed(() =>
   getEffectiveActivityChecklist(activityItem.value, activityType.value?.checklist)
@@ -328,6 +350,52 @@ function doDelete() {
 </script>
 
 <style scoped>
+/* Až tři sloupce podle šířky obsahu: stav, popis a poznámky | checklist | „Jak na to“.
+   Container query (na obalu – kontejner nemůže stylovat sám sebe) funguje i v úzkém okně nad plátnem. */
+/* Vodorovná linka odděluje sloupce od Souvislostí pod nimi */
+.activity-layout-wrap {
+  container-type: inline-size;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-layout {
+  display: grid;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.activity-layout--cols-1 { grid-template-columns: minmax(0, 1fr); }
+.activity-layout--cols-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.activity-layout--cols-3 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+
+.activity-layout > * {
+  min-width: 0;
+}
+
+.activity-layout-main > .detail-section:first-child {
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+}
+
+.activity-layout > * > :first-child {
+  margin-top: 0;
+}
+
+/* Střední šířka: dva sloupce, třetí („Jak na to“) pod nimi přes celou šířku */
+@container (max-width: 1000px) {
+  .activity-layout--cols-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .activity-layout--cols-3 .activity-layout-guide { grid-column: 1 / -1; }
+}
+
+/* Úzký prostor: vše pod sebou */
+@container (max-width: 700px) {
+  .activity-layout--cols-2,
+  .activity-layout--cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .activity-layout--cols-3 .activity-layout-guide { grid-column: auto; }
+}
+
 .activity-type-desc {
   margin: 0 0 var(--space-sm);
   font-size: 0.9rem;

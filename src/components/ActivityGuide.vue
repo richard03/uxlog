@@ -10,7 +10,7 @@
   </dl>
 
   <!-- Postup a výstupy – sbalitelná sekce „Jak na to“ -->
-  <details v-else-if="part === 'steps' && hasSteps" class="activity-guide">
+  <details v-else-if="part === 'steps' && hasSteps" class="activity-guide" :open="open">
     <summary class="ag-summary">{{ t.activity.guide.title }}</summary>
     <dl class="ag-list">
       <div v-if="guide.steps?.length" class="ag-item">
@@ -45,6 +45,8 @@ import { useI18n } from '../composables/useI18n.js'
 const props = defineProps({
   guide: { type: Object, default: null },
   part: { type: String, default: 'steps', validator: (v) => ['intro', 'steps'].includes(v) },
+  /** Sekce „Jak na to“ je na začátku rozbalená (lze ji sbalit). */
+  open: { type: Boolean, default: false },
 })
 
 const { t } = useI18n()
