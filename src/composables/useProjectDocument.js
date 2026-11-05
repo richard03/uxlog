@@ -12,7 +12,6 @@ import {
   DOCUMENT_SECTIONS, DOCUMENT_EXTRA_FIELDS, documentToMarkdown, normalizeDocumentText,
 } from '../lib/projectDocument.js'
 import { entityDetailRoute } from '../lib/entityRoutes.js'
-import { formatCalendarDate } from '../utils/formatDate.js'
 
 /**
  * @param {import('vue').Ref<string>} projectId
@@ -60,7 +59,6 @@ export function useProjectDocument(projectId) {
       { label: t.project.scope, value: p.scope ? tPath(`scope.${p.scope}`) : '' },
       { label: t.project.priority, value: p.priority ? tPath(`priority.${p.priority}`) : '' },
       { label: t.project.phase, value: p.phase ? tPath(`phase.${p.phase}`) : '' },
-      { label: t.project.deadlineLabel, value: p.deadline ? formatCalendarDate(p.deadline, { month: 'long' }) : '' },
     ]
   })
 

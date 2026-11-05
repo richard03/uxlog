@@ -32,7 +32,6 @@ describe('data/*.yaml – načtení', () => {
 
   it('app.yaml obsahuje barvy, délky projektů a práh doporučení', () => {
     expect(APP_CONFIG.projectColors.length).toBeGreaterThan(0)
-    expect(APP_CONFIG.projectDurationDays).toEqual({ small: 30, medium: 60, large: 120 })
     expect(APP_CONFIG.recommendations.minRequirementsForPrioritization).toBe(5)
   })
 
@@ -88,9 +87,8 @@ describe('normalizace – poškozená konfigurace', () => {
   })
 
   it('app: neplatné barvy a čísla nahradí výchozími', () => {
-    const c = normalizeAppConfig({ projectColors: ['red', '#abc'], projectDurationDays: { small: 'x' } })
+    const c = normalizeAppConfig({ projectColors: ['red', '#abc'] })
     expect(c.projectColors).toEqual(['#abc'])
-    expect(c.projectDurationDays.small).toBe(30)
     expect(normalizeAppConfig(undefined).projectColors.length).toBe(1)
   })
 

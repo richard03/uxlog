@@ -153,7 +153,6 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
       phase: pi.phase || 'research',
       ...(pi.notebook != null ? { notebook: pi.notebook } : {}),
       ...(Array.isArray(pi.notebookHistory) ? { notebookHistory: pi.notebookHistory } : {}),
-      ...(pi.deadline != null ? { deadline: pi.deadline } : {}),
       ...(pi.color != null ? { color: pi.color } : {}),
     })
   }
@@ -228,7 +227,6 @@ export function buildImportData(plan, selections, targetProjectId, currentState,
     if (item.phase != null) projectUpdates.phase = item.phase
     if (item.notebook != null) projectUpdates.notebook = item.notebook
     if (Array.isArray(item.notebookHistory)) projectUpdates.notebookHistory = item.notebookHistory
-    if (item.deadline != null) projectUpdates.deadline = item.deadline
     if (item.color != null) projectUpdates.color = item.color
   }
 

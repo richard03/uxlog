@@ -23,7 +23,6 @@ entities:
       scope: medium
       priority: medium
       phase: research
-      deadline: ''
       notebook: ''
       notebookHistory: []
       sortOrder: 9999

@@ -71,7 +71,6 @@
           ]"
         />
         <FormInput v-model="form.createdAt" :label="t.project.createdAt" type="date" control-id="edit-project-created" />
-        <FormInput v-model="form.deadline" :label="t.project.deadlineLabel" type="date" control-id="edit-project-deadline" />
         <FormGroup :label="t.project.color">
           <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
         </FormGroup>
@@ -171,7 +170,6 @@ const form = ref({
   scope: 'medium',
   priority: 'medium',
   color: '',
-  deadline: '',
   createdAt: '',
 })
 
@@ -198,7 +196,6 @@ function openForm() {
       scope: project.value.scope,
       priority: project.value.priority,
       color: project.value.color || '',
-      deadline: project.value.deadline || '',
       createdAt: project.value.createdAt ? project.value.createdAt.split('T')[0] : '',
     }
     showForm.value = true
@@ -216,7 +213,6 @@ function saveProject() {
     scope: form.value.scope,
     priority: form.value.priority,
     color: form.value.color,
-    deadline: form.value.deadline,
     createdAt: form.value.createdAt ? new Date(form.value.createdAt + 'T12:00:00').toISOString() : undefined,
   }
   store.updateProject(project.value.id, formData)

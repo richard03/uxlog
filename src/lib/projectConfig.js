@@ -1,5 +1,5 @@
 /**
- * Konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů, délky projektů).
+ * Konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů).
  *
  * Výchozí konfigurace (Konfigurace na přehledu projektů) slouží jen jako vzor pro nové projekty.
  * Každý projekt má vlastní kopii v `project.config` – vznikne při založení projektu (u starších
@@ -11,37 +11,37 @@ const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
 /**
  * Prázdná konfigurace.
- * @param {Object} [projectDurationDays] - výchozí délky projektů (data/app.yaml)
  * @returns {Object}
  */
-export function getEmptyConfig(projectDurationDays = {}) {
+export function getEmptyConfig() {
   return {
     activityTemplateOverrides: {},
     customActivityTemplates: [],
     entityCustomFields: {},
     entityFieldOverrides: {},
-    projectDurationDays: { ...projectDurationDays },
   }
 }
+
+/** Zrušené části konfigurace, které se při čtení zahodí (délky projektů – termín projektu už není). */
+const REMOVED_CONFIG_KEYS = ['projectDurationDays']
 
 /**
  * Normalizuje uloženou konfiguraci (tolerantní k poškozeným a starším datům):
  * chybějící nebo neplatné části nahradí výchozími.
  * @param {unknown} raw
- * @param {Object} [projectDurationDays]
  * @returns {Object} nový objekt (vstup se nemění)
  */
-export function normalizeConfig(raw, projectDurationDays = {}) {
-  const empty = getEmptyConfig(projectDurationDays)
+export function normalizeConfig(raw) {
+  const empty = getEmptyConfig()
   if (!isObject(raw)) return empty
   const copy = JSON.parse(JSON.stringify(raw))
+  for (const key of REMOVED_CONFIG_KEYS) delete copy[key]
   return {
     ...copy,
     activityTemplateOverrides: isObject(copy.activityTemplateOverrides) ? copy.activityTemplateOverrides : empty.activityTemplateOverrides,
     customActivityTemplates: Array.isArray(copy.customActivityTemplates) ? copy.customActivityTemplates.filter(isObject) : empty.customActivityTemplates,
     entityCustomFields: isObject(copy.entityCustomFields) ? copy.entityCustomFields : empty.entityCustomFields,
     entityFieldOverrides: isObject(copy.entityFieldOverrides) ? copy.entityFieldOverrides : empty.entityFieldOverrides,
-    projectDurationDays: { ...empty.projectDurationDays, ...(isObject(copy.projectDurationDays) ? copy.projectDurationDays : {}) },
   }
 }
 

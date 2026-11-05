@@ -42,19 +42,6 @@ export function daysRemaining(deadlineStr) {
 }
 
 /**
- * Vrátí výchozí deadline projektu dle rozsahu a konfigurace.
- * @param {string} scope - 'small'|'medium'|'large'
- * @param {{ small: number, medium: number, large: number }} durationDays
- * @param {string} [startDate] - YYYY-MM-DD (výchozí: dnes)
- * @returns {string} YYYY-MM-DD nebo prázdný řetězec
- */
-export function getProjectDeadlineDefault(scope, durationDays, startDate) {
-  const days = durationDays?.[scope]
-  if (!days) return ''
-  return addDays(startDate || todayISO(), days)
-}
-
-/**
  * Vrátí výchozí deadline aktivity dle délky šablony.
  * @param {number|null} durationDays
  * @param {string} [startDate] - YYYY-MM-DD (výchozí: dnes)
@@ -85,35 +72,4 @@ export function countUncheckedItems(activities) {
     }
   }
   return count
-}
-
-/**
- * Spočítá součet výchozích délek (dnů) non-done, non-dismissed aktivit dle šablon.
- * @param {Array} activities
- * @param {Function} getTemplateDurationDays - (typeKey: string) => number|null
- * @returns {number}
- */
-export function sumRemainingActivityDays(activities, getTemplateDurationDays) {
-  let sum = 0
-  for (const a of activities) {
-    if (a.status === 'done' || a.dismissed) continue
-    const days = a.typeKey ? getTemplateDurationDays(a.typeKey) : null
-    if (days) sum += days
-  }
-  return sum
-}
-
-/**
- * Zjistí, zda projektu hrozí skluz (součet dnů aktivit > zbývající dny projektu).
- * @param {Object} project
- * @param {Array} activities
- * @param {Function} getTemplateDurationDays
- * @returns {boolean}
- */
-export function isProjectDelayed(project, activities, getTemplateDurationDays) {
-  if (!project.deadline) return false
-  const projectDays = daysRemaining(project.deadline)
-  if (projectDays === null) return false
-  const activityDays = sumRemainingActivityDays(activities, getTemplateDurationDays)
-  return activityDays > projectDays
 }

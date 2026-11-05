@@ -150,6 +150,7 @@ export function useStore() {
     revertHistoryEntry: store.revertHistoryEntry,
     getDeletedProjects: store.getDeletedProjects,
     restoreDeletedProject: store.restoreDeletedProject,
+    purgeDeletedProject: store.purgeDeletedProject,
     // Low-level (pro config/admin views)
     getData: store.getData,
     persist: store.persist,

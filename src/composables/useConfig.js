@@ -13,7 +13,7 @@ const FUNCTIONS = [
   'addCustomTemplate', 'updateTemplate', 'deleteTemplate', 'restoreTemplate',
   'addEntityField', 'updateEntityField', 'deleteEntityField',
   'getEffectiveEntityFields', 'getHiddenBuiltInFields', 'getFieldOverride', 'updateFieldOverride', 'resetFieldOverride',
-  'isFieldOverridden', 'getProjectDurationDays', 'updateProjectDurationDays', 'getTemplateDurationDays',
+  'isFieldOverridden', 'getTemplateDurationDays',
 ]
 
 /**

@@ -3,7 +3,6 @@
 # projectColors        paleta barev projektů (nový projekt dostane první nepoužitou)
 # canvasCardColors     paleta barev kartiček na Canvasu (color = hex #rrggbb, labelKey = název barvy v cs.js canvas.colors);
 #                      barvu písma aplikace dopočítá podle kontrastu
-# projectDurationDays  výchozí délka projektu ve dnech podle rozsahu (uživatel ji může změnit v Konfiguraci)
 # vaultAutoImport      pojistka automatického načítání změn ze Složky dat – nezvykle velkou dávku změn
 #                      (synchronizace, git, smazaná složka) aplikace nenačte sama, jen přes náhled:
 #   maxDeletes         nejvýš tolik smazaných souborů najednou
@@ -50,10 +49,6 @@ canvasCardColors:
     labelKey: darkGreen
   - color: "#475569"
     labelKey: slate
-projectDurationDays:
-  small: 30
-  medium: 60
-  large: 120
 recommendations:
   minRequirementsForPrioritization: 5
 vaultAutoImport:

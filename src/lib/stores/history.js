@@ -13,7 +13,7 @@ import { generateId } from '../id.js'
 import { loadHistoryData, saveHistoryData } from '../storage.js'
 import {
   normalizeHistory, mergeChanges, groupChangesByProject, appendHistoryEntry,
-  buildRevertPatch, diffStates, getDeletedProjects as findDeletedProjects, pruneHistory,
+  buildRevertPatch, diffStates, getDeletedProjects as findDeletedProjects, pruneHistory, purgeDeletedProject as purgeFromHistory,
 } from '../history.js'
 
 const history = reactive({ projects: normalizeHistory(loadHistoryData()) })
@@ -127,6 +127,19 @@ export function restoreDeletedProject(projectId) {
   const item = getDeletedProjects().find((d) => d.projectId === projectId)
   if (!item) return false
   return revertHistoryEntry(projectId, item.entryId)
+}
+
+/**
+ * Definitivně a nevratně odstraní smazaný projekt (zahodí jeho historii, ze které šel obnovit).
+ * @param {string} projectId
+ * @returns {boolean} true = odstraněno
+ */
+export function purgeDeletedProject(projectId) {
+  const next = purgeFromHistory(history.projects, (state.projects || []).map((p) => p.id), projectId)
+  if (!next) return false
+  history.projects = next
+  saveHistoryData(history.projects)
+  return true
 }
 
 /**

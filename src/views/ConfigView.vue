@@ -19,13 +19,6 @@
         :count="activityCount"
         variant="config"
       />
-      <CounterCard
-        :to="scope.to('configDeadlines')"
-        :label="t.config.deadlines"
-        count="📅"
-        variant="config"
-        count-as-icon
-      />
       <!-- Konektory jsou společné pro všechny projekty – jen ve výchozí konfiguraci -->
       <CounterCard
         v-if="!isProject"

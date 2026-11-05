@@ -261,6 +261,22 @@ export function pruneHistory(history, existingProjectIds) {
   return out
 }
 
+/**
+ * Definitivně odstraní smazaný projekt: zahodí celou jeho historii (jen ta ho umožňuje obnovit).
+ * Existující projekt ani projekt, který není mezi smazanými, se nemění.
+ * @param {Object} history
+ * @param {string[]} existingProjectIds
+ * @param {string} projectId
+ * @returns {Object|null} nová historie, nebo null, když projekt nejde odstranit
+ */
+export function purgeDeletedProject(history, existingProjectIds, projectId) {
+  const deleted = getDeletedProjects(history, existingProjectIds).some((d) => d.projectId === projectId)
+  if (!deleted) return null
+  const out = { ...(history || {}) }
+  delete out[projectId]
+  return out
+}
+
 const ACTION_WEIGHT = { delete: 3, create: 2, update: 1 }
 
 /**

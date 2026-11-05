@@ -36,13 +36,10 @@ describe('konfigurace projektů', () => {
     const b = store.addProject({ name: 'B2' }).id
     const before = fieldLabels(config.configFor(null))
     config.configFor(a).addEntityField('persona', { label: 'Jen v A' })
-    config.configFor(a).updateProjectDurationDays('small', 5)
 
     expect(fieldLabels(config.configFor(a))).toContain('Jen v A')
     expect(fieldLabels(config.configFor(b))).not.toContain('Jen v A')
     expect(fieldLabels(config.configFor(null))).toEqual(before)
-    expect(config.configFor(b).getProjectDurationDays().small).not.toBe(5)
-    expect(store.getProject(a).config.projectDurationDays.small).toBe(5)
   })
 
   it('starší projekt bez konfigurace dostane kopii (ensureProjectConfigs) a úprava nesáhne na výchozí', () => {

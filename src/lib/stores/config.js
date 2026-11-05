@@ -1,5 +1,5 @@
 /**
- * Správa konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů, délky projektů).
+ * Správa konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů).
  *
  * Výchozí konfigurace (Konfigurace na přehledu projektů) je uložena v localStorage pod klíčem
  * 'uxlog_config' a slouží jen jako vzor pro nové projekty. Každý projekt má vlastní kopii
@@ -13,7 +13,6 @@ import { reactive, toRaw } from 'vue'
 import { ACTIVITY_TYPES, getActivityGuide } from '../activityTypes.js'
 import { ENTITY_FIELD_DEFAULTS } from '../entityFieldDefaults.js'
 import { generateId } from '../id.js'
-import { APP_CONFIG } from '../dataConfig.js'
 import { mirrorToTauri } from '../tauriBridge.js'
 import { getEmptyConfig as emptyConfig, normalizeConfig, fillMissingProjectConfigs } from '../projectConfig.js'
 import { state, persist as persistData, setProjectConfigFactory } from './state.js'
@@ -27,7 +26,7 @@ const STORAGE_KEY = 'uxlog_config'
 function loadConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? normalizeConfig(JSON.parse(raw), APP_CONFIG.projectDurationDays) : getEmptyConfig()
+    return raw ? normalizeConfig(JSON.parse(raw)) : getEmptyConfig()
   } catch {
     return getEmptyConfig()
   }
@@ -38,7 +37,7 @@ function loadConfig() {
  * @returns {Object}
  */
 function getEmptyConfig() {
-  return emptyConfig(APP_CONFIG.projectDurationDays)
+  return emptyConfig()
 }
 
 /** Výchozí konfigurace (vzor pro nové projekty). */
@@ -46,7 +45,7 @@ export const configState = reactive(Object.assign(getEmptyConfig(), loadConfig()
 
 /** Nová kopie výchozí konfigurace pro projekt. */
 function cloneDefaultConfig() {
-  return normalizeConfig(toRaw(configState), APP_CONFIG.projectDurationDays)
+  return normalizeConfig(toRaw(configState))
 }
 
 // Projekty bez vlastní konfigurace (nové, importované, ze složky dat) dostanou při uložení kopii výchozí
@@ -227,28 +226,6 @@ function restoreTemplate(key) {
 // ─────────────────────────────────────────────────────────────
 // Termíny projektů a aktivit
 // ─────────────────────────────────────────────────────────────
-
-/**
- * Vrátí konfiguraci výchozích délek projektů (dny per rozsah).
- * @returns {{ small: number, medium: number, large: number }}
- */
-function getProjectDurationDays() {
-  return {
-    ...APP_CONFIG.projectDurationDays,
-    ...(getCfg().projectDurationDays || {}),
-  }
-}
-
-/**
- * Aktualizuje výchozí délku projektu pro daný rozsah.
- * @param {'small'|'medium'|'large'} scope
- * @param {number} days
- */
-function updateProjectDurationDays(scope, days) {
-  if (!getCfg().projectDurationDays) getCfg().projectDurationDays = {}
-  getCfg().projectDurationDays[scope] = days
-  persist()
-}
 
 /**
  * Vrátí výchozí počet dní pro šablonu aktivity dle klíče.
@@ -496,8 +473,6 @@ function getHiddenBuiltInFields(entityType, tPath) {
     updateTemplate,
     deleteTemplate,
     restoreTemplate,
-    getProjectDurationDays,
-    updateProjectDurationDays,
     getTemplateDurationDays,
     getEntityCustomFields,
     addEntityField,
@@ -553,8 +528,6 @@ export const {
   updateTemplate,
   deleteTemplate,
   restoreTemplate,
-  getProjectDurationDays,
-  updateProjectDurationDays,
   getTemplateDurationDays,
   getEntityCustomFields,
   addEntityField,

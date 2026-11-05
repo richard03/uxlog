@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickNewer, stripLegacySyncFields, deduplicateData } from './storage.js'
+import { pickNewer, stripLegacySyncFields, deduplicateData, stripRemovedProjectFields } from './storage.js'
 
 describe('pickNewer', () => {
   it('rozhoduje podle updatedAt, pak lastWorkedAt a createdAt', () => {
@@ -47,5 +47,18 @@ describe('deduplicateData', () => {
     const data = { goals: [{ id: 'g', name: 'stará', updatedAt: '2026-01-01' }, { id: 'g', name: 'nová', updatedAt: '2026-02-01' }] }
     deduplicateData(data)
     expect(data.goals).toEqual([{ id: 'g', name: 'nová', updatedAt: '2026-02-01' }])
+  })
+})
+
+describe('stripRemovedProjectFields', () => {
+  it('odstraní z projektů zrušený termín projektu, aktivitám ho nechá', () => {
+    const data = { projects: [{ id: 'p', deadline: '2026-12-31', name: 'P' }, null], activities: [{ id: 'a', deadline: '2026-11-30' }] }
+    stripRemovedProjectFields(data)
+    expect(data.projects[0]).toEqual({ id: 'p', name: 'P' })
+    expect(data.activities[0].deadline).toBe('2026-11-30')
+  })
+
+  it('zvládne neplatný vstup', () => {
+    expect(stripRemovedProjectFields(null)).toBeNull()
   })
 })

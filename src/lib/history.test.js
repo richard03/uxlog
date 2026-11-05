@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   changedFields, diffStates, mergeChanges, groupChangesByProject, changeAction,
-  appendHistoryEntry, normalizeHistory, buildRevertPatch, getDeletedProjects, pruneHistory,
+  appendHistoryEntry, normalizeHistory, buildRevertPatch, getDeletedProjects, pruneHistory, purgeDeletedProject,
   describeHistoryEntry, recordLabel,
 } from './history.js'
 
@@ -140,6 +140,18 @@ describe('getDeletedProjects / pruneHistory', () => {
   })
   it('zahodí historii neexistujících projektů, které nelze obnovit', () => {
     expect(Object.keys(pruneHistory(history, ['p1']))).toEqual(['p1', 'p2'])
+  })
+  it('purgeDeletedProject odstraní jen smazaný projekt a nemění vstup', () => {
+    const next = purgeDeletedProject(history, ['p1'], 'p2')
+    expect(Object.keys(next)).toEqual(['p1', 'p3'])
+    expect(history.p2).toBeTruthy()
+    expect(getDeletedProjects(next, ['p1'])).toEqual([])
+  })
+  it('purgeDeletedProject odmítne existující nebo nesmazaný projekt', () => {
+    expect(purgeDeletedProject(history, ['p1', 'p2'], 'p2')).toBeNull()
+    expect(purgeDeletedProject(history, ['p1'], 'p1')).toBeNull()
+    expect(purgeDeletedProject(history, ['p1'], 'p3')).toBeNull()
+    expect(purgeDeletedProject(null, [], 'x')).toBeNull()
   })
 })
 

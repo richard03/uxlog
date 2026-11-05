@@ -132,7 +132,6 @@ export function normalizeEntityConfig(raw) {
 const APP_DEFAULTS = {
   projectColors: ['#4a90d9'],
   canvasCardColors: [{ color: '#fde68a', labelKey: 'yellow' }],
-  projectDurationDays: { small: 30, medium: 60, large: 120 },
   recommendations: { minRequirementsForPrioritization: 5 },
   vaultAutoImport: { maxDeletes: 10, maxShare: 0.3, minChanges: 5 },
 }
@@ -159,12 +158,11 @@ export function normalizeCanvasCardColors(raw) {
 /**
  * Normalizuje obecnou konfiguraci aplikace.
  * @param {Object} raw
- * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, projectDurationDays: Object, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number } }}
+ * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number } }}
  */
 export function normalizeAppConfig(raw) {
   const colors = strList(raw?.projectColors).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c.trim())).map((c) => c.trim())
   const cardColors = normalizeCanvasCardColors(raw?.canvasCardColors)
-  const d = isObject(raw?.projectDurationDays) ? raw.projectDurationDays : {}
   const r = isObject(raw?.recommendations) ? raw.recommendations : {}
   const v = isObject(raw?.vaultAutoImport) ? raw.vaultAutoImport : {}
   const vd = APP_DEFAULTS.vaultAutoImport
@@ -172,11 +170,6 @@ export function normalizeAppConfig(raw) {
   return {
     projectColors: colors.length ? colors : [...APP_DEFAULTS.projectColors],
     canvasCardColors: cardColors.length ? cardColors : APP_DEFAULTS.canvasCardColors.map((c) => ({ ...c })),
-    projectDurationDays: {
-      small: num(d.small, APP_DEFAULTS.projectDurationDays.small),
-      medium: num(d.medium, APP_DEFAULTS.projectDurationDays.medium),
-      large: num(d.large, APP_DEFAULTS.projectDurationDays.large),
-    },
     recommendations: {
       minRequirementsForPrioritization: num(r.minRequirementsForPrioritization, APP_DEFAULTS.recommendations.minRequirementsForPrioritization),
     },

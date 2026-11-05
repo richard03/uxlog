@@ -29,15 +29,8 @@
           <AppBadge>{{ t.project.priority }}: {{ priorityLabel(p.priority) }}</AppBadge>
           <AppBadge>{{ t.project.scopeLabel }}: {{ scopeLabel(p.scope) }}</AppBadge>
           <AppBadge :variant="isActivityOverdue(p) ? 'badge-warning' : ''">{{ t.project.lastActivity }}: {{ formatDate(p.lastWorkedAt) }}</AppBadge>
-          <AppBadge
-            v-if="p.deadline && deadlineBadgeLabel(p.deadline)"
-            :variant="deadlineBadgeClass(p.deadline)"
-          >{{ t.project.deadline }}: {{ formatCalendarDate(p.deadline) }} – {{ deadlineBadgeLabel(p.deadline) }}</AppBadge>
           <AppBadge v-if="getUncheckedCount(p.id) > 0" variant="badge-info">
             {{ t.project.uncheckedItems(getUncheckedCount(p.id)) }}
-          </AppBadge>
-          <AppBadge v-if="projectDelayed(p)" variant="badge-warning">
-            {{ t.project.delayed }}
           </AppBadge>
           <router-link
             v-if="p.taskBadge.count > 0"
@@ -61,9 +54,19 @@
           <span class="deleted-projects-name">{{ d.name || t.project.name }}</span>
           <span class="deleted-projects-date">{{ t.history.deletedAt(formatStatusBarDateTime(d.at)) }}</span>
           <AppButton variant="secondary" size="sm" @click="restoreProject(d.projectId)">{{ t.history.restore }}</AppButton>
+          <AppButton variant="dangerTertiary" size="sm" :aria-label="t.history.purgeAria(d.name || t.project.name)" @click="purgeTarget = d">{{ t.history.purge }}</AppButton>
         </li>
       </ul>
     </section>
+
+    <ConfirmDialog
+      v-if="purgeTarget"
+      :title="t.history.purgeConfirmTitle"
+      :message="t.history.purgeConfirm(purgeTarget.name || t.project.name)"
+      :confirm-label="t.history.purge"
+      @confirm="purgeProject"
+      @cancel="purgeTarget = null"
+    />
 
     <ImportModal
       v-if="showImport"
@@ -94,7 +97,6 @@
             { value: 'low', label: t.priority.low },
           ]"
         />
-        <FormInput v-model="form.deadline" :label="t.project.deadlineLabel" type="date" control-id="project-deadline" />
         <FormGroup :label="t.project.color">
           <ColorSwatchPicker v-model="form.color" :label="t.project.color" />
         </FormGroup>
@@ -112,8 +114,7 @@
 import { ref, computed } from 'vue'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
-import { useConfig } from '../composables/useConfig.js'
-import { formatDate, formatCalendarDate, formatStatusBarDateTime } from '../utils/formatDate.js'
+import { formatDate, formatStatusBarDateTime } from '../utils/formatDate.js'
 import { showToast } from '../composables/useToast.js'
 import { useDeadline } from '../composables/useDeadline.js'
 import { summarizeIncompleteTasksForProjectBadge } from '../lib/tasksDisplay.js'
@@ -127,11 +128,11 @@ import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { FormGroup, FormInput, FormSelect, FormActions } from '../components/form'
 import AppButton from '../components/AppButton.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const store = useStore()
 const { t, tPath } = useI18n()
-const { daysRemaining, countUncheckedItems, isProjectDelayed, todayISO, addDays, isActivityOverdue } = useDeadline()
-const config = useConfig()
+const { countUncheckedItems, isActivityOverdue } = useDeadline()
 const router = useRouter()
 
 const showForm = ref(false)
@@ -143,7 +144,6 @@ const form = ref({
   scope: 'medium',
   priority: 'medium',
   color: '',
-  deadline: '',
 })
 
 const projects = computed(() => store.getProjects())
@@ -153,6 +153,15 @@ const deletedProjects = computed(() => store.getDeletedProjects())
 
 function restoreProject(projectId) {
   if (store.restoreDeletedProject(projectId)) showToast(t.history.restored)
+}
+
+/** Smazaný projekt čekající na potvrzení definitivního odstranění. */
+const purgeTarget = ref(null)
+
+function purgeProject() {
+  const target = purgeTarget.value
+  purgeTarget.value = null
+  if (target && store.purgeDeletedProject(target.projectId)) showToast(t.history.purged)
 }
 
 /**
@@ -186,42 +195,17 @@ function priorityLabel(p) {
   return tPath(`priority.${p}`) || p
 }
 
-function deadlineBadgeLabel(deadline) {
-  const dr = daysRemaining(deadline)
-  if (dr === null) return null
-  if (dr < 0) return t.project.daysOverdue(Math.abs(dr))
-  if (dr === 0) return t.project.daysRemainingToday
-  return t.project.daysRemaining(dr)
-}
-
-function deadlineBadgeClass(deadline) {
-  const dr = daysRemaining(deadline)
-  if (dr === null) return ''
-  if (dr < 0) return 'badge-danger'
-  if (dr <= 7) return 'badge-warning'
-  return ''
-}
 
 function getUncheckedCount(projectId) {
   return countUncheckedItems(store.getAllActivities(projectId))
 }
 
-function projectDelayed(project) {
-  // Délky aktivit podle konfigurace daného projektu
-  return isProjectDelayed(project, store.getAllActivities(project.id), useConfig(project.id).getTemplateDurationDays)
-}
-
-function defaultDeadlineForNewProject() {
-  const templates = config.getEffectiveTemplates().filter((t) => t.createOnNewProject)
-  const totalDays = templates.reduce((sum, t) => sum + (t.defaultDurationDays || 0), 0)
-  return totalDays > 0 ? addDays(todayISO(), totalDays) : ''
-}
 
 function openForm(project = null) {
   editing.value = project
   form.value = project
-    ? { name: project.name, scope: project.scope, priority: project.priority, color: project.color || '', deadline: project.deadline || '' }
-    : { name: '', scope: 'medium', priority: 'medium', color: '', deadline: defaultDeadlineForNewProject() }
+    ? { name: project.name, scope: project.scope, priority: project.priority, color: project.color || '' }
+    : { name: '', scope: 'medium', priority: 'medium', color: '' }
   showForm.value = true
 }
 
@@ -239,7 +223,7 @@ function handleImported({ projectId }) {
 }
 
 function saveProject() {
-  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color, deadline: form.value.deadline }
+  const formData = { name: form.value.name, scope: form.value.scope, priority: form.value.priority, color: form.value.color }
   const projectToEdit = editing.value
   const isEdit = !!projectToEdit && store.state.projects?.some((p) => p.id === projectToEdit.id)
   console.log('[UXLog] saveProject, editing:', !!projectToEdit, 'projekt v seznamu:', isEdit, 'form:', formData, 'projektů před:', store.state.projects?.length ?? 0)

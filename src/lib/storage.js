@@ -43,6 +43,22 @@ export function stripLegacySyncFields(data) {
   return data
 }
 
+/** Pole projektu, která aplikace už nepoužívá (termín projektu – zrušený koncept). */
+export const REMOVED_PROJECT_FIELDS = ['deadline']
+
+/**
+ * Odstraní z projektů zrušená pole (REMOVED_PROJECT_FIELDS).
+ * @param {Object} data
+ * @returns {Object} data (mutováno in-place)
+ */
+export function stripRemovedProjectFields(data) {
+  for (const project of Array.isArray(data?.projects) ? data.projects : []) {
+    if (!project || typeof project !== 'object') continue
+    for (const field of REMOVED_PROJECT_FIELDS) delete project[field]
+  }
+  return data
+}
+
 /** Klíče entit, které patří projektu přes projectId. */
 const PROJECT_ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
@@ -104,9 +120,10 @@ export function loadData() {
     pruneOrphanEntities(data)
     deduplicateData(data)
     stripLegacySyncFields(data)
+    stripRemovedProjectFields(data)
     const after = JSON.stringify(data)
     if (after !== before) {
-      // Úklid (sirotci, duplicity, přežitá pole) něco změnil – okamžitě zapíšeme zpět do localStorage
+      // Úklid (sirotci, duplicity, přežitá a zrušená pole) něco změnil – okamžitě zapíšeme zpět do localStorage
       localStorage.setItem(STORAGE_KEY, after)
     }
     return data

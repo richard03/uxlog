@@ -23,10 +23,9 @@ export function addProject(overrides = {}) {
 
   const templates = getEffectiveTemplates().filter((t) => t.createOnNewProject)
   const today = todayISO()
-  const totalDays = templates.reduce((sum, t) => sum + (t.defaultDurationDays || 0), 0)
-  const deadline = overrides.deadline || (totalDays > 0 ? addDays(today, totalDays) : '')
 
-  const project = createProject({ color, deadline, ...overrides })
+  const { deadline: _removedDeadline, ...rest } = overrides
+  const project = createProject({ color, ...rest })
   state.projects = state.projects || []
   state.projects.push(project)
 

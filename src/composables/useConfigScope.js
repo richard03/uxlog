@@ -17,7 +17,6 @@ const PROJECT_ROUTES = Object.freeze({
   configEntityAttrs: 'projectConfigEntityAttrs',
   configActivities: 'projectConfigActivities',
   configActivityTemplate: 'projectConfigActivityTemplate',
-  configDeadlines: 'projectConfigDeadlines',
 })
 
 export function useConfigScope() {

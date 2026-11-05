@@ -43,7 +43,7 @@ export {
   importProjectData, buildImport,
 } from './exportImport.js'
 export {
-  getProjectHistory, revertHistoryEntry, getDeletedProjects, restoreDeletedProject,
+  getProjectHistory, revertHistoryEntry, getDeletedProjects, restoreDeletedProject, purgeDeletedProject,
 } from './history.js'
 export {
   getCanvasLayout, getCanvasCards, moveCanvasCard, moveCanvasCards, setCanvasViewport,

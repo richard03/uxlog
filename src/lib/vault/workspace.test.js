@@ -75,7 +75,7 @@ describe('parseVaultFiles', () => {
   it('převod celého stavu tam a zpět je bezeztrátový (historie chatu v .uxlog/notebook)', () => {
     const data = sampleData()
     data.projects[0].notebookHistory = [{ id: 'm1', mode: 'process', text: 'poznámka', outcomes: [] }]
-    data.projects[0].config = { entityCustomFields: { persona: [{ id: 'f1', label: 'Věk', type: 'text' }] }, projectDurationDays: { small: 20 } }
+    data.projects[0].config = { entityCustomFields: { persona: [{ id: 'f1', label: 'Věk', type: 'text' }] } }
     const { files } = buildVaultFiles(data, { headingFor })
     const result = parseVaultFiles(files, { headingFor })
     expect(result.errors).toEqual([])

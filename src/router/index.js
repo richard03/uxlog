@@ -199,12 +199,7 @@ const routes = [
         component: () => import('../views/ConfigActivityTemplateView.vue'),
         meta: { title: 'Šablona aktivity' },
       },
-      {
-        path: 'config/deadlines',
-        name: 'projectConfigDeadlines',
-        component: () => import('../views/ConfigDeadlinesView.vue'),
-        meta: { title: 'Termíny' },
-      },
+
       {
         path: 'bugs',
         name: 'bugs',
@@ -248,12 +243,6 @@ const routes = [
     name: 'configActivityTemplate',
     component: () => import('../views/ConfigActivityTemplateView.vue'),
     meta: { title: 'Šablona aktivity' },
-  },
-  {
-    path: '/config/deadlines',
-    name: 'configDeadlines',
-    component: () => import('../views/ConfigDeadlinesView.vue'),
-    meta: { title: 'Termíny' },
   },
   {
     path: '/config/api-keys',
