@@ -5,7 +5,7 @@
       :color="project.color"
       :title="project.name">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportProjectData(projectId)" :filename="project?.name || 'projekt'" />
         <KebabMenu
           :items="menuItems"

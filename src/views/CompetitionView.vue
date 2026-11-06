@@ -5,7 +5,7 @@
       :color="project?.color"
       :title="t.sections.competition">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'competitions')" :filename="t.sections.competition" />
         <KebabMenu :items="sectionKebabItems" @action="onSectionKebab" />
       </template>

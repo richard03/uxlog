@@ -5,7 +5,7 @@
       :color="project?.color"
       :title="t.sections.stakeholders">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'stakeholders')" :filename="t.sections.stakeholders" />
       </template>
     </ProjectPageHeader>

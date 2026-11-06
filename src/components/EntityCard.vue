@@ -51,6 +51,13 @@ defineEmits(['action'])
 
 .entity-card:hover { border-color: var(--accent); }
 
+/* Položka, jejíž detail je právě otevřený (seznam + detail vedle sebe) */
+.entity-card:has(> .ec-link.router-link-exact-active) {
+  border-color: var(--accent);
+  background: var(--bg-muted);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .drag-over { border-color: var(--accent) !important; background: var(--bg-elevated); }
 .dragging  { opacity: 0.4; }
 

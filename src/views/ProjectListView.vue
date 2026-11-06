@@ -3,7 +3,7 @@
     <header class="page-header">
       <h1>{{ t.nav.projects }}</h1>
       <div class="header-actions">
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <AppButton variant="primary" @click="openForm()">{{ t.project.add }}</AppButton>
       </div>
     </header>
@@ -20,7 +20,6 @@
         :to="{ name: 'project', params: { id: p.id } }"
         :entity-id="p.id"
         :dnd="dnd"
-        :left-border-color="p.color || ''"
       >
         <div class="card-header">
           <h3 class="card-title"><ProjectColorTag :color="p.color" />{{ p.name || t.project.name }}</h3>

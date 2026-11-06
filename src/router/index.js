@@ -2,6 +2,8 @@
  * Vue Router konfigurace pro UXLog.
  */
 
+import EntityMasterDetail from '../views/EntityMasterDetail.vue'
+import EntityDetailPlaceholder from '../views/EntityDetailPlaceholder.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
@@ -23,124 +25,204 @@ const routes = [
         meta: { title: 'Projekt' },
       },
       {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'goals',
-        name: 'goals',
-        component: () => import('../views/GoalsView.vue'),
-        meta: { title: 'Cíle' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/GoalsView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'goals',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Cíle' },
+          },
+          {
+            path: ':goalId',
+            name: 'goalDetail',
+            component: () => import('../views/GoalDetailView.vue'),
+            meta: { title: 'Cíl', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'goals/:goalId',
-        name: 'goalDetail',
-        component: () => import('../views/GoalDetailView.vue'),
-        meta: { title: 'Cíl' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'team',
-        name: 'team',
-        component: () => import('../views/TeamView.vue'),
-        meta: { title: 'Tým' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/TeamView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'team',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Tým' },
+          },
+          {
+            path: ':memberId',
+            name: 'teamMemberDetail',
+            component: () => import('../views/TeamMemberDetailView.vue'),
+            meta: { title: 'Člen týmu', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'team/:memberId',
-        name: 'teamMemberDetail',
-        component: () => import('../views/TeamMemberDetailView.vue'),
-        meta: { title: 'Člen týmu' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'stakeholders',
-        name: 'stakeholders',
-        component: () => import('../views/StakeholdersView.vue'),
-        meta: { title: 'Stakeholdeři' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/StakeholdersView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'stakeholders',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Stakeholdeři' },
+          },
+          {
+            path: ':stakeholderId',
+            name: 'stakeholderDetail',
+            component: () => import('../views/StakeholderDetailView.vue'),
+            meta: { title: 'Stakeholder', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'stakeholders/:stakeholderId',
-        name: 'stakeholderDetail',
-        component: () => import('../views/StakeholderDetailView.vue'),
-        meta: { title: 'Stakeholder' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'competition',
-        name: 'competition',
-        component: () => import('../views/CompetitionView.vue'),
-        meta: { title: 'Konkurence' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/CompetitionView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'competition',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Konkurence' },
+          },
+          {
+            path: ':competitionId',
+            name: 'competitionDetail',
+            component: () => import('../views/CompetitionDetailView.vue'),
+            meta: { title: 'Konkurence', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'competition/:competitionId',
-        name: 'competitionDetail',
-        component: () => import('../views/CompetitionDetailView.vue'),
-        meta: { title: 'Konkurence' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'hypothesis',
-        name: 'hypothesis',
-        component: () => import('../views/HypothesisView.vue'),
-        meta: { title: 'Hypotézy' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/HypothesisView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'hypothesis',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Hypotézy' },
+          },
+          {
+            path: ':hypothesisId',
+            name: 'hypothesisDetail',
+            component: () => import('../views/HypothesisDetailView.vue'),
+            meta: { title: 'Hypotéza', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'hypothesis/:hypothesisId',
-        name: 'hypothesisDetail',
-        component: () => import('../views/HypothesisDetailView.vue'),
-        meta: { title: 'Hypotéza' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'risks',
-        name: 'risks',
-        component: () => import('../views/RisksView.vue'),
-        meta: { title: 'Rizika' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/RisksView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'risks',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Rizika' },
+          },
+          {
+            path: ':riskId',
+            name: 'riskDetail',
+            component: () => import('../views/RiskDetailView.vue'),
+            meta: { title: 'Riziko', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'risks/:riskId',
-        name: 'riskDetail',
-        component: () => import('../views/RiskDetailView.vue'),
-        meta: { title: 'Riziko' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'sources',
-        name: 'sources',
-        component: () => import('../views/SourcesView.vue'),
-        meta: { title: 'Zdroje' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/SourcesView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'sources',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Zdroje' },
+          },
+          {
+            path: ':sourceId',
+            name: 'sourceDetail',
+            component: () => import('../views/SourceDetailView.vue'),
+            meta: { title: 'Zdroj', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'sources/:sourceId',
-        name: 'sourceDetail',
-        component: () => import('../views/SourceDetailView.vue'),
-        meta: { title: 'Zdroj' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'personas',
-        name: 'personas',
-        component: () => import('../views/PersonasView.vue'),
-        meta: { title: 'Persony' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/PersonasView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'personas',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Persony' },
+          },
+          {
+            path: ':personaId',
+            name: 'personaDetail',
+            component: () => import('../views/PersonaDetailView.vue'),
+            meta: { title: 'Persona', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'personas/:personaId',
-        name: 'personaDetail',
-        component: () => import('../views/PersonaDetailView.vue'),
-        meta: { title: 'Persona' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'requirements',
-        name: 'requirements',
-        component: () => import('../views/RequirementsView.vue'),
-        meta: { title: 'Požadavky' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/RequirementsView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'requirements',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Požadavky' },
+          },
+          {
+            path: ':requirementId',
+            name: 'requirementDetail',
+            component: () => import('../views/RequirementDetailView.vue'),
+            meta: { title: 'Požadavek', entityDetail: true },
+          },
+        ],
       },
       {
-        path: 'requirements/:requirementId',
-        name: 'requirementDetail',
-        component: () => import('../views/RequirementDetailView.vue'),
-        meta: { title: 'Požadavek' },
-      },
-      {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'scenarios',
-        name: 'scenarios',
-        component: () => import('../views/ScenariosView.vue'),
-        meta: { title: 'Scénáře' },
-      },
-      {
-        path: 'scenarios/:scenarioId',
-        name: 'scenarioDetail',
-        component: () => import('../views/ScenarioDetailView.vue'),
-        meta: { title: 'Scénář' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/ScenariosView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'scenarios',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Scénáře' },
+          },
+          {
+            path: ':scenarioId',
+            name: 'scenarioDetail',
+            component: () => import('../views/ScenarioDetailView.vue'),
+            meta: { title: 'Scénář', entityDetail: true },
+          },
+        ],
       },
       {
         path: 'activities/:activityId',
@@ -149,16 +231,24 @@ const routes = [
         meta: { title: 'Aktivita' },
       },
       {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'tasks',
-        name: 'tasks',
-        component: () => import('../views/TasksView.vue'),
-        meta: { title: 'Úkoly' },
-      },
-      {
-        path: 'tasks/:taskId',
-        name: 'taskDetail',
-        component: () => import('../views/TaskDetailView.vue'),
-        meta: { title: 'Úkol' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/TasksView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'tasks',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Úkoly' },
+          },
+          {
+            path: ':taskId',
+            name: 'taskDetail',
+            component: () => import('../views/TaskDetailView.vue'),
+            meta: { title: 'Úkol', entityDetail: true },
+          },
+        ],
       },
       {
         path: 'canvas',
@@ -213,16 +303,24 @@ const routes = [
       },
 
       {
+        // Seznam vlevo, detail vybrané položky vpravo (EntityMasterDetail)
         path: 'bugs',
-        name: 'bugs',
-        component: () => import('../views/BugsView.vue'),
-        meta: { title: 'Chyby' },
-      },
-      {
-        path: 'bugs/:bugId',
-        name: 'bugDetail',
-        component: () => import('../views/BugDetailView.vue'),
-        meta: { title: 'Chyba' },
+        component: EntityMasterDetail,
+        props: { list: () => import('../views/BugsView.vue') },
+        children: [
+          {
+            path: '',
+            name: 'bugs',
+            component: EntityDetailPlaceholder,
+            meta: { title: 'Chyby' },
+          },
+          {
+            path: ':bugId',
+            name: 'bugDetail',
+            component: () => import('../views/BugDetailView.vue'),
+            meta: { title: 'Chyba', entityDetail: true },
+          },
+        ],
       },
     ],
   },

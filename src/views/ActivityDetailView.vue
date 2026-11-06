@@ -6,7 +6,7 @@
       :title="item.name || t.activity.name">
       <template #actions>
         <!-- V okně nad plátnem bez importu a exportu -->
-        <AppButton v-if="!inCanvas" variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton v-if="!inCanvas" variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('activities', item?.id)" :filename="item?.name || t.activity.label" />
         <KebabMenu
           :items="activityHeaderKebabItems"

@@ -173,6 +173,8 @@
 /* --- Okna: karty s bílým rámem a titulkovým pruhem --- */
 :root[data-theme="amiga"] .section-card,
 :root[data-theme="amiga"] .entity-card,
+:root[data-theme="amiga"] .counter-card,
+:root[data-theme="amiga"] .nb-frame,
 :root[data-theme="amiga"] .modal {
   background: var(--amiga-blue);
   border: 2px solid var(--amiga-white);
@@ -213,7 +215,9 @@
   border: 2px solid var(--amiga-blue);
 }
 
-:root[data-theme="amiga"] .entity-card:hover {
+:root[data-theme="amiga"] .entity-card:hover,
+:root[data-theme="amiga"] .counter-card:hover,
+:root[data-theme="amiga"] .counter-card.router-link-active {
   background: var(--amiga-blue-dark);
 }
 

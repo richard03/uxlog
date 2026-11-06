@@ -1248,6 +1248,7 @@ export default {
     purged: 'Projekt byl definitivně odstraněn.',
   },
   common: {
+    selectFromList: 'Vyberte položku ze seznamu vlevo – zobrazí se tady i se souvislostmi.',
     exportSaved: (path) => `Soubor uložen: ${path}`,
     exportFailed: (error) => `Soubor se nepodařilo uložit${error ? `: ${error}` : '.'}`,
     exportCopiedToClipboard: 'Zkopírováno do schránky.',

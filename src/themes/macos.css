@@ -101,6 +101,8 @@
 
 :root[data-theme="macos"] .btn:hover:not(:disabled) {
   background: #f7f7f8;
+  /* Rámeček při najetí stejný jako u primárního tlačítka */
+  border-color: #0a6fe0;
 }
 
 :root[data-theme="macos"] .btn:active:not(:disabled) {
@@ -141,14 +143,18 @@
 
 /* --- Karty a okna --- */
 :root[data-theme="macos"] .section-card,
-:root[data-theme="macos"] .entity-card {
+:root[data-theme="macos"] .entity-card,
+:root[data-theme="macos"] .counter-card,
+:root[data-theme="macos"] .nb-frame {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.07);
   border-radius: var(--radius-md);
   box-shadow: var(--mac-shadow-md);
 }
 
-:root[data-theme="macos"] .entity-card:hover {
+:root[data-theme="macos"] .entity-card:hover,
+:root[data-theme="macos"] .counter-card:hover,
+:root[data-theme="macos"] .counter-card.router-link-active {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 

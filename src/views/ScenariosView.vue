@@ -5,7 +5,7 @@
       :color="project?.color"
       :title="t.sections.scenarios">
       <template #actions>
-        <AppButton variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton :get-yaml="() => store.exportSectionData(projectId, 'scenarios')" :filename="t.sections.scenarios" />
       </template>
     </ProjectPageHeader>

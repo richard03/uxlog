@@ -38,6 +38,9 @@
   --grid-activity-main: 4;
   --grid-activity-checklist: 4;
   --grid-activity-side: 4;
+  /* Seznam entit + detail vybrané položky (EntityMasterDetail, součet 12) */
+  --grid-master-list: 4;
+  --grid-master-detail: 8;
   /* Detail aktivity bez checklistu (součet 12) */
   --grid-activity-main-wide: 8;
 

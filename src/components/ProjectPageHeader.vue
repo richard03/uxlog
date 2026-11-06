@@ -6,8 +6,9 @@
       <slot name="actions" />
     </div>
   </Teleport>
-  <!-- Hlavička obrazovky projektu – vykreslí se přes celou šířku nad Zápisníkem (cíl v ProjectLayout) -->
-  <Teleport v-else :to="`#${PROJECT_HEADER_TARGET_ID}`" defer>
+  <!-- Hlavička obrazovky projektu – vykreslí se přes celou šířku nad Zápisníkem (cíl v ProjectLayout).
+       Seznam s otevřeným detailem vedle sebe (EntityMasterDetail) hlavičku nemá – nahoře je hlavička detailu. -->
+  <Teleport v-else-if="!hiddenByDetail" :to="`#${PROJECT_HEADER_TARGET_ID}`" defer>
     <header class="page-header project-page-header">
       <h1 class="visually-hidden">{{ title }}</h1>
       <div class="pph-row">
@@ -19,9 +20,12 @@
           <!-- Historie změn projektu je dostupná z každé obrazovky projektu (před akcemi, menu „…“ zůstává poslední) -->
           <router-link
             v-if="projectId && route.name !== 'projectHistory'"
-            class="btn btn-ghost"
             :to="{ name: 'projectHistory', params: { id: projectId } }"
-          >{{ t.history.open }}</router-link>
+            custom
+            v-slot="{ navigate }"
+          >
+            <AppButton variant="secondary" @click="navigate">{{ t.history.open }}</AppButton>
+          </router-link>
           <slot name="actions" />
         </div>
       </div>
@@ -39,13 +43,18 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Breadcrumb from './Breadcrumb.vue'
 import ProjectColorTag from './ProjectColorTag.vue'
+import AppButton from './AppButton.vue'
 import { useI18n } from '../composables/useI18n.js'
 import { useEntityNavigation } from '../composables/useEntityNavigation.js'
+import { useMasterList } from '../composables/useMasterDetail.js'
 
 const route = useRoute()
 const { t } = useI18n()
 const { canvasWindow } = useEntityNavigation()
 const projectId = computed(() => route.params.id)
+const masterList = useMasterList()
+/** Hlavička seznamu se skryje, když je vedle otevřený detail. */
+const hiddenByDetail = computed(() => Boolean(masterList?.detailOpen.value))
 
 /**
  * Jednotná hlavička obrazovek projektu: barva projektu + drobková navigace a akce vpravo (slot #actions).

@@ -6,7 +6,7 @@
       :title="item.name || t.source.name">
       <template #actions>
         <!-- V okně nad plátnem bez importu a exportu -->
-        <AppButton v-if="!inCanvas" variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton v-if="!inCanvas" variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('sources', item?.id)" :filename="item?.name || t.source.label" />
         <KebabMenu
           :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.source.delete, action: 'delete', variant: 'danger' }]"
@@ -14,6 +14,8 @@
         />
       </template>
     </ProjectPageHeader>
+
+    <DetailFrame>
 
     <ColumnHeading
       :title="`${t.source.label} ${item.name || ''}`.trim()"
@@ -78,6 +80,8 @@
       </form>
     </Modal>
 
+    </DetailFrame>
+
     <EntityConnections :project-id="projectId" entity-type="sources" :entity-id="item.id" />
 
     <!-- Revize návrhů AI ze zpracování tohoto zdroje -->
@@ -101,6 +105,7 @@
 </template>
 
 <script setup>
+import DetailFrame from '../components/DetailFrame.vue'
 import FormTextarea from '../components/form/FormTextarea.vue'
 /**
  * Detail zdroje: kdy byl nahrán a zpracován, typ a text, zpracování pomocí AI (tlačítkem)

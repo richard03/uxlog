@@ -91,6 +91,8 @@
 /* Pixelový rámeček s ořezanými rohy: čtyři posunuté stíny místo borderu */
 :root[data-theme="pixelart"] .section-card,
 :root[data-theme="pixelart"] .entity-card,
+:root[data-theme="pixelart"] .counter-card,
+:root[data-theme="pixelart"] .nb-frame,
 :root[data-theme="pixelart"] .modal,
 :root[data-theme="pixelart"] .btn,
 :root[data-theme="pixelart"] input:not([type="checkbox"]):not([type="radio"]),
@@ -183,12 +185,15 @@
 
 /* --- Karty a okna --- */
 :root[data-theme="pixelart"] .section-card,
-:root[data-theme="pixelart"] .entity-card {
+:root[data-theme="pixelart"] .entity-card,
+:root[data-theme="pixelart"] .counter-card {
   --px-frame: var(--px-steel);
   background: var(--px-blue);
 }
 
-:root[data-theme="pixelart"] .entity-card:hover {
+:root[data-theme="pixelart"] .entity-card:hover,
+:root[data-theme="pixelart"] .counter-card:hover,
+:root[data-theme="pixelart"] .counter-card.router-link-active {
   --px-frame: var(--px-yellow);
 }
 

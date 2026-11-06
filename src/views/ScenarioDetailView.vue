@@ -6,7 +6,7 @@
       :title="scenario.name || t.scenario.name">
       <template #actions>
         <!-- V okně nad plátnem bez importu a exportu -->
-        <AppButton v-if="!inCanvas" variant="tertiary" @click="showImport = true">{{ t.project.import }}</AppButton>
+        <AppButton v-if="!inCanvas" variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('scenarios', scenario?.id)" :filename="scenario?.name || t.scenario.label" />
         <KebabMenu
           :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.scenario.delete, action: 'delete', variant: 'danger' }]"
@@ -14,6 +14,8 @@
         />
       </template>
     </ProjectPageHeader>
+
+    <DetailFrame>
 
     <ColumnHeading
       :title="`${t.scenario.label} ${scenario.name || ''}`.trim()"
@@ -70,6 +72,8 @@
     </Modal>
 
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
+    </DetailFrame>
+
     <EntityConnections :project-id="projectId" entity-type="scenarios" :entity-id="scenario.id" />
 
     <ConfirmDialog v-if="showConfirm" :title="t.scenario.delete" :message="t.scenario.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
@@ -82,6 +86,7 @@
 </template>
 
 <script setup>
+import DetailFrame from '../components/DetailFrame.vue'
 import FormTextarea from '../components/form/FormTextarea.vue'
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
