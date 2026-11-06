@@ -67,7 +67,7 @@
       <form @submit.prevent="saveField">
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
-          <input v-if="editingType === 'text'" id="edit-field" v-model="editValue" class="form-control" />
+          <FormInput v-if="editingType === 'text'" control-id="edit-field" v-model="editValue" :dictation="editingType === 'text'" />
           <FormTextarea v-else-if="editingType === 'textarea'" control-id="edit-field" v-model="editValue" :rows="12" />
           <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
             <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -105,6 +105,7 @@
 </template>
 
 <script setup>
+import FormInput from '../components/form/FormInput.vue'
 import DetailFrame from '../components/DetailFrame.vue'
 import FormTextarea from '../components/form/FormTextarea.vue'
 /**
