@@ -24,6 +24,7 @@
     <div class="activity-layout-wrap">
     <div class="activity-layout" :class="[`activity-layout--cols-${columnCount}`, { 'activity-layout--guide-only': !hasChecklist }]">
       <div class="activity-layout-main">
+        <SectionCard :aria-label="t.activity.label">
         <section class="detail-section">
           <dl class="detail-list">
             <InlineEditableDetailField
@@ -67,9 +68,11 @@
             />
           </dl>
         </section>
+        </SectionCard>
       </div>
 
       <div v-if="hasChecklist" class="activity-layout-checklist">
+        <SectionCard :aria-label="t.activity.checklist">
     <ActivityChecklist
       :title="t.activity.checklist"
       :items="effectiveChecklist"
@@ -96,6 +99,7 @@
       @create-task-from-item="onCreateTaskFromChecklistItem"
       @open-linked-task="onOpenChecklistLinkedTask"
     />
+        </SectionCard>
       </div>
 
       <!-- Pravý sloupec: „Jak na to“ (po příchodu sbalené) a zápis z meetingu -->
@@ -380,9 +384,24 @@ function doDelete() {
   min-width: 0;
 }
 
-.activity-layout-main > .detail-section:first-child {
+.activity-layout-main .section-card > .detail-section:first-child {
   margin-top: 0;
   margin-bottom: var(--space-md);
+}
+
+/* Poslední sekce v rámečku nepřidává mezeru dole */
+.activity-layout-main .section-card > .detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.activity-layout-main > .section-card,
+.activity-layout-checklist > .section-card {
+  margin: 0;
+}
+
+/* Checklist v rámečku začíná nahoře jako ostatní sloupce */
+.activity-layout-checklist :deep(.section-card > :first-child) {
+  margin-top: 0;
 }
 
 .activity-layout > * > :first-child {

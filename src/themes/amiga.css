@@ -1,0 +1,305 @@
+/*
+ * Vzhled „Amiga“ – experiment ve stylu Workbench 1.3.
+ * Čtyři barvy (modrá, bílá, černá, oranžová), pixelové písmo, žádné zaoblení ani přechody,
+ * plastické „gadgety“ (světlý horní a levý okraj, tmavý dolní a pravý), lišta obrazovky nahoře.
+ * Platí jen pro <html data-theme="amiga">; selektory začínají :root[data-theme="amiga"],
+ * aby měly přednost před scoped styly komponent.
+ */
+
+:root[data-theme="amiga"] {
+  --amiga-blue: #0055aa;
+  --amiga-blue-dark: #003c78;
+  --amiga-white: #ffffff;
+  --amiga-black: #000000;
+  --amiga-orange: #ff8800;
+
+  --font-sans: 'Topaz a1200', 'Topaz', 'VT323', 'Courier New', monospace;
+  --font-mono: 'Topaz a1200', 'Topaz', 'VT323', 'Courier New', monospace;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --transition: 0s;
+
+  --bg: var(--amiga-blue);
+  --bg-elevated: var(--amiga-blue);
+  --bg-muted: var(--amiga-blue-dark);
+  --text: var(--amiga-white);
+  --text-muted: #bcd4ff;
+  --accent: var(--amiga-orange);
+  --accent-hover: #ffaa44;
+  --accent-muted: var(--amiga-blue-dark);
+  --border: var(--amiga-white);
+  --border-focus: var(--amiga-orange);
+  --success: #66dd66;
+  --warning: var(--amiga-orange);
+  --error: #ff3333;
+
+  font-size: 19px;
+  -webkit-font-smoothing: none;
+  /* Vlastní pixelový ukazatel myši (červená šipka s černým obrysem) */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h4v2h2v2h2v2h2v2h2v2h2v2h-6v2h2v2h2v4h-4v-2h-2v-2h-2v4H1z' fill='%23000'/%3E%3Cpath d='M3 3h2v2h2v2h2v2h2v2h2v2H7v2h2v2h2v2H9v-2H7v-2H5v2H3z' fill='%23e02020'/%3E%3C/svg%3E") 1 1, auto;
+}
+
+:root[data-theme="amiga"] *,
+:root[data-theme="amiga"] *::before,
+:root[data-theme="amiga"] *::after {
+  border-radius: 0 !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="amiga"] body {
+  background: var(--amiga-blue);
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme="amiga"] ::selection {
+  background: var(--amiga-orange);
+  color: var(--amiga-black);
+}
+
+:root[data-theme="amiga"] a {
+  color: var(--amiga-orange);
+}
+
+:root[data-theme="amiga"] h1,
+:root[data-theme="amiga"] h2,
+:root[data-theme="amiga"] h3,
+:root[data-theme="amiga"] h4 {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+/* --- Lišta obrazovky (AppHeader): bílá s modrým textem, vpravo „gadgety“ hloubky --- */
+:root[data-theme="amiga"] .header {
+  position: relative;
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  border-bottom: 2px solid var(--amiga-black);
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  padding-right: calc(var(--space-md) + 52px);
+}
+
+:root[data-theme="amiga"] .header::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-md);
+  width: 40px;
+  height: 22px;
+  transform: translateY(-50%);
+  background:
+    linear-gradient(var(--amiga-blue), var(--amiga-blue)) 4px 4px / 14px 10px no-repeat,
+    linear-gradient(var(--amiga-white), var(--amiga-white)) 8px 8px / 14px 10px no-repeat,
+    linear-gradient(var(--amiga-blue), var(--amiga-blue)) 24px 5px / 12px 12px no-repeat;
+  border: 2px solid var(--amiga-blue);
+}
+
+:root[data-theme="amiga"] .header .logo {
+  color: var(--amiga-blue);
+  letter-spacing: 0.08em;
+}
+
+:root[data-theme="amiga"] .header .logo:hover {
+  color: var(--amiga-orange);
+}
+
+/* --- Tlačítka jako gadgety --- */
+:root[data-theme="amiga"] .btn {
+  background: var(--amiga-blue);
+  color: var(--amiga-white);
+  border: 2px solid;
+  border-color: var(--amiga-white) var(--amiga-black) var(--amiga-black) var(--amiga-white);
+  box-shadow: none;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme="amiga"] .btn:hover:not(:disabled) {
+  background: var(--amiga-blue-dark);
+  color: var(--amiga-white);
+}
+
+:root[data-theme="amiga"] .btn:active:not(:disabled) {
+  border-color: var(--amiga-black) var(--amiga-white) var(--amiga-white) var(--amiga-black);
+  background: var(--amiga-orange);
+  color: var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .btn-primary {
+  background: var(--amiga-orange);
+  color: var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .btn-primary:hover:not(:disabled) {
+  background: #ffaa44;
+  color: var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .btn-danger,
+:root[data-theme="amiga"] .btn-danger:hover:not(:disabled) {
+  background: var(--amiga-black);
+  color: var(--amiga-orange);
+}
+
+:root[data-theme="amiga"] .btn-ghost,
+:root[data-theme="amiga"] .btn-tertiary {
+  border-color: transparent;
+  background: transparent;
+}
+
+:root[data-theme="amiga"] .header .btn {
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  border-color: var(--amiga-blue);
+}
+
+:root[data-theme="amiga"] .header .btn:hover:not(:disabled),
+:root[data-theme="amiga"] .header .btn.nav-active {
+  /* AppHeader má u aktivní položky background s !important */
+  background: var(--amiga-blue) !important;
+  color: var(--amiga-white);
+}
+
+:root[data-theme="amiga"] .btn:disabled {
+  /* „ghosted“ gadget: přes tlačítko jemná tečkovaná mřížka, text zůstane čitelný */
+  opacity: 0.75;
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0, 0, 0, 0.25) 3px 4px);
+}
+
+/* --- Okna: karty s bílým rámem a titulkovým pruhem --- */
+:root[data-theme="amiga"] .section-card,
+:root[data-theme="amiga"] .entity-card,
+:root[data-theme="amiga"] .modal {
+  background: var(--amiga-blue);
+  border: 2px solid var(--amiga-white);
+  box-shadow: 4px 4px 0 var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .section-card-title {
+  margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-md);
+  padding: 2px var(--space-sm) 2px 30px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+/* Pruhy titulkové lišty až za textem – text zůstane čitelný */
+:root[data-theme="amiga"] .section-card-title::after {
+  content: '';
+  flex: 1;
+  height: 10px;
+  background: repeating-linear-gradient(var(--amiga-blue) 0 2px, var(--amiga-white) 2px 4px);
+}
+
+:root[data-theme="amiga"] .section-card-title::before {
+  /* zavírací gadget */
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  background: var(--amiga-white) linear-gradient(var(--amiga-blue), var(--amiga-blue)) center / 6px 6px no-repeat;
+  border: 2px solid var(--amiga-blue);
+}
+
+:root[data-theme="amiga"] .entity-card:hover {
+  background: var(--amiga-blue-dark);
+}
+
+:root[data-theme="amiga"] .modal-overlay {
+  background: rgba(0, 20, 50, 0.55);
+}
+
+:root[data-theme="amiga"] .modal-header {
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  border-bottom: 2px solid var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .modal-header * {
+  color: var(--amiga-blue);
+}
+
+/* --- Textová pole jako string gadgety --- */
+:root[data-theme="amiga"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="amiga"] textarea,
+:root[data-theme="amiga"] select,
+:root[data-theme="amiga"] .form-control {
+  background: var(--amiga-blue-dark);
+  color: var(--amiga-white);
+  border: 2px solid;
+  border-color: var(--amiga-black) var(--amiga-white) var(--amiga-white) var(--amiga-black);
+  caret-color: var(--amiga-orange);
+  box-shadow: none;
+}
+
+:root[data-theme="amiga"] input:focus,
+:root[data-theme="amiga"] textarea:focus,
+:root[data-theme="amiga"] select:focus,
+:root[data-theme="amiga"] .form-control:focus {
+  border-color: var(--amiga-orange);
+  box-shadow: none;
+}
+
+:root[data-theme="amiga"] input[type="checkbox"],
+:root[data-theme="amiga"] input[type="radio"] {
+  accent-color: var(--amiga-orange);
+}
+
+:root[data-theme="amiga"] :focus-visible {
+  outline: 2px dashed var(--amiga-orange) !important;
+  outline-offset: 2px;
+}
+
+/* --- Štítky --- */
+:root[data-theme="amiga"] .badge {
+  background: var(--amiga-blue-dark);
+  color: var(--amiga-white);
+  border: 1px solid var(--amiga-white);
+}
+
+/* --- Stavová lišta --- */
+:root[data-theme="amiga"] .status-bar {
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  border-top: 2px solid var(--amiga-black);
+}
+
+:root[data-theme="amiga"] .status-bar .status-theme-select {
+  background: var(--amiga-white);
+  color: var(--amiga-blue);
+  border: 1px solid var(--amiga-blue);
+}
+
+/* --- Posuvníky --- */
+:root[data-theme="amiga"] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+:root[data-theme="amiga"] ::-webkit-scrollbar-track {
+  background: var(--amiga-blue);
+  border-left: 2px solid var(--amiga-white);
+}
+
+:root[data-theme="amiga"] ::-webkit-scrollbar-thumb {
+  background: var(--amiga-white);
+  border: 3px solid var(--amiga-blue);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-theme="amiga"] .dictation-btn--live {
+    animation-duration: 1.6s !important;
+  }
+}

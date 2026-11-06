@@ -1,0 +1,292 @@
+/*
+ * Vzhled „Sci-fi“ – HUD futuristického rozhraní: téměř černé pozadí s tyrkysovou září shora
+ * a jemnou mřížkou, průsvitné panely s tenkým zářícím azurovým rámem, sražené rohy,
+ * silnější akcentové úseky na hranách a drobné šikmé čárky, technické písmo.
+ * Sražené rohy se kreslí překryvem (pseudo-elementy), ne ořezem – rozbalovací menu uvnitř karet
+ * tak zůstanou vidět.
+ * Platí jen pro <html data-theme="scifi">; selektory začínají :root[data-theme="scifi"],
+ * aby měly přednost před scoped styly komponent.
+ */
+
+:root[data-theme="scifi"] {
+  --hud-void: #04080b;
+  --hud-panel: rgba(8, 48, 60, 0.42);
+  --hud-panel-strong: rgba(10, 64, 80, 0.6);
+  --hud-cyan: #1fd2ff;
+  --hud-cyan-soft: rgba(31, 210, 255, 0.45);
+  --hud-cyan-dim: rgba(31, 210, 255, 0.18);
+  --hud-glow: 0 0 6px rgba(31, 210, 255, 0.55), 0 0 18px rgba(31, 210, 255, 0.18);
+  --hud-cut: 14px;
+
+  --font-sans: 'Exo 2', 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Rajdhani', ui-monospace, monospace;
+  --hud-display: 'Rajdhani', 'Exo 2', sans-serif;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --transition: 0.15s ease;
+
+  --bg: var(--hud-void);
+  --bg-elevated: var(--hud-panel);
+  --bg-muted: rgba(31, 210, 255, 0.08);
+  --text: #d6f6ff;
+  --text-muted: #6fa9ba;
+  --accent: var(--hud-cyan);
+  --accent-hover: #7fe8ff;
+  --accent-muted: var(--hud-cyan-dim);
+  --border: #134d5c;
+  --border-focus: var(--hud-cyan);
+  --success: #35e0a1;
+  --warning: #ffc04d;
+  --error: #ff4f6d;
+
+  font-size: 15px;
+  color-scheme: dark;
+}
+
+:root[data-theme="scifi"] body {
+  background-color: var(--hud-void);
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(18, 140, 170, 0.45), transparent 70%),
+    linear-gradient(rgba(31, 210, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 210, 255, 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+
+:root[data-theme="scifi"] ::selection {
+  background: rgba(31, 210, 255, 0.35);
+  color: #ffffff;
+}
+
+:root[data-theme="scifi"] a {
+  color: var(--hud-cyan);
+}
+
+:root[data-theme="scifi"] h1,
+:root[data-theme="scifi"] h2,
+:root[data-theme="scifi"] h3,
+:root[data-theme="scifi"] h4,
+:root[data-theme="scifi"] .logo,
+:root[data-theme="scifi"] .section-card-title,
+:root[data-theme="scifi"] .column-heading-title {
+  font-family: var(--hud-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="scifi"] h1,
+:root[data-theme="scifi"] .logo {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(31, 210, 255, 0.6);
+}
+
+/* --- Horní lišta --- */
+:root[data-theme="scifi"] .header {
+  background: linear-gradient(180deg, rgba(4, 20, 26, 0.95), rgba(4, 14, 18, 0.85));
+  border-bottom: 1px solid var(--hud-cyan-soft);
+  box-shadow: 0 1px 0 rgba(31, 210, 255, 0.15), 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Panely (karty, okna): průsvitná výplň, zářící rám, sražené rohy, akcenty --- */
+:root[data-theme="scifi"] .section-card,
+:root[data-theme="scifi"] .entity-card,
+:root[data-theme="scifi"] .modal {
+  position: relative;
+  background: linear-gradient(180deg, var(--hud-panel-strong), var(--hud-panel));
+  border: 1px solid var(--hud-cyan-soft);
+  box-shadow: inset 0 0 22px rgba(31, 210, 255, 0.08), 0 0 14px rgba(31, 210, 255, 0.08);
+}
+
+/* Sražený pravý horní a levý dolní roh: překryv barvou pozadí + šikmá linka rámu */
+:root[data-theme="scifi"] .section-card::before,
+:root[data-theme="scifi"] .entity-card::before,
+:root[data-theme="scifi"] .modal::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(225deg, var(--hud-void) 0 calc(50% - 1px), var(--hud-cyan) calc(50% - 1px) calc(50% + 0.5px), transparent calc(50% + 0.5px))
+      top right / var(--hud-cut) var(--hud-cut) no-repeat,
+    linear-gradient(45deg, var(--hud-void) 0 calc(50% - 1px), var(--hud-cyan) calc(50% - 1px) calc(50% + 0.5px), transparent calc(50% + 0.5px))
+      bottom left / var(--hud-cut) var(--hud-cut) no-repeat;
+  z-index: 1;
+}
+
+/* Akcenty: silnější úsek na horní hraně, šikmé čárky vpravo dole */
+:root[data-theme="scifi"] .section-card::after,
+:root[data-theme="scifi"] .modal::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) right calc(var(--hud-cut) + 10px) top 0 / 56px 3px no-repeat,
+    repeating-linear-gradient(-60deg, var(--hud-cyan) 0 2px, transparent 2px 6px) right calc(var(--hud-cut) + 6px) bottom 3px / 26px 6px no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) left calc(var(--hud-cut) + 8px) bottom 0 / 34px 2px no-repeat;
+  filter: drop-shadow(0 0 3px rgba(31, 210, 255, 0.8));
+  z-index: 1;
+}
+
+:root[data-theme="scifi"] .entity-card {
+  --hud-cut: 10px;
+}
+
+:root[data-theme="scifi"] .entity-card:hover {
+  border-color: var(--hud-cyan);
+  box-shadow: inset 0 0 22px rgba(31, 210, 255, 0.14), var(--hud-glow);
+}
+
+:root[data-theme="scifi"] .section-card-title {
+  color: var(--hud-cyan);
+  font-size: 0.85rem;
+}
+
+:root[data-theme="scifi"] .modal-overlay {
+  background: rgba(2, 6, 9, 0.75);
+  backdrop-filter: blur(3px);
+}
+
+:root[data-theme="scifi"] .modal {
+  --hud-cut: 18px;
+  background: linear-gradient(180deg, rgba(6, 34, 44, 0.97), rgba(4, 18, 24, 0.97));
+}
+
+:root[data-theme="scifi"] .modal-header {
+  border-bottom: 1px solid var(--hud-cyan-dim);
+}
+
+/* --- Tlačítka: sražené rohy, zářící okraj --- */
+:root[data-theme="scifi"] .btn {
+  position: relative;
+  background: rgba(31, 210, 255, 0.08);
+  color: var(--hud-cyan);
+  border: 1px solid var(--hud-cyan-soft);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  font-family: var(--hud-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="scifi"] .btn:hover:not(:disabled) {
+  background: rgba(31, 210, 255, 0.2);
+  color: #ffffff;
+  border-color: var(--hud-cyan);
+  text-shadow: 0 0 8px rgba(31, 210, 255, 0.8);
+}
+
+:root[data-theme="scifi"] .btn-primary {
+  background: linear-gradient(180deg, rgba(31, 210, 255, 0.55), rgba(18, 140, 175, 0.55));
+  color: #ffffff;
+  border-color: var(--hud-cyan);
+  text-shadow: 0 0 6px rgba(31, 210, 255, 0.9);
+}
+
+:root[data-theme="scifi"] .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(31, 210, 255, 0.75), rgba(18, 160, 200, 0.7));
+}
+
+:root[data-theme="scifi"] .btn-danger {
+  background: rgba(255, 79, 109, 0.12);
+  color: var(--error);
+  border-color: rgba(255, 79, 109, 0.6);
+}
+
+:root[data-theme="scifi"] .btn-ghost,
+:root[data-theme="scifi"] .btn-tertiary {
+  background: transparent;
+  border-color: transparent;
+  clip-path: none;
+}
+
+:root[data-theme="scifi"] .header .btn.nav-active {
+  /* AppHeader má u aktivní položky background s !important */
+  background: rgba(31, 210, 255, 0.28) !important;
+  color: #ffffff;
+  border-color: var(--hud-cyan);
+}
+
+:root[data-theme="scifi"] .btn:disabled {
+  opacity: 0.4;
+}
+
+/* --- Formulářové prvky --- */
+:root[data-theme="scifi"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="scifi"] textarea,
+:root[data-theme="scifi"] select,
+:root[data-theme="scifi"] .form-control {
+  background: rgba(2, 16, 22, 0.75);
+  color: var(--text);
+  border: 1px solid var(--border);
+  caret-color: var(--hud-cyan);
+}
+
+:root[data-theme="scifi"] input:focus,
+:root[data-theme="scifi"] textarea:focus,
+:root[data-theme="scifi"] select:focus,
+:root[data-theme="scifi"] .form-control:focus {
+  border-color: var(--hud-cyan);
+  box-shadow: var(--hud-glow);
+}
+
+:root[data-theme="scifi"] input::placeholder,
+:root[data-theme="scifi"] textarea::placeholder {
+  color: rgba(111, 169, 186, 0.7);
+}
+
+:root[data-theme="scifi"] input[type="checkbox"],
+:root[data-theme="scifi"] input[type="radio"] {
+  accent-color: var(--hud-cyan);
+}
+
+:root[data-theme="scifi"] :focus-visible {
+  outline-color: var(--hud-cyan);
+}
+
+/* --- Štítky --- */
+:root[data-theme="scifi"] .badge {
+  background: rgba(31, 210, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--hud-cyan-dim);
+  font-family: var(--hud-display);
+  letter-spacing: 0.04em;
+}
+
+/* --- Stavová lišta --- */
+:root[data-theme="scifi"] .status-bar {
+  background: rgba(3, 12, 16, 0.92);
+  border-top: 1px solid var(--hud-cyan-soft);
+  color: var(--text-muted);
+  font-family: var(--hud-display);
+  letter-spacing: 0.06em;
+}
+
+:root[data-theme="scifi"] .status-bar .status-theme-select {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--hud-cyan);
+}
+
+/* --- Posuvníky --- */
+:root[data-theme="scifi"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+:root[data-theme="scifi"] ::-webkit-scrollbar-track {
+  background: rgba(31, 210, 255, 0.04);
+  border-left: 1px solid var(--border);
+}
+
+:root[data-theme="scifi"] ::-webkit-scrollbar-thumb {
+  background: var(--hud-cyan-soft);
+  border: 2px solid var(--hud-void);
+}
+
+:root[data-theme="scifi"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--hud-cyan);
+}

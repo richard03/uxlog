@@ -59,13 +59,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useStore } from '../composables/useStore.js'
 import SearchModal from './SearchModal.vue'
 import AppButton from './AppButton.vue'
 
-useTheme()
 const { t } = useI18n()
 const route = useRoute()
 const store = useStore()

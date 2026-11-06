@@ -25,6 +25,8 @@ export default {
     vaultConflicts: 'Složka dat',
     never: 'nikdy',
     ariaLabel: 'Stav aplikace',
+    theme: 'Vzhled',
+    themes: { dark: 'Moderní', amiga: 'Amiga', macos: 'macOS', pixelart: 'PixelArt', scifi: 'Sci-fi' },
   },
   nav: {
     projects: 'Projekty',

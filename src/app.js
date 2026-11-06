@@ -10,8 +10,14 @@ import './style.css'
 import './components/pending-review.css'
 import { initStore, ensureProjectConfigs, migrateNotebookToSources } from './lib/store.js'
 import { installPlugins } from './lib/plugins/install.js'
+import { initTheme } from './composables/useTheme.js'
+import './themes/amiga.css'
+import './themes/macos.css'
+import './themes/pixelart.css'
+import './themes/scifi.css'
 
 export function startApp() {
+  initTheme()
   initStore()
 
   // Starší projekty bez vlastní konfigurace dostanou kopii výchozí (pak už jsou na ní nezávislé)

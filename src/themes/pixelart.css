@@ -1,0 +1,278 @@
+/*
+ * Vzhled „PixelArt“ – 8bitová herní grafika: pixelové písmo, omezená sytá paleta,
+ * „schodovité“ pixelové rámečky (ořezané rohy), tlačítka, která se při stisku propadnou,
+ * žádné vyhlazování ani plynulé přechody.
+ * Platí jen pro <html data-theme="pixelart">; selektory začínají :root[data-theme="pixelart"],
+ * aby měly přednost před scoped styly komponent.
+ */
+
+:root[data-theme="pixelart"] {
+  --px: 4px;
+  --px-ink: #0f0f1b;
+  --px-navy: #1a1c2c;
+  --px-blue: #29366f;
+  --px-slate: #333c57;
+  --px-steel: #566c86;
+  --px-mist: #94b0c2;
+  --px-white: #f4f4f4;
+  --px-yellow: #ffcd75;
+  --px-orange: #ef7d57;
+  --px-red: #b13e53;
+  --px-green: #38b764;
+  --px-cyan: #41a6f6;
+
+  /* Pixelify Sans – pixelové písmo s českou diakritikou */
+  --font-sans: 'Pixelify Sans', 'Courier New', monospace;
+  --font-mono: 'Pixelify Sans', 'Courier New', monospace;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --transition: 0s;
+
+  --bg: var(--px-navy);
+  --bg-elevated: var(--px-blue);
+  --bg-muted: var(--px-slate);
+  --text: var(--px-white);
+  --text-muted: var(--px-mist);
+  --accent: var(--px-yellow);
+  --accent-hover: #ffe0a6;
+  --accent-muted: var(--px-slate);
+  --border: var(--px-steel);
+  --border-focus: var(--px-yellow);
+  --success: var(--px-green);
+  --warning: var(--px-yellow);
+  --error: var(--px-orange);
+
+  font-size: 16px;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+  /* Pixelová šipka (bílá s černým obrysem) */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h4v4h4v4h4v4h4v4h-4v4H8v4H4v-4H0z' fill='%230f0f1b'/%3E%3Cpath d='M2 2h2v4h4v4h4v4h-4v4H6v-4H2z' fill='%23f4f4f4'/%3E%3C/svg%3E") 1 1, auto;
+}
+
+:root[data-theme="pixelart"] *,
+:root[data-theme="pixelart"] *::before,
+:root[data-theme="pixelart"] *::after {
+  border-radius: 0 !important;
+  transition: none !important;
+  text-shadow: none;
+}
+
+:root[data-theme="pixelart"] body {
+  background-color: var(--px-navy);
+  /* jemná pixelová mřížka pozadí */
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 8px 8px;
+  line-height: 1.5;
+}
+
+:root[data-theme="pixelart"] ::selection {
+  background: var(--px-yellow);
+  color: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] a {
+  color: var(--px-cyan);
+}
+
+:root[data-theme="pixelart"] h1,
+:root[data-theme="pixelart"] h2,
+:root[data-theme="pixelart"] h3,
+:root[data-theme="pixelart"] h4 {
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--px-yellow);
+  text-shadow: 2px 2px 0 var(--px-ink);
+}
+
+/* Pixelový rámeček s ořezanými rohy: čtyři posunuté stíny místo borderu */
+:root[data-theme="pixelart"] .section-card,
+:root[data-theme="pixelart"] .entity-card,
+:root[data-theme="pixelart"] .modal,
+:root[data-theme="pixelart"] .btn,
+:root[data-theme="pixelart"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="pixelart"] textarea,
+:root[data-theme="pixelart"] select,
+:root[data-theme="pixelart"] .form-control {
+  --px-frame: var(--px-white);
+  border: none;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--px-frame),
+    0 var(--px) 0 0 var(--px-frame),
+    calc(-1 * var(--px)) 0 0 0 var(--px-frame),
+    var(--px) 0 0 0 var(--px-frame);
+}
+
+/* --- Horní lišta --- */
+:root[data-theme="pixelart"] .header {
+  background: var(--px-blue);
+  border-bottom: var(--px) solid var(--px-ink);
+  box-shadow: 0 var(--px) 0 var(--px-steel);
+}
+
+:root[data-theme="pixelart"] .header .logo {
+  color: var(--px-yellow);
+  text-shadow: 2px 2px 0 var(--px-ink);
+}
+
+/* --- Tlačítka: propadnou se při stisku --- */
+:root[data-theme="pixelart"] .btn {
+  --px-frame: var(--px-ink);
+  background: var(--px-steel);
+  color: var(--px-white);
+  font-weight: 400;
+  line-height: 1.4;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--px-frame),
+    0 var(--px) 0 0 var(--px-frame),
+    calc(-1 * var(--px)) 0 0 0 var(--px-frame),
+    var(--px) 0 0 0 var(--px-frame),
+    inset 0 calc(-1 * var(--px)) 0 0 rgba(0, 0, 0, 0.35),
+    inset 0 var(--px) 0 0 rgba(255, 255, 255, 0.18);
+}
+
+:root[data-theme="pixelart"] .btn:hover:not(:disabled) {
+  background: var(--px-mist);
+  color: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] .btn:active:not(:disabled) {
+  transform: translateY(var(--px));
+}
+
+:root[data-theme="pixelart"] .btn-primary {
+  background: var(--px-yellow);
+  color: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] .btn-primary:hover:not(:disabled) {
+  background: var(--px-orange);
+  color: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] .btn-danger {
+  background: var(--px-red);
+  color: var(--px-white);
+}
+
+:root[data-theme="pixelart"] .btn-ghost,
+:root[data-theme="pixelart"] .btn-tertiary {
+  background: transparent;
+  box-shadow: none;
+  color: var(--px-cyan);
+}
+
+:root[data-theme="pixelart"] .btn-ghost:hover:not(:disabled),
+:root[data-theme="pixelart"] .btn-tertiary:hover:not(:disabled) {
+  background: transparent;
+  color: var(--px-yellow);
+}
+
+:root[data-theme="pixelart"] .header .btn.nav-active {
+  /* AppHeader má u aktivní položky background s !important */
+  background: var(--px-yellow) !important;
+  color: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] .btn:disabled {
+  opacity: 0.5;
+}
+
+/* --- Karty a okna --- */
+:root[data-theme="pixelart"] .section-card,
+:root[data-theme="pixelart"] .entity-card {
+  --px-frame: var(--px-steel);
+  background: var(--px-blue);
+}
+
+:root[data-theme="pixelart"] .entity-card:hover {
+  --px-frame: var(--px-yellow);
+}
+
+:root[data-theme="pixelart"] .section-card-title {
+  color: var(--px-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+:root[data-theme="pixelart"] .modal-overlay {
+  background: rgba(15, 15, 27, 0.75);
+}
+
+:root[data-theme="pixelart"] .modal {
+  --px-frame: var(--px-yellow);
+  background: var(--px-navy);
+}
+
+:root[data-theme="pixelart"] .modal-header {
+  background: var(--px-blue);
+  border-bottom: var(--px) solid var(--px-ink);
+}
+
+/* --- Formulářové prvky --- */
+:root[data-theme="pixelart"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="pixelart"] textarea,
+:root[data-theme="pixelart"] select,
+:root[data-theme="pixelart"] .form-control {
+  --px-frame: var(--px-steel);
+  background: var(--px-ink);
+  color: var(--px-white);
+  caret-color: var(--px-yellow);
+  line-height: 1.8;
+}
+
+:root[data-theme="pixelart"] input:focus,
+:root[data-theme="pixelart"] textarea:focus,
+:root[data-theme="pixelart"] select:focus,
+:root[data-theme="pixelart"] .form-control:focus {
+  --px-frame: var(--px-yellow);
+}
+
+:root[data-theme="pixelart"] input[type="checkbox"],
+:root[data-theme="pixelart"] input[type="radio"] {
+  accent-color: var(--px-green);
+}
+
+:root[data-theme="pixelart"] :focus-visible {
+  outline: var(--px) solid var(--px-yellow) !important;
+  outline-offset: var(--px);
+}
+
+/* --- Štítky --- */
+:root[data-theme="pixelart"] .badge {
+  background: var(--px-slate);
+  color: var(--px-white);
+  border: 2px solid var(--px-ink);
+}
+
+/* --- Stavová lišta --- */
+:root[data-theme="pixelart"] .status-bar {
+  background: var(--px-ink);
+  border-top: var(--px) solid var(--px-steel);
+  color: var(--px-mist);
+}
+
+:root[data-theme="pixelart"] .status-bar .status-theme-select {
+  box-shadow: none;
+  margin: 0;
+  background: transparent;
+  color: var(--px-yellow);
+}
+
+/* --- Posuvníky --- */
+:root[data-theme="pixelart"] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+:root[data-theme="pixelart"] ::-webkit-scrollbar-track {
+  background: var(--px-ink);
+}
+
+:root[data-theme="pixelart"] ::-webkit-scrollbar-thumb {
+  background: var(--px-steel);
+  border: var(--px) solid var(--px-ink);
+}

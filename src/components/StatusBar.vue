@@ -17,6 +17,12 @@
         {{ tPath(item.label) }}: <time :datetime="toIso(item.value?.value)">{{ formatStatusBarDateTime(item.value?.value) ?? t.statusBar.never }}</time>
       </span>
     </template>
+    <label class="status-theme">
+      {{ t.statusBar.theme }}:
+      <select :value="theme" class="status-theme-select" @change="setTheme($event.target.value)">
+        <option v-for="id in themes" :key="id" :value="id">{{ t.statusBar.themes[id] }}</option>
+      </select>
+    </label>
   </footer>
 </template>
 
@@ -26,9 +32,11 @@ import { useI18n } from '../composables/useI18n.js'
 import { APP_VERSION } from '../lib/version.js'
 import { getStatusItems } from '../lib/plugins/registry.js'
 import { formatStatusBarDateTime } from '../utils/formatDate.js'
+import { useTheme } from '../composables/useTheme.js'
 
 const { t, tPath } = useI18n()
 const version = APP_VERSION
+const { theme, themes, setTheme } = useTheme()
 
 const statusItems = getStatusItems()
 
@@ -55,6 +63,45 @@ function plainStatusValue(item) {
 </script>
 
 <style scoped>
+.status-theme {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Kompaktní výběr – přepisuje globální styl select (šířka 100 %, odsazení) */
+.status-theme-select {
+  width: auto;
+  height: 18px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: inherit;
+  line-height: 1;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.status-theme-select:hover {
+  border-color: var(--border);
+}
+
+.status-theme-select:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.status-theme-select option {
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
 .status-bar {
   position: fixed;
   bottom: 0;
