@@ -15,6 +15,7 @@ import { updatePersona } from './personas.js'
 import { updateScenario } from './scenarios.js'
 import { updateRequirement } from './requirements.js'
 import { updateRisk } from './risks.js'
+import { updateSource } from './sources.js'
 import { updateActivity } from './activities.js'
 import { updateTask } from './tasks.js'
 import { updateBug } from './bugs.js'
@@ -30,6 +31,7 @@ const UPDATE_BY_TYPE = {
   scenarios: updateScenario,
   requirements: updateRequirement,
   risks: updateRisk,
+  sources: updateSource,
   activities: updateActivity,
   tasks: updateTask,
   bugs: updateBug,

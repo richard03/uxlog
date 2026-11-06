@@ -286,15 +286,19 @@ function saveProject() {
   gap: var(--space-sm);
 }
 
-/* Dlaždice projektů: 4 na řádek, na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
+/* Dlaždice projektů: 5 na řádek (jednotný pětisloupcový layout), na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
 .project-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-md);
   align-items: stretch;
+}
+
+@media (max-width: 1350px) {
+  .project-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1100px) {

@@ -147,6 +147,22 @@ export function createRisk(projectId, overrides = {}) {
 }
 
 /**
+ * Vytvoří nový zdroj projektu (dokument, přepis rozhovoru, e-mail…), ze kterého AI vytěží záznamy.
+ * @param {string} projectId
+ * @param {Object} overrides
+ * @returns {Object}
+ */
+export function createSource(projectId, overrides = {}) {
+  return {
+    id: generateId(),
+    projectId,
+    ...getEntityDefaults('source'),
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
+
+/**
  * Vytvoří novou personu.
  * @param {string} projectId
  * @param {Object} overrides

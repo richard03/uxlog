@@ -68,6 +68,14 @@
               @close="showSearch = false"
             />
             <SearchResultsSection
+              v-if="results.sourceIds?.length"
+              :title="t.source.label"
+              :items="sourceItems"
+              section="sources"
+              :projectId="(r) => r.projectId"
+              @close="showSearch = false"
+            />
+            <SearchResultsSection
               v-if="results.riskIds?.length"
               :title="t.risk.label"
               :items="riskItems"
@@ -155,6 +163,9 @@ const competitionItems = computed(() =>
 )
 const hypothesisItems = computed(() =>
   (results.value?.hypothesisIds || []).map((id) => store.getHypothesis(id)).filter(Boolean)
+)
+const sourceItems = computed(() =>
+  (results.value?.sourceIds || []).map((id) => store.getSource(id)).filter(Boolean)
 )
 const riskItems = computed(() =>
   (results.value?.riskIds || []).map((id) => store.getRisk(id)).filter(Boolean)

@@ -8,6 +8,7 @@ import {
   getTasks, getBugs, getRisks,
 } from './index.js'
 import { getAllActivities } from './activities.js'
+import { getSources } from './sources.js'
 
 export function exportData() {
   return toYaml(getData())
@@ -28,6 +29,7 @@ export function exportSectionData(projectId, storeKey) {
     tasks: getTasks,
     bugs: getBugs,
     risks: getRisks,
+    sources: getSources,
   }
   const getter = getters[storeKey]
   if (!getter) return toYaml({ [storeKey]: [] })
@@ -57,6 +59,7 @@ export function exportProjectData(projectId) {
     tasks: (data.tasks || []).filter((t) => t.projectId === projectId),
     bugs: (data.bugs || []).filter((b) => b.projectId === projectId),
     risks: (data.risks || []).filter((r) => r.projectId === projectId),
+    sources: (data.sources || []).filter((s) => s.projectId === projectId),
   })
 }
 
@@ -82,7 +85,7 @@ export function importProjectData(importData) {
   const entityKeys = [
     'goals', 'stakeholders', 'competitions', 'hypotheses',
     'personas', 'scenarios', 'requirements', 'activities', 'teamMembers',
-    'tasks', 'bugs', 'risks',
+    'tasks', 'bugs', 'risks', 'sources',
   ]
   let totalUpserted = 0
   for (const key of entityKeys) {

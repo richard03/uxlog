@@ -14,6 +14,7 @@ export const ENTITY_DETAIL_ROUTES = {
   tasks: ['taskDetail', 'taskId'],
   bugs: ['bugDetail', 'bugId'],
   risks: ['riskDetail', 'riskId'],
+  sources: ['sourceDetail', 'sourceId'],
   teamMembers: ['teamMemberDetail', 'memberId'],
   activities: ['activityDetail', 'activityId'],
 }

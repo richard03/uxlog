@@ -11,7 +11,7 @@ import { describeHistoryEntry } from '../lib/history.js'
 const I18N_SECTION = {
   projects: 'project', goals: 'goal', stakeholders: 'stakeholder', competitions: 'competition',
   hypotheses: 'hypothesis', personas: 'persona', scenarios: 'scenario', requirements: 'requirement',
-  activities: 'activity', teamMembers: 'teamMember', tasks: 'task', bugs: 'bug', risks: 'risk',
+  activities: 'activity', teamMembers: 'teamMember', tasks: 'task', bugs: 'bug', risks: 'risk', sources: 'source',
   connections: 'connection',
 }
 

@@ -15,7 +15,22 @@
     </ProjectPageHeader>
 
     <div class="project-columns">
-      <!-- Activities column -->
+      <!-- Základní informace o projektu (časem přibudou další) -->
+      <section class="project-column" aria-labelledby="basics-heading">
+        <h2 id="basics-heading" class="project-column-title">{{ t.project.basicsTitle }}</h2>
+        <AppCardGrid :aria-label="t.project.basicsTitle" :columns="1">
+          <CounterCard
+            v-for="s in basics"
+            :key="s.id"
+            :to="{ name: s.route, params: { id: projectId } }"
+            :label="tPath(`sections.${s.id}`)"
+            :count="s.count"
+            variant="row"
+          />
+        </AppCardGrid>
+      </section>
+
+      <!-- Aktivity -->
       <ActivitiesPanel
         class="project-column"
         :project-id="projectId"
@@ -231,20 +246,28 @@ function doDelete() {
   showConfirm.value = false
 }
 
+/** Základní informace o projektu (první sloupec). */
+const basics = computed(() => {
+  const pid = projectId.value
+  return [
+    { id: 'tasks', route: 'tasks', count: store.getTasks(pid).length },
+    { id: 'sources', route: 'sources', count: store.getSources(pid).length },
+    { id: 'team', route: 'team', count: store.getTeamMembers(pid).length },
+    { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
+  ]
+})
+
 const sections = computed(() => {
   const pid = projectId.value
   return [
+    { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
+    { id: 'risks', route: 'risks', count: store.getRisks(pid).filter(r => (r.status || 'open') === 'open').length },
+    { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },
+    { id: 'competition', route: 'competition', count: store.getCompetitions(pid).length },
+    { id: 'requirements', route: 'requirements', count: store.getRequirements(pid).length },
     { id: 'personas', route: 'personas', count: store.getPersonas(pid).length },
     { id: 'scenarios', route: 'scenarios', count: store.getScenarios(pid).length },
-    { id: 'requirements', route: 'requirements', count: store.getRequirements(pid).length },
-    { id: 'hypothesis', route: 'hypothesis', count: store.getHypotheses(pid).length },
-    { id: 'risks', route: 'risks', count: store.getRisks(pid).filter(r => (r.status || 'open') === 'open').length },
     { id: 'bugs', route: 'bugs', count: store.getBugs(pid).filter(b => b.status === 'zadano').length },
-    { id: 'goals', route: 'goals', count: store.getGoals(pid).length },
-    { id: 'stakeholders', route: 'stakeholders', count: store.getStakeholders(pid).length },
-    { id: 'competition', route: 'competition', count: store.getCompetitions(pid).length },
-    { id: 'team', route: 'team', count: store.getTeamMembers(pid).length },
-    { id: 'tasks', route: 'tasks', count: store.getTasks(pid).length },
   ]
 })
 
@@ -263,11 +286,15 @@ function handleImported({ projectId: importedProjectId }) {
 <style scoped>
 .project-columns {
   display: grid;
-  /* Aktivity | Artefakty si rovným dílem dělí levou polovinu; Zápisník je vpravo v ProjectLayout */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* Základní informace | Aktivity | Artefakty – tři stejné sloupce; Chat je vpravo v ProjectLayout */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-lg);
   align-items: start;
   margin-top: 0;
+}
+
+.project-column {
+  min-width: 0;
 }
 
 .project-column-title {
@@ -277,6 +304,12 @@ function handleImported({ projectId: importedProjectId }) {
   margin: 0 0 var(--space-md);
   font-size: 1rem;
   font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .project-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 800px) {

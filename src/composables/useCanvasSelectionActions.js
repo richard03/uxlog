@@ -17,7 +17,7 @@ import { parseCardKey } from '../lib/canvas.js'
 const I18N_SECTION = {
   goals: 'goal', stakeholders: 'stakeholder', teamMembers: 'teamMember', competitions: 'competition',
   hypotheses: 'hypothesis', personas: 'persona', scenarios: 'scenario', requirements: 'requirement',
-  risks: 'risk', activities: 'activity', tasks: 'task', bugs: 'bug',
+  risks: 'risk', activities: 'activity', tasks: 'task', bugs: 'bug', sources: 'source',
 }
 
 /**

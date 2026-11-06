@@ -19,7 +19,7 @@
   --breakpoint-md: 900px;
 
   /* Max. šířka layoutu – sdílí AppHeader i obsah (.container); při změně uprav i @media u .container */
-  --layout-max-width: 1200px;
+  --layout-max-width: 1500px;
 
   /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven.
      Neutrální odstíny jsou studené (navy), akcent oranžový. */
@@ -235,8 +235,8 @@ select.form-control {
   padding: var(--space-md) 0;
 }
 
-/* Užší okno než --layout-max-width + okraje (1200 + 2 × 16px): obsah nesmí lepit na hranu okna (AppHeader má stejné odsazení) */
-@media (max-width: 1232px) {
+/* Užší okno než --layout-max-width + okraje (1500 + 2 × 16px): obsah nesmí lepit na hranu okna (AppHeader má stejné odsazení) */
+@media (max-width: 1532px) {
   .container {
     padding-left: var(--space-md);
     padding-right: var(--space-md);

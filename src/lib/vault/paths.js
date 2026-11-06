@@ -26,6 +26,7 @@ export const VAULT_COLLECTIONS = Object.freeze([
   { collection: 'scenarios', entityType: 'scenario', dir: 'scenarios' },
   { collection: 'requirements', entityType: 'requirement', dir: 'requirements' },
   { collection: 'risks', entityType: 'risk', dir: 'risks' },
+  { collection: 'sources', entityType: 'source', dir: 'sources' },
   { collection: 'activities', entityType: 'activity', dir: 'activities' },
   { collection: 'teamMembers', entityType: 'teamMember', dir: 'team' },
   { collection: 'tasks', entityType: 'task', dir: 'tasks' },

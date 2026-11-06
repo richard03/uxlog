@@ -25,18 +25,23 @@ const CODE_ENTITIES = {
   risk: 'getRisks',
 }
 
-/** Entita → [vytvoření, úprava, jeden záznam, seznam záznamů projektu] – názvy metod ve store */
+/** Entita → [vytvoření, úprava, jeden záznam, seznam záznamů projektu, kolekce] – názvy metod ve store a klíč kolekce */
 const ENTITY_METHODS = {
-  persona: ['addPersona', 'updatePersona', 'getPersona', 'getPersonas'],
-  requirement: ['addRequirement', 'updateRequirement', 'getRequirement', 'getRequirements'],
-  goal: ['addGoal', 'updateGoal', 'getGoal', 'getGoals'],
-  stakeholder: ['addStakeholder', 'updateStakeholder', 'getStakeholder', 'getStakeholders'],
-  competition: ['addCompetition', 'updateCompetition', 'getCompetition', 'getCompetitions'],
-  hypothesis: ['addHypothesis', 'updateHypothesis', 'getHypothesis', 'getHypotheses'],
-  scenario: ['addScenario', 'updateScenario', 'getScenario', 'getScenarios'],
-  teamMember: ['addTeamMember', 'updateTeamMember', 'getTeamMember', 'getTeamMembers'],
-  risk: ['addRisk', 'updateRisk', 'getRisk', 'getRisks'],
+  persona: ['addPersona', 'updatePersona', 'getPersona', 'getPersonas', 'personas'],
+  requirement: ['addRequirement', 'updateRequirement', 'getRequirement', 'getRequirements', 'requirements'],
+  goal: ['addGoal', 'updateGoal', 'getGoal', 'getGoals', 'goals'],
+  stakeholder: ['addStakeholder', 'updateStakeholder', 'getStakeholder', 'getStakeholders', 'stakeholders'],
+  competition: ['addCompetition', 'updateCompetition', 'getCompetition', 'getCompetitions', 'competitions'],
+  hypothesis: ['addHypothesis', 'updateHypothesis', 'getHypothesis', 'getHypotheses', 'hypotheses'],
+  scenario: ['addScenario', 'updateScenario', 'getScenario', 'getScenarios', 'scenarios'],
+  teamMember: ['addTeamMember', 'updateTeamMember', 'getTeamMember', 'getTeamMembers', 'teamMembers'],
+  risk: ['addRisk', 'updateRisk', 'getRisk', 'getRisks', 'risks'],
 }
+
+/** Chyby zpracování zdrojů v tomto běhu aplikace (id zdroje → text chyby). */
+const sourceErrors = ref({})
+/** Výsledek posledního zpracování zdroje v tomto běhu aplikace (id zdroje → hláška). */
+const sourceNotices = ref({})
 
 /** Kolik slučování (volání AI) běží najednou. */
 const MERGE_CONCURRENCY = 3
@@ -82,8 +87,13 @@ export function useNotebookChat(projectIdRef) {
     inFlight.value = next
   }
 
-  function buildProjectData(pid) {
+  /**
+   * Data projektu pro AI. Zdroje (text dokumentů, rozhovorů, e-mailů) se přidávají pro chat;
+   * při zpracování zdroje ne (zpracovávaný text jde zvlášť).
+   */
+  function buildProjectData(pid, { withSources = true } = {}) {
     return {
+      ...(withSources ? { sources: store.getSources(pid) } : {}),
       // Navíc pro dotazy (ai:notebook je ignoruje)
       activities: store.getActivities(pid),
       methodology: store.getActivities(pid).map((a) => ({ name: a.name, guide: a.typeKey ? getTemplate(a.typeKey)?.guide : null })),
@@ -111,8 +121,15 @@ export function useNotebookChat(projectIdRef) {
     setInFlight(entry.id, true)
     store.updateNotebookEntryInProject(pid, entry.id, { status: 'processing', error: '' })
     try {
-      const { actions, failedParts = 0, totalParts = 1 } = await callCapability('ai:notebook', entry.text, buildProjectData(pid))
+      // „Měnit data“: text je pokyn uživatele, obsah AI čerpá i ze zdrojů projektu
+      const instruction = entry.mode === 'change'
+      const projectData = buildProjectData(pid)
+      const { actions, failedParts = 0, totalParts = 1 } = await callCapability('ai:notebook', entry.text, projectData, { instruction })
       const list = Array.isArray(actions) ? actions : []
+      // Citace se u pokynu ověřují proti pokynu i textu zdrojů
+      const reviewText = instruction
+        ? [entry.text, ...(projectData.sources || []).map((s) => s.content || '')].filter(Boolean).join('\n\n')
+        : entry.text
       // Dlouhý text se zpracovává po částech – nezpracované části uživateli nezamlčíme
       if (failedParts > 0) {
         store.updateNotebookEntryInProject(pid, entry.id, { error: t.notebook.partialFailure(failedParts, totalParts) })
@@ -120,7 +137,7 @@ export function useNotebookChat(projectIdRef) {
       if (list.length === 0) {
         store.updateNotebookEntryInProject(pid, entry.id, { status: 'done', outcomes: [] })
       } else {
-        startReview(pid, entry, list)
+        startReview(pid, { ...entry, text: reviewText }, list, { kind: 'chat', id: entry.id })
       }
     } catch (e) {
       store.updateNotebookEntryInProject(pid, entry.id, { status: 'error', error: e?.message || String(e) })
@@ -149,6 +166,55 @@ export function useNotebookChat(projectIdRef) {
     }
   }
 
+  /**
+   * Zpracuje zdroj pomocí AI: z jeho textu navrhne nové a upravené záznamy (stejně jako poznámky).
+   * Po revizi se potvrzené záznamy propojí se zdrojem a zdroj dostane datum zpracování.
+   * @param {string} sourceId
+   */
+  async function processSource(sourceId) {
+    const source = store.getSource(sourceId)
+    if (!source || !isAiAvailable() || inFlight.value.has(sourceId)) return
+    const pid = source.projectId
+    setInFlight(sourceId, true)
+    setSourceError(sourceId, '')
+    try {
+      const { actions, failedParts = 0, totalParts = 1 } = await callCapability('ai:notebook', source.content || '', buildProjectData(pid, { withSources: false }))
+      const list = Array.isArray(actions) ? actions : []
+      if (failedParts > 0) setSourceError(sourceId, t.notebook.partialFailure(failedParts, totalParts))
+      if (list.length === 0) {
+        store.updateSource(sourceId, { processedAt: new Date().toISOString() })
+        sourceNotices.value = { ...sourceNotices.value, [sourceId]: t.sources.nothingFound }
+      } else {
+        startReview(pid, { id: sourceId, text: source.content || '' }, list, { kind: 'source', id: sourceId })
+      }
+    } catch (e) {
+      setSourceError(sourceId, e?.message || String(e))
+    } finally {
+      setInFlight(sourceId, false)
+    }
+  }
+
+  function setSourceError(sourceId, message) {
+    const next = { ...sourceErrors.value }
+    if (message) next[sourceId] = message
+    else delete next[sourceId]
+    sourceErrors.value = next
+  }
+
+  /**
+   * Stav zpracování zdroje pro UI.
+   * @param {string} sourceId
+   * @returns {{ processing: boolean, review: boolean, error: string, notice: string }}
+   */
+  function sourceStatus(sourceId) {
+    return {
+      processing: inFlight.value.has(sourceId),
+      review: reviewQueue.value.some((r) => r.origin?.kind === 'source' && r.origin.id === sourceId),
+      error: sourceErrors.value[sourceId] || '',
+      notice: sourceNotices.value[sourceId] || '',
+    }
+  }
+
   /** Spustí AI podle režimu zprávy. */
   function runEntry(pid, entry) {
     return entry.mode === 'ask' ? askEntry(pid, entry) : processEntry(pid, entry)
@@ -157,19 +223,17 @@ export function useNotebookChat(projectIdRef) {
   /**
    * Odešle novou zprávu do zápisníku.
    * @param {string} text
-   * @param {'process'|'ask'} mode
+   * @param {'ask'|'change'} mode - „Zeptat se“ | „Měnit data“
    * @returns {boolean} zda byla zpráva přijata
    */
-  function send(text, mode = 'process') {
+  function send(text, mode = 'change') {
     const trimmed = String(text ?? '').trim()
     const pid = projectId.value
-    if (!trimmed || !pid) return false
-    const useAi = isAiAvailable()
-    // Dotaz bez AI nemá smysl – nepřijímá se (UI tlačítko zakáže)
-    if (mode === 'ask' && !useAi) return false
-    const entry = store.addNotebookEntry(pid, trimmed, useAi ? 'processing' : 'saved', mode)
+    // Chat bez AI nemá smysl – zpráva se nepřijímá (UI tlačítko zakáže)
+    if (!trimmed || !pid || !isAiAvailable()) return false
+    const entry = store.addNotebookEntry(pid, trimmed, 'processing', mode === 'ask' ? 'ask' : 'change')
     if (!entry) return false
-    if (useAi) runEntry(pid, entry)
+    runEntry(pid, entry)
     return true
   }
 
@@ -313,7 +377,7 @@ export function useNotebookChat(projectIdRef) {
    * @param {Object} entry - zpráva zápisníku
    * @param {Array<Object>} list - akce z AI
    */
-  function startReview(pid, entry, list) {
+  function startReview(pid, entry, list, origin = { kind: 'chat', id: entry.id }) {
     const actions = list.map((a, i) => {
       const extracted = { ...(a.fields || {}) }
       return {
@@ -330,7 +394,7 @@ export function useNotebookChat(projectIdRef) {
         focusKeys: a.type === 'update' ? Object.keys(extracted) : createFocusKeys(extracted),
       }
     })
-    reviewQueue.value = [...reviewQueue.value, { projectId: pid, entryId: entry.id, notesText: entry.text, actions }]
+    reviewQueue.value = [...reviewQueue.value, { projectId: pid, entryId: entry.id, origin, notesText: entry.text, actions }]
     // Reaktivní kopie z fronty – změny akcí (výsledek slučování) se tak propíší do UI
     const review = reviewQueue.value[reviewQueue.value.length - 1]
     runMerges(review, review.actions.filter((a) => a.type === 'update'))
@@ -394,15 +458,22 @@ export function useNotebookChat(projectIdRef) {
     // Záznam bez názvu nesmí vzniknout ani o název přijít (UI potvrzení v tom případě nepustí)
     if (nameMissing(action)) return
     const fields = actionChanges(action)
+    let entityId = null
     if (action.type === 'create') {
       const getter = CODE_ENTITIES[action.entity]
       const prefix = getCodePrefix(action.entity)
       if (getter && prefix && !fields.code) {
         fields.code = generateNextCode(prefix, store[getter](pid))
       }
-      store[methods[0]](pid, fields)
-    } else if (action.type === 'update' && action.entityId && Object.keys(fields).length) {
-      store[methods[1]](action.entityId, fields)
+      entityId = store[methods[0]](pid, fields)?.id ?? null
+    } else if (action.type === 'update' && action.entityId) {
+      if (Object.keys(fields).length) store[methods[1]](action.entityId, fields)
+      entityId = action.entityId
+    }
+    // Záznam vytěžený ze zdroje (nový i doplněný) se se zdrojem propojí souvislostí
+    const origin = currentReview.value?.origin
+    if (origin?.kind === 'source' && entityId && store.getSource(origin.id)) {
+      store.addConnection(pid, 'sources', origin.id, methods[4], entityId)
     }
   }
 
@@ -413,15 +484,23 @@ export function useNotebookChat(projectIdRef) {
   function finishReview(confirmedIds) {
     const review = currentReview.value
     if (!review) return
-    store.updateNotebookEntryInProject(review.projectId, review.entryId, {
-      status: 'done',
-      outcomes: buildOutcomes(review.actions, confirmedIds),
-    })
+    if (review.origin?.kind === 'source') {
+      // Zdroj je zpracovaný, i když uživatel všechny návrhy přeskočil
+      if (store.getSource(review.origin.id)) store.updateSource(review.origin.id, { processedAt: new Date().toISOString() })
+      const count = buildOutcomes(review.actions, confirmedIds).filter((o) => o.outcome === 'confirmed').length
+      sourceNotices.value = { ...sourceNotices.value, [review.origin.id]: t.sources.processedCount(count) }
+    } else {
+      store.updateNotebookEntryInProject(review.projectId, review.entryId, {
+        status: 'done',
+        outcomes: buildOutcomes(review.actions, confirmedIds),
+      })
+    }
     reviewQueue.value = reviewQueue.value.filter((r) => r !== review)
   }
 
   return {
     history, aiAvailable, displayStatus, send, retry, currentReview, applyAction, finishReview,
+    processSource, sourceStatus,
     countOutcomes, legacyEntryId: LEGACY_ENTRY_ID,
     /** Pomocníci revize (NotebookModal) – sloučení do existujícího záznamu. */
     reviewHelpers: { fieldMeta, candidates, mergeInto, revertToCreate, remerge, actionChanges, alteredQuotes, nameMissing },

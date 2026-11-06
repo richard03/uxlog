@@ -10,7 +10,7 @@
           <div class="nb-bubble nb-bubble--user">
             <span v-if="entry.id === legacyId" class="nb-meta">{{ t.notebook.legacyLabel }}</span>
             <span v-else-if="entry.createdAt" class="nb-meta">
-              <template v-if="entry.mode === 'ask'">{{ t.notebook.askLabel }} · </template>{{ formatStatusBarDateTime(entry.createdAt) }}
+              <template v-if="entry.mode === 'ask'">{{ t.notebook.askLabel }} · </template><template v-else-if="entry.mode === 'change'">{{ t.notebook.changeLabel }} · </template>{{ formatStatusBarDateTime(entry.createdAt) }}
             </span>
             <ExpandableText>
               <p class="nb-text">{{ entry.text }}</p>
@@ -18,7 +18,7 @@
           </div>
 
           <div v-if="entry.id !== legacyId" class="nb-bubble nb-bubble--ai" :class="`nb-bubble--${displayStatus(entry)}`">
-            <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : t.notebook.processing }}</template>
+            <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : entry.mode === 'change' ? t.notebook.changeProcessing : t.notebook.processing }}</template>
             <template v-else-if="displayStatus(entry) === 'review'">
               {{ t.notebook.reviewPending }}
             </template>
@@ -56,7 +56,7 @@
           v-model="draft"
           class="nb-input"
           rows="4"
-          :placeholder="mode === 'ask' ? t.notebook.askPlaceholder : t.notebook.placeholder"
+          :placeholder="mode === 'ask' ? t.notebook.askPlaceholder : t.notebook.changePlaceholder"
           :aria-label="t.notebook.inputLabel"
           @keydown.enter.ctrl.prevent="submit"
           @keydown.enter.meta.prevent="submit"
@@ -66,7 +66,7 @@
           <div class="nb-compose-actions">
             <select v-model="mode" class="nb-mode" :aria-label="t.notebook.modeLabel">
               <option value="ask">{{ t.notebook.modeAsk }}</option>
-              <option value="process">{{ t.notebook.modeProcess }}</option>
+              <option value="change">{{ t.notebook.modeChange }}</option>
             </select>
             <AppButton variant="primary" size="sm" native-type="submit" :disabled="!canSubmit">
               {{ submitLabel }}
@@ -77,7 +77,7 @@
     </div>
 
     <NotebookModal
-      v-if="currentReview"
+      v-if="currentReview && currentReview.origin?.kind !== 'source'"
       :key="currentReview.entryId"
       :actions="currentReview.actions"
       :helpers="reviewHelpers"
@@ -121,21 +121,15 @@ function onHistoryScroll() {
   atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 4
 }
 
-/** Režim zprávy: 'ask' – „Zeptat se“ (AI jen odpoví), 'process' – „Vložit informace“ (AI navrhne zápis). */
-const mode = ref('process')
+/** Režim zprávy: 'ask' – „Zeptat se“ (AI jen odpoví), 'change' – „Měnit data“ (AI navrhne změny k revizi). */
+const mode = ref('ask')
 
-/** Dotaz bez AI nejde odeslat; vložení informací bez AI se jen uloží. */
-const canSubmit = computed(() => !!draft.value.trim() && (mode.value !== 'ask' || aiAvailable.value))
+/** Chat bez AI nejde použít. */
+const canSubmit = computed(() => !!draft.value.trim() && aiAvailable.value)
 
-const submitLabel = computed(() => {
-  if (mode.value === 'ask') return t.notebook.sendQuestion
-  return aiAvailable.value ? t.notebook.process : t.notebook.save
-})
+const submitLabel = computed(() => (mode.value === 'ask' ? t.notebook.sendQuestion : t.notebook.sendChange))
 
-const hint = computed(() => {
-  if (!aiAvailable.value) return mode.value === 'ask' ? t.notebook.askNoAiHint : t.notebook.noAiHint
-  return t.notebook.sendHint
-})
+const hint = computed(() => (aiAvailable.value ? t.notebook.sendHint : t.notebook.noAiHint))
 
 /** Odešle koncept zprávy; po přijetí vyprázdní pole. */
 function submit() {

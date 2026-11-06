@@ -9,7 +9,7 @@ import {
   buildProjectContext, processNotebookInParts, buildMergePrompt, parseMergeResult,
   buildConnectionsContext, buildConnectionsPrompt, parseSuggestions,
   buildCompetitionAnalysisPrompt, parseCompetitionAnalysis,
-  buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer,
+  buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer, buildSourcesContext,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
 
@@ -54,11 +54,13 @@ function getModel() {
   return loadAiKeys()[`${SERVICE_ID}_model`] || DEFAULT_MODEL
 }
 
-async function processNotebook(notebookText, projectData) {
+async function processNotebook(notebookText, projectData, options = {}) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
   const model = getModel()
-  return processNotebookInParts(notebookText, buildProjectContext(projectData), (prompt) => callOpenAI(apiKey, prompt, model, { json: true }))
+  // Pokyn z chatu („Měnit data“) dostane i text zdrojů projektu
+  const sources = options?.instruction ? buildSourcesContext(projectData?.sources) : ''
+  return processNotebookInParts(notebookText, buildProjectContext(projectData), (prompt) => callOpenAI(apiKey, prompt, model, { json: true }), undefined, { instruction: Boolean(options?.instruction), sources })
 }
 
 /**
@@ -87,7 +89,7 @@ async function mergeEntity(entityType, entity, quotes, notesText, proposed) {
 async function askProject(question, projectData, history) {
   const apiKey = getKey()
   if (!apiKey) throw new Error('OpenAI API klíč není nastaven. Přejděte do nastavení.')
-  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history), buildAskMethodology(projectData?.methodology))
+  const prompt = buildAskPrompt(question, buildAskContext(projectData), buildAskNotes(history), buildAskMethodology(projectData?.methodology), buildSourcesContext(projectData?.sources))
   const responseText = await callOpenAI(apiKey, prompt, getModel())
   return parseAskAnswer(responseText)
 }
@@ -126,8 +128,8 @@ export default {
   install(ctx) {
     ctx.registerCapability('ai:available', () => !!getKey())
 
-    ctx.registerCapability('ai:notebook', (notebookText, projectData) => {
-      return processNotebook(notebookText, projectData)
+    ctx.registerCapability('ai:notebook', (notebookText, projectData, options) => {
+      return processNotebook(notebookText, projectData, options)
     })
 
     ctx.registerCapability('ai:merge', (entityType, entity, quotes, notesText, proposed) => {

@@ -18,6 +18,7 @@ import {
   createTask,
   createBug,
   createRisk,
+  createSource,
 } from './models.js'
 
 /** Továrny pro každý typ entity */
@@ -34,6 +35,7 @@ const ENTITY_FACTORIES = {
   tasks: createTask,
   bugs: createBug,
   risks: createRisk,
+  sources: createSource,
 }
 
 /** Typy entit a klíče pro párování duplikátů */
@@ -50,6 +52,7 @@ const ENTITY_CONFIGS = [
   { key: 'tasks', matchKeys: ['code', 'name'] },
   { key: 'bugs', matchKeys: ['code', 'name'] },
   { key: 'risks', matchKeys: ['code', 'name'] },
+  { key: 'sources', matchKeys: ['code', 'name'] },
 ]
 
 /** Pole s ID vztahů pro každý typ entity */

@@ -95,6 +95,18 @@ const routes = [
         meta: { title: 'Riziko' },
       },
       {
+        path: 'sources',
+        name: 'sources',
+        component: () => import('../views/SourcesView.vue'),
+        meta: { title: 'Zdroje' },
+      },
+      {
+        path: 'sources/:sourceId',
+        name: 'sourceDetail',
+        component: () => import('../views/SourceDetailView.vue'),
+        meta: { title: 'Zdroj' },
+      },
+      {
         path: 'personas',
         name: 'personas',
         component: () => import('../views/PersonasView.vue'),

@@ -54,8 +54,8 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 <style scoped>
 .project-layout {
   display: grid;
-  /* Obrazovka vlevo, Zápisník vpravo – každý polovinu šířky */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* Obrazovka vlevo (tři díly – na detailu projektu tři sloupce), Chat vpravo přes dva díly */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   column-gap: var(--space-lg);
   align-items: start;
 }

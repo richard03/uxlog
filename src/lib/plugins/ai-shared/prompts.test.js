@@ -4,6 +4,9 @@
 
 import { describe, it, expect } from 'vitest'
 import {
+  buildSourcesContext,
+  buildNotebookPrompt as buildNotebookPromptForChat,
+  buildAskPrompt as buildAskPromptForSources,
   buildCompetitionAnalysisPrompt,
   parseCompetitionAnalysis,
   parseActions,
@@ -517,5 +520,40 @@ describe('doplňování existujících záznamů', () => {
   it('notebookFieldKeys vrací klíče bez popisu výčtu', () => {
     expect(notebookFieldKeys('risk')).toContain('likelihood')
     expect(notebookFieldKeys('nic')).toEqual([])
+  })
+})
+
+describe('zdroje a chat', () => {
+  const sources = [
+    { code: 'ZDR-001', name: 'Rozhovor s Janou', kind: 'interview', content: 'Jana platí kartou.', createdAt: '2026-11-01' },
+    { code: 'ZDR-002', name: 'Mail od klienta', kind: 'email', content: 'Chceme rychlejší objednávku.', createdAt: '2026-11-03' },
+    { code: 'ZDR-003', name: 'Prázdný', kind: 'other', content: '  ', createdAt: '2026-11-04' },
+  ]
+
+  it('buildSourcesContext: od nejnovějších, s kódem a typem, bez prázdných', () => {
+    const text = buildSourcesContext(sources)
+    expect(text.indexOf('ZDR-002')).toBeLessThan(text.indexOf('ZDR-001'))
+    expect(text).toContain('### ZDR-001 Rozhovor s Janou (přepis rozhovoru)\nJana platí kartou.')
+    expect(text).not.toContain('ZDR-003')
+    expect(buildSourcesContext(null)).toBe('')
+  })
+
+  it('buildSourcesContext dodrží limit délky', () => {
+    expect(buildSourcesContext(sources, 80)).toContain('ZDR-002')
+    expect(buildSourcesContext(sources, 80)).not.toContain('ZDR-001')
+  })
+
+  it('prompt pro pokyn ke změně obsahuje pokyn a zdroje, prompt pro poznámky ne', () => {
+    const instruction = buildNotebookPromptForChat('Založ personu podle rozhovoru s Janou', '(nic)', null, 'Založ personu', { instruction: true, sources: 'ZDROJE-TEXT' })
+    expect(instruction).toContain('## Pokyn uživatele:')
+    expect(instruction).toContain('ZDROJE-TEXT')
+    const notes = buildNotebookPromptForChat('Poznámka ze schůzky', '(nic)')
+    expect(notes).toContain('## Poznámky ze zápisníku:')
+    expect(notes).not.toContain('Pokyn uživatele')
+  })
+
+  it('dotaz dostane zdroje projektu', () => {
+    expect(buildAskPromptForSources('Co říkala Jana?', '(data)', '(nic)', undefined, 'ZDROJE-TEXT')).toContain('ZDROJE-TEXT')
+    expect(buildAskPromptForSources('Co?', '(data)', '(nic)')).toContain('(projekt nemá žádné zdroje)')
   })
 })

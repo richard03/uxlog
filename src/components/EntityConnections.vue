@@ -204,7 +204,7 @@ const { t } = useI18n()
 const ALL_ENTITY_TYPES = [
   'goals', 'stakeholders', 'competitions', 'hypotheses',
   'personas', 'scenarios', 'requirements', 'tasks', 'bugs', 'risks',
-  'teamMembers', 'activities',
+  'teamMembers', 'activities', 'sources',
 ]
 
 const entityTypeOptions = computed(() =>

@@ -21,6 +21,7 @@ import { deletePersona } from './personas.js'
 import { deleteScenario } from './scenarios.js'
 import { deleteRequirement } from './requirements.js'
 import { deleteRisk } from './risks.js'
+import { deleteSource } from './sources.js'
 import { deleteActivity } from './activities.js'
 import { deleteTask } from './tasks.js'
 import { deleteBug } from './bugs.js'
@@ -36,6 +37,7 @@ const DELETE_BY_TYPE = {
   scenarios: deleteScenario,
   requirements: deleteRequirement,
   risks: deleteRisk,
+  sources: deleteSource,
   activities: deleteActivity,
   tasks: deleteTask,
   bugs: deleteBug,

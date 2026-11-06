@@ -4,6 +4,8 @@
 
 import { describe, it, expect } from 'vitest'
 import {
+  splitNotebookForSources,
+  notebookEntryToSource,
   createNotebookEntry,
   getNotebookHistory,
   appendNotebookEntry,
@@ -93,5 +95,36 @@ describe('buildOutcomes / countOutcomes', () => {
   it('snese neplatné vstupy', () => {
     expect(buildOutcomes(null, null)).toEqual([])
     expect(countOutcomes(undefined)).toEqual({ confirmed: 0, skipped: 0 })
+  })
+})
+
+describe('převod starších zpráv na zdroje', () => {
+  const project = {
+    createdAt: '2026-01-01',
+    notebook: 'Původní textový zápisník',
+    notebookHistory: [
+      { id: 'a', mode: 'process', text: 'Poznámky ze schůzky', status: 'done', createdAt: '2026-02-01' },
+      { id: 'b', mode: 'ask', text: 'Kdo je Jana?', answer: 'Persona.', status: 'done', createdAt: '2026-02-02' },
+      { id: 'c', mode: 'change', text: 'Založ personu', status: 'done', createdAt: '2026-02-03' },
+      { id: 'd', mode: 'process', text: '   ', status: 'saved', createdAt: '2026-02-04' },
+    ],
+  }
+
+  it('zprávy „Vložit informace“ a původní zápisník jdou do zdrojů, dotazy a pokyny zůstanou v chatu', () => {
+    const { chat, toSources } = splitNotebookForSources(project)
+    expect(chat.map((e) => e.id)).toEqual(['b', 'c'])
+    expect(toSources.map((e) => e.text)).toEqual(['Původní textový zápisník', 'Poznámky ze schůzky'])
+  })
+
+  it('údaje zdroje: zpracovaná zpráva = zpracovaný zdroj', () => {
+    const { toSources } = splitNotebookForSources(project)
+    const legacy = notebookEntryToSource(toSources[0], { name: (t) => t.split(' ')[0], fallbackDate: '2026-01-01' })
+    expect(legacy).toEqual({ name: 'Původní', kind: 'other', content: 'Původní textový zápisník', fileName: '', createdAt: '2026-01-01', processedAt: '' })
+    const done = notebookEntryToSource(toSources[1], { name: () => '' })
+    expect(done).toMatchObject({ name: 'Poznámky ze schůzky', createdAt: '2026-02-01', processedAt: '2026-02-01' })
+  })
+
+  it('zvládne projekt bez historie', () => {
+    expect(splitNotebookForSources(null)).toEqual({ chat: [], toSources: [] })
   })
 })

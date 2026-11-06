@@ -18,6 +18,7 @@ export { getPersonas, getPersona, addPersona, updatePersona, deletePersona } fro
 export { getScenarios, getScenario, addScenario, updateScenario, deleteScenario } from './scenarios.js'
 export { getRequirements, getRequirement, addRequirement, updateRequirement, deleteRequirement } from './requirements.js'
 export { getRisks, getRisk, addRisk, updateRisk, deleteRisk } from './risks.js'
+export { getSources, getSource, addSource, updateSource, deleteSource, migrateNotebookToSources } from './sources.js'
 export {
   getActivities, getAllActivities, getActivity, getRecommendedActivities, addActivity, updateActivity, deleteActivity,
   toggleChecklistItem, addCustomChecklistItem, removeChecklistItem, updateChecklistLabel,

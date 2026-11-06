@@ -39,7 +39,7 @@ const TEMP_SUFFIX: &str = ".uxlog-tmp";
 /// Složky typů záznamů ve vlastní složce projektu – musí odpovídat `VAULT_COLLECTIONS` (paths.js, hlídá test).
 pub const PROJECT_LAYOUT_DIRS: &[&str] = &[
     "goals", "stakeholders", "competitions", "hypotheses", "personas", "scenarios",
-    "requirements", "risks", "activities", "team", "tasks", "bugs",
+    "requirements", "risks", "activities", "team", "tasks", "bugs", "sources",
 ];
 
 /// Soubory dat v kořeni vlastní složky projektu.

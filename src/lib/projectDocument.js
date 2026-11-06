@@ -13,6 +13,7 @@
  * stateKey = klíč kolekce ve state, entityType = typ v data/entities.yaml, labelKey = cesta v cs.js.
  */
 export const DOCUMENT_SECTIONS = [
+  { stateKey: 'sources', entityType: 'source', labelKey: 'sections.sources' },
   { stateKey: 'personas', entityType: 'persona', labelKey: 'sections.personas' },
   { stateKey: 'scenarios', entityType: 'scenario', labelKey: 'sections.scenarios' },
   { stateKey: 'requirements', entityType: 'requirement', labelKey: 'sections.requirements' },

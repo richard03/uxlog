@@ -313,6 +313,40 @@ entities:
       - impact
       - mitigation
 
+  source:
+    codePrefix: ZDR
+    defaults:
+      code: ''
+      name: ''
+      kind: document
+      content: ''
+      fileName: ''
+      processedAt: ''
+      sortOrder: 9999
+      customFields: {}
+    fields:
+      - key: kind
+        labelKey: source.kind
+        type: select
+        sortOrder: 10
+        options:
+          - value: document
+            labelKey: sourceKind.document
+          - value: interview
+            labelKey: sourceKind.interview
+          - value: email
+            labelKey: sourceKind.email
+          - value: other
+            labelKey: sourceKind.other
+      - key: content
+        labelKey: source.content
+        type: textarea
+        sortOrder: 20
+        searchable: true
+    completeness:
+      - name
+      - content
+
   persona:
     codePrefix: PER
     defaults:

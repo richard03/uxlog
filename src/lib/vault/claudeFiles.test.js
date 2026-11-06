@@ -3,6 +3,7 @@ import YAML from 'yaml'
 import cs from '../../i18n/cs.js'
 import { buildClaudeFiles, buildClaudeSettings, entityTypeList, RULES_FILE, CLI_FILE } from './claudeFiles.js'
 import { CLAUDE_TEMPLATES } from './claudeTemplates.js'
+import { VAULT_COLLECTIONS } from './paths.js'
 import { splitFrontmatter } from './format.js'
 
 const files = buildClaudeFiles({ ...CLAUDE_TEMPLATES, cliSource: '// cli', cliHelp: cs.vaultCli.help })
@@ -61,7 +62,7 @@ describe('buildClaudeSettings', () => {
 })
 
 it('entityTypeList pokrývá všechny typy', () => {
-  expect(entityTypeList().split('\n')).toHaveLength(12)
+  expect(entityTypeList().split('\n')).toHaveLength(VAULT_COLLECTIONS.length)
 })
 
 describe('pravidla podle rozložení složky', () => {

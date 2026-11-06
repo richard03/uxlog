@@ -1,11 +1,12 @@
 /**
- * Zápisník jako chat – čisté funkce pro historii zpráv projektu.
+ * Chat projektu (dříve Zápisník) – čisté funkce pro historii zpráv projektu.
  *
  * Záznam historie (project.notebookHistory[]):
  * {
  *   id: string,
  *   createdAt: ISO string,
- *   mode: 'process' | 'ask',      // „Vložit informace“ (AI navrhne zápis) | „Zeptat se“ (AI jen odpoví)
+ *   mode: 'ask' | 'change' | 'process', // „Zeptat se“ (AI jen odpoví) | „Měnit data“ (AI navrhne změny podle pokynu)
+ *                                       // | 'process' = starší „Vložit informace“ (při startu se převádí na zdroje)
  *   text: string,                 // text vložený uživatelem
  *   answer: string,               // odpověď AI (režim 'ask')
  *   status: 'processing' | 'done' | 'error' | 'saved',
@@ -16,7 +17,7 @@
  */
 
 export const NOTEBOOK_STATUSES = ['processing', 'done', 'error', 'saved']
-export const NOTEBOOK_MODES = ['process', 'ask']
+export const NOTEBOOK_MODES = ['process', 'ask', 'change']
 export const LEGACY_ENTRY_ID = 'legacy-notebook'
 
 /**
@@ -63,7 +64,7 @@ function normalizeEntry(e) {
   return {
     id: String(e.id),
     createdAt: typeof e.createdAt === 'string' ? e.createdAt : '',
-    mode: e.mode === 'ask' ? 'ask' : 'process',
+    mode: NOTEBOOK_MODES.includes(e.mode) ? e.mode : 'process',
     text: typeof e.text === 'string' ? e.text : '',
     answer: typeof e.answer === 'string' ? e.answer : '',
     status: NOTEBOOK_STATUSES.includes(e.status) ? e.status : 'saved',
@@ -136,4 +137,38 @@ export function countOutcomes(outcomes) {
   const list = Array.isArray(outcomes) ? outcomes : []
   const confirmed = list.filter((o) => o?.outcome === 'confirmed').length
   return { confirmed, skipped: list.length - confirmed }
+}
+
+/**
+ * Rozdělí historii projektu pro převod na zdroje: starší zprávy „Vložit informace“ (mode 'process',
+ * včetně původního textového zápisníku) se stanou zdroji, dotazy a pokyny zůstanou v chatu.
+ * @param {Object|null} project
+ * @returns {{ chat: Array<Object>, toSources: Array<Object> }}
+ */
+export function splitNotebookForSources(project) {
+  const history = getNotebookHistory(project)
+  return {
+    chat: history.filter((e) => e.mode !== 'process'),
+    toSources: history.filter((e) => e.mode === 'process' && e.text.trim()),
+  }
+}
+
+/**
+ * Údaje zdroje ze starší zprávy zápisníku (bez id a kódu – ty doplní store).
+ * @param {Object} entry - normalizovaná zpráva (mode 'process')
+ * @param {{ name: (text: string) => string, fallbackDate?: string }} opts
+ * @returns {{ name: string, kind: string, content: string, fileName: string, createdAt: string, processedAt: string }}
+ */
+export function notebookEntryToSource(entry, { name, fallbackDate = '' } = {}) {
+  const content = String(entry?.text ?? '').trim()
+  const createdAt = entry?.createdAt || fallbackDate
+  return {
+    name: (typeof name === 'function' ? name(content) : '') || content.slice(0, 60),
+    kind: 'other',
+    content,
+    fileName: '',
+    createdAt,
+    // Zpracovaná zpráva (AI ji prošla) = zpracovaný zdroj; datum zpracování neznáme přesně, bereme datum vložení
+    processedAt: entry?.status === 'done' ? createdAt : '',
+  }
 }

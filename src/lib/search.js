@@ -96,6 +96,7 @@ export function searchAll(data, query, projectId) {
     taskIds: [],
     bugIds: [],
     riskIds: [],
+    sourceIds: [],
   }
 
   const filterByProject = (entity) => !projectId || entity.projectId === projectId
@@ -163,6 +164,11 @@ export function searchAll(data, query, projectId) {
   if (data.risks) {
     result.riskIds = data.risks
       .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.risk, q))
+      .map((e) => e.id)
+  }
+  if (data.sources) {
+    result.sourceIds = data.sources
+      .filter((e) => filterByProject(e) && entityMatches(e, SEARCH_FIELDS.source, q))
       .map((e) => e.id)
   }
 

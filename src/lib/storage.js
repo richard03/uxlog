@@ -62,7 +62,7 @@ export function stripRemovedProjectFields(data) {
 /** Klíče entit, které patří projektu přes projectId. */
 const PROJECT_ENTITY_KEYS = [
   'goals', 'stakeholders', 'competitions', 'hypotheses', 'personas',
-  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'risks', 'connections',
+  'scenarios', 'requirements', 'activities', 'teamMembers', 'tasks', 'bugs', 'risks', 'sources', 'connections',
 ]
 
 /**
@@ -167,6 +167,7 @@ export function getEmptyData() {
     tasks: [],
     bugs: [],
     risks: [],
+    sources: [],
     connections: [],
   }
 }

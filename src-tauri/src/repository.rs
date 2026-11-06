@@ -36,6 +36,7 @@ pub const ENTITY_COLLECTIONS: &[&str] = &[
     "tasks",
     "bugs",
     "risks",
+    "sources",
     "connections",
 ];
 
@@ -53,6 +54,7 @@ const PROJECT_ENTITY_COLLECTIONS: &[&str] = &[
     "tasks",
     "bugs",
     "risks",
+    "sources",
     "connections",
 ];
 

@@ -251,25 +251,38 @@ function actionQuotes(action) {
  * @param {string} [languageSample] - text, podle kterého se určí jazyk výstupu (u částí celé poznámky)
  * @returns {string}
  */
-export function buildNotebookPrompt(notebookText, projectContext, part = null, languageSample = notebookText) {
+export function buildNotebookPrompt(notebookText, projectContext, part = null, languageSample = notebookText, options = {}) {
+  const { instruction = false, sources = '' } = options || {}
   const languageRule = buildLanguageRule(languageSample, {
-    source: 'poznámky uživatele',
+    source: instruction ? 'pokyn uživatele' : 'poznámky uživatele',
     output: 'Všechny texty, které navrhuješ (hodnoty ve „fields“, entityName)',
     json: true,
   })
   const partNote = part && part.total > 1
     ? `\n(Toto je část ${part.index} z ${part.total} delších poznámek – zpracuj jen tuto část.)\n`
     : ''
-  return `Jsi asistent pro UX design týmy. Analyzuješ nestrukturované poznámky z projektu a extrahuješ z nich konkrétní akce pro aktualizaci projektové databáze.
+  // Režim „Měnit data“ v chatu: text je pokyn uživatele, informace může AI čerpat i ze zdrojů projektu
+  const intro = instruction
+    ? 'Jsi asistent pro UX design týmy. Uživatel ti zadává pokyn ke změně projektové databáze a ty navrhuješ konkrétní akce, které ho splní.'
+    : 'Jsi asistent pro UX design týmy. Analyzuješ nestrukturované poznámky z projektu a extrahuješ z nich konkrétní akce pro aktualizaci projektové databáze.'
+  const input = instruction
+    ? `## Pokyn uživatele:
+${notebookText}
+${sources ? `\n## Zdroje projektu (dokumenty, přepisy rozhovorů, e-maily) – informace k pokynu čerpej odsud:\n${sources}\n` : ''}`
+    : `## Poznámky ze zápisníku:${partNote}
+${notebookText}`
+  const task = instruction
+    ? 'Navrhni seznam konkrétních akcí (vytvoření nebo úprava záznamů), které pokyn uživatele splní. Navrhuj jen to, oč uživatel žádá.'
+    : 'Analyzuj poznámky a navrhni seznam konkrétních akcí pro vytvoření nebo úpravu záznamů v projektové databázi.'
+  return `${intro}
 
 ## Existující záznamy projektu:
 ${projectContext}
 
-## Poznámky ze zápisníku:${partNote}
-${notebookText}
+${input}
 
 ## Tvůj úkol:
-Analyzuj poznámky a navrhni seznam konkrétních akcí pro vytvoření nebo úpravu záznamů v projektové databázi.
+${task}
 
 Podporované typy entit a jejich pole:
 ${Object.entries(NOTEBOOK_ENTITY_FIELDS).map(([type, fields]) => `- ${type}: ${fields.join(', ')}`).join('\n')}
@@ -277,10 +290,10 @@ ${Object.entries(NOTEBOOK_ENTITY_FIELDS).map(([type, fields]) => `- ${type}: ${f
 ${NOTEBOOK_METHOD_RULES}
 
 Pravidla:
-1. Navrhuj POUZE akce, které jsou přímo a jednoznačně odvoditelné z textu.
+1. ${instruction ? 'Navrhuj POUZE akce, které vyplývají z pokynu; obsah polí ber z pokynu, ze zdrojů projektu nebo z existujících záznamů.' : 'Navrhuj POUZE akce, které jsou přímo a jednoznačně odvoditelné z textu.'}
 2. Pro úpravu existujícího záznamu použij "update" a příslušné ID z přehledu výše. Mluví-li poznámky o TÉŽE entitě, která už v projektu je – i pod jiným jménem, z jiného pohledu nebo jinými slovy (porovnej s „O záznamu“) – použij "update", ne "create".
 3. Pro novou entitu použij "create" a entityId nastav na null. Novou entitu vždy založ, i když se některé existující podobá – podobnost (stejná oblast, příbuzné téma, podobná role) neznamená totožnost. Pokud si nejsi jistý, že jde o tutéž entitu, použij "create" (uživatel ji při revizi může do existující sloučit).
-4. "quotes" je pole 1–5 výňatků z poznámek, které se záznamu týkají. Každý výňatek zkopíruj z poznámek DOSLOVA, znak po znaku (bez oprav, zkracování uvnitř, přeformulování a překladu), nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
+4. ${instruction ? '"quotes" je pole 0–5 výňatků ze zdrojů projektu nebo z pokynu, ze kterých obsah záznamu vychází (u čistě redakční změny může být prázdné). Každý výňatek zkopíruj DOSLOVA' : '"quotes" je pole 1–5 výňatků z poznámek, které se záznamu týkají. Každý výňatek zkopíruj z poznámek DOSLOVA'}, znak po znaku (bez oprav, zkracování uvnitř, přeformulování a překladu), nejvýše ${NOTEBOOK_SOURCE_MAX_CHARS} znaků (u delší pasáže jen její začátek).
 5. U "create" je pole "name" v "fields" POVINNÉ a nesmí být prázdné. Pokud text entitu nepojmenovává, odvoď z jejího obsahu krátký výstižný název (nejvýše několik slov), např. „Nákupčí velkoobchodu“, „Sledování stavu dodávky“. Do "fields" dále zahrň POUZE pole, která text skutečně zmiňuje; texty piš stručně, poznámky neopisuj celé. U "update" uveď v "fields" jen nové informace (sloučení se stávajícím obsahem proběhne zvlášť). Přímé citace osob (text v uvozovkách, pole "quote") přenášej doslova.
 6. Jeden záznam navrhni jen jednou – všechny informace o něm dej do jedné akce.
 7. ${languageRule}
@@ -470,13 +483,13 @@ export function mergeActions(lists) {
  * @param {number} [maxChars]
  * @returns {Promise<{ actions: Array<Object>, residualText: string, failedParts: number, totalParts: number }>}
  */
-export async function processNotebookInParts(notebookText, projectContext, callModel, maxChars = NOTEBOOK_CHUNK_CHARS) {
+export async function processNotebookInParts(notebookText, projectContext, callModel, maxChars = NOTEBOOK_CHUNK_CHARS, options = {}) {
   const parts = splitNotebookText(notebookText, maxChars)
   const results = []
   let firstError = null
   let failedParts = 0
   for (let i = 0; i < parts.length; i++) {
-    const prompt = buildNotebookPrompt(parts[i], projectContext, { index: i + 1, total: parts.length }, notebookText)
+    const prompt = buildNotebookPrompt(parts[i], projectContext, { index: i + 1, total: parts.length }, notebookText, options)
     let done = false
     for (let attempt = 0; attempt < 2 && !done; attempt++) {
       try {
@@ -824,6 +837,34 @@ const ASK_SKIPPED_KEYS = new Set([
 const ASK_MAX_FIELD_CHARS = 500
 const ASK_MAX_CONTEXT_CHARS = 40000
 const ASK_MAX_NOTES_CHARS = 12000
+/** Limit textu zdrojů v kontextu dotazu / pokynu (celkem a na jeden zdroj). */
+const SOURCES_CONTEXT_MAX_CHARS = 40000
+const SOURCE_CONTEXT_MAX_CHARS = 12000
+const SOURCE_KIND_LABELS = { document: 'dokument', interview: 'přepis rozhovoru', email: 'e-mail', other: 'jiný' }
+
+/**
+ * Zdroje projektu (dokumenty, přepisy rozhovorů, e-maily) jako kontext pro AI – od nejnovějších,
+ * v limitu délky, každý zkrácený.
+ * @param {Array<{ code?: string, name?: string, kind?: string, content?: string, createdAt?: string }>} sources
+ * @param {number} [maxChars]
+ * @returns {string} '' když projekt nemá zdroje s textem
+ */
+export function buildSourcesContext(sources, maxChars = SOURCES_CONTEXT_MAX_CHARS) {
+  const list = (Array.isArray(sources) ? sources : [])
+    .filter((s) => s && typeof s.content === 'string' && s.content.trim())
+    .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+  const blocks = []
+  let total = 0
+  for (const s of list) {
+    const title = [s.code, s.name].filter((x) => typeof x === 'string' && x.trim()).join(' ') || 'Zdroj'
+    const kind = SOURCE_KIND_LABELS[s.kind] || SOURCE_KIND_LABELS.other
+    const block = `### ${title} (${kind})\n${truncateText(s.content.trim(), SOURCE_CONTEXT_MAX_CHARS)}`
+    if (total + block.length > maxChars) break
+    blocks.push(block)
+    total += block.length
+  }
+  return blocks.join('\n\n')
+}
 const ASK_MAX_METHODOLOGY_CHARS = 12000
 
 /**
@@ -937,7 +978,7 @@ export function buildAskNotes(history) {
     if (!e?.text?.trim()) continue
     const block = e.mode === 'ask'
       ? `Dotaz: ${e.text.trim()}${e.answer?.trim() ? `\nOdpověď: ${e.answer.trim()}` : ''}`
-      : `Poznámka: ${e.text.trim()}`
+      : e.mode === 'change' ? `Pokyn ke změně dat: ${e.text.trim()}` : `Poznámka: ${e.text.trim()}`
     if (total + block.length > ASK_MAX_NOTES_CHARS) break
     out.unshift(block)
     total += block.length
@@ -985,16 +1026,19 @@ export function buildAskMethodology(methodology) {
  * @param {string} [methodology] - výstup buildAskMethodology
  * @returns {string}
  */
-export function buildAskPrompt(question, projectContext, notes, methodology = '(projekt nemá aktivity s metodikou)') {
-  return `Jsi asistent pro UX design týmy. Odpovídáš na dotazy k projektu na základě jeho dat a poznámek ze zápisníku.
+export function buildAskPrompt(question, projectContext, notes, methodology = '(projekt nemá aktivity s metodikou)', sources = '') {
+  return `Jsi asistent pro UX design týmy. Odpovídáš na dotazy k projektu na základě jeho dat, zdrojů a předchozí konverzace.
 
 ## Data projektu:
 ${projectContext}
 
+## Zdroje projektu (dokumenty, přepisy rozhovorů, e-maily):
+${sources || '(projekt nemá žádné zdroje)'}
+
 ## Metodika aktivit projektu:
 ${methodology}
 
-## Předchozí poznámky a dotazy v zápisníku:
+## Předchozí zprávy v chatu:
 ${notes}
 
 ## Dotaz:
@@ -1002,7 +1046,7 @@ ${question}
 
 Pravidla:
 1. Odpovídej stručně a věcně, jako prostý text (bez markdownu, bez HTML). ${buildLanguageRule(question, { source: 'dotaz uživatele', output: 'Odpověď' })}
-2. Vycházej z dat projektu a poznámek výše; pokud odpověď nelze z dostupných informací zjistit, řekni to.
+2. Vycházej z dat projektu, zdrojů a zpráv výše; když citujete nebo vycházíte ze zdroje, uveď jeho kód nebo název. Pokud odpověď nelze z dostupných informací zjistit, řekni to.
 3. U každého záznamu je pole „souvislosti“ se všemi propojenými záznamy (souvislosti jsou obousměrné). Hodnota „žádné“ znamená, že záznam není propojen s ničím – i to je platná informace pro odpověď.
 4. Na metodické otázky (jak postupovat, co připravit, kdo se má účastnit, co je výstupem) odpovídej podle sekce „Metodika aktivit projektu“; pokud tam technika není, odpověz podle obecné UX praxe a uveď, že nejde o postup z metodiky projektu.
 5. Pouze odpovídej – nenavrhuj JSON, akce ani změny dat.`

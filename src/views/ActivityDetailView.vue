@@ -22,7 +22,7 @@
 
     <!-- Sloupce: stav, termín, popis typu a poznámky | checklist | „Jak na to“; souvislosti pod nimi -->
     <div class="activity-layout-wrap">
-    <div class="activity-layout" :class="`activity-layout--cols-${columnCount}`">
+    <div class="activity-layout" :class="[`activity-layout--cols-${columnCount}`, { 'activity-layout--guide-only': hasSteps && !hasChecklist }]">
       <div class="activity-layout-main">
         <section class="detail-section">
           <dl class="detail-list">
@@ -366,9 +366,11 @@ function doDelete() {
   align-items: start;
 }
 
+/* Jednotný pětisloupcový layout: hlavní sloupec 2 díly, checklist 2 díly, „Jak na to“ 1 díl */
 .activity-layout--cols-1 { grid-template-columns: minmax(0, 1fr); }
 .activity-layout--cols-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.activity-layout--cols-3 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr); }
+.activity-layout--cols-2.activity-layout--guide-only { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.activity-layout--cols-3 { grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr); }
 
 .activity-layout > * {
   min-width: 0;
@@ -392,6 +394,7 @@ function doDelete() {
 /* Úzký prostor: vše pod sebou */
 @container (max-width: 700px) {
   .activity-layout--cols-2,
+  .activity-layout--cols-2.activity-layout--guide-only,
   .activity-layout--cols-3 { grid-template-columns: minmax(0, 1fr); }
   .activity-layout--cols-3 .activity-layout-guide { grid-column: auto; }
 }

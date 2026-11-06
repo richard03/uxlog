@@ -16,7 +16,7 @@ import { normalizeFrames } from './canvasFrames.js'
 /** Typy entit na plátně (klíče ve state) v pořadí sloupců výchozího rozvržení. */
 export const CANVAS_ENTITY_TYPES = [
   'goals', 'stakeholders', 'teamMembers', 'competitions', 'hypotheses', 'personas',
-  'scenarios', 'requirements', 'risks', 'activities', 'tasks', 'bugs',
+  'scenarios', 'requirements', 'risks', 'activities', 'tasks', 'bugs', 'sources',
 ]
 
 /** Rozměry kartičky a mezery výchozího rozvržení (px v souřadnicích plátna). */
@@ -163,7 +163,8 @@ export function collectCanvasEntities(data, projectId) {
         id: e.id,
         code: typeof e.code === 'string' ? e.code : '',
         name: typeof e.name === 'string' ? e.name : '',
-        description: shortText(e.description),
+        // Zdroj nemá popis – kartička ukáže začátek jeho textu
+        description: shortText(e.description ?? e.content),
         priority: cardPriority(type, e),
       })
     }

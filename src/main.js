@@ -10,7 +10,7 @@ import App from './App.vue'
 import router from './router/index.js'
 import './style.css'
 import './components/pending-review.css'
-import { initStore, ensureProjectConfigs } from './lib/store.js'
+import { initStore, ensureProjectConfigs, migrateNotebookToSources } from './lib/store.js'
 import { installPlugins } from './lib/plugins/install.js'
 import { isTauri, restoreAllFromTauri } from './lib/tauriBridge.js'
 
@@ -25,6 +25,8 @@ async function bootstrap() {
 
   // Starší projekty bez vlastní konfigurace dostanou kopii výchozí (pak už jsou na ní nezávislé)
   ensureProjectConfigs()
+  // Starší zprávy Zápisníku „Vložit informace“ se stanou zdroji (dotazy zůstanou v chatu)
+  migrateNotebookToSources()
 
   installPlugins()
 
