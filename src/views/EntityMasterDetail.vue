@@ -5,7 +5,7 @@
         <component :is="listComponent" />
       </ListScope>
     </div>
-    <div class="master-detail-detail">
+    <div ref="detailEl" class="master-detail-detail" :style="{ '--sticky-top': `${stickyTop}px` }">
       <router-view />
     </div>
   </div>
@@ -23,9 +23,10 @@ const listCache = new Map()
  * Šířky sloupců v gridu: --grid-master-list / --grid-master-detail (style.css).
  * Úzké okno: bez výběru jen seznam, s výběrem jen detail (zpět přes drobky).
  */
-import { computed, defineAsyncComponent, defineComponent, provide } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { MASTER_LIST_KEY } from '../composables/useMasterDetail.js'
+import { useStickyColumn } from '../composables/useStickyColumn.js'
 
 const props = defineProps({
   /** Načtení komponenty seznamu: () => import('…View.vue') */
@@ -33,6 +34,10 @@ const props = defineProps({
 })
 
 const route = useRoute()
+
+/** Detail zůstává na očích i při rolování dlouhého seznamu (vysoký detail se nejdřív doroluje ke spodku). */
+const detailEl = ref(null)
+const { top: stickyTop } = useStickyColumn(detailEl)
 
 /** Router obal mezi různými seznamy znovu použije – komponenta seznamu se proto řídí aktuální props. */
 const listComponent = computed(() => {
@@ -63,18 +68,15 @@ const ListScope = defineComponent({
 
 .master-detail-list {
   grid-column: span var(--grid-master-list);
+  /* Seznam nemá vlastní posuvník – roluje se celou stránkou spolu s detailem */
   min-width: 0;
-  /* Dlouhý seznam se posouvá sám, detail zůstává na očích */
-  position: sticky;
-  top: var(--space-md);
-  max-height: calc(100vh - 9rem - var(--project-header-height, 0px) - var(--space-lg));
-  overflow-y: auto;
-  padding-right: var(--space-xs);
 }
 
 .master-detail-detail {
   grid-column: span var(--grid-master-detail);
   min-width: 0;
+  position: sticky;
+  top: var(--sticky-top, var(--space-md));
 }
 
 /* Vnořené obrazovky nemají vlastní šířku ani odsazení – určuje je tento layout */
@@ -99,8 +101,6 @@ const ListScope = defineComponent({
   .master-detail-detail {
     grid-column: 1 / -1;
     position: static;
-    max-height: none;
-    overflow: visible;
   }
 
   .master-detail--open .master-detail-list,
