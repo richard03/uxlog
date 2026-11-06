@@ -281,13 +281,13 @@ entities:
         sortOrder: 30
         options:
           - value: ''
-            labelKey: riskLevel.
+            labelKey: riskImpact.
           - value: high
-            labelKey: riskLevel.high
+            labelKey: riskImpact.high
           - value: medium
-            labelKey: riskLevel.medium
+            labelKey: riskImpact.medium
           - value: low
-            labelKey: riskLevel.low
+            labelKey: riskImpact.low
       - key: mitigation
         labelKey: risk.mitigation
         type: textarea

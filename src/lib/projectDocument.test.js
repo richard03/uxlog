@@ -106,19 +106,23 @@ describe('buildProjectDocument', () => {
   it('sekce v pořadí, jen neprázdné, entity podle sortOrder a jen z projektu', () => {
     expect(doc.title).toBe('Projekt A')
     expect(doc.meta).toEqual([{ label: 'Fáze', value: 'Výzkum' }])
-    expect(doc.sections.map((s) => s.stateKey)).toEqual(['personas', 'scenarios', 'activities'])
+    expect(doc.sections.map((s) => s.stateKey)).toEqual(['personas', 'scenarios'])
     expect(doc.sections[0].title).toBe('Persony')
     expect(doc.sections[1].title).toBe('scenarios')
     expect(doc.sections[0].items.map((i) => i.id)).toEqual(['a', 'b'])
     expect(doc.sections[0].items[0]).toMatchObject({ key: 'personas:a', code: 'PER-001', name: 'První' })
   })
 
-  it('rozdělí pole na vlastnosti a bloky, respektuje visibleWhen a skryté aktivity', () => {
+  it('rozdělí pole na vlastnosti a bloky, respektuje visibleWhen', () => {
     const second = doc.sections[0].items[1]
     expect(second.props.map((f) => f.key)).toEqual(['status', 'quote', '_cf_x'])
     expect(second.blocks.map((f) => f.key)).toEqual(['description'])
     expect(doc.sections[1].items[0].blocks).toEqual([])
-    expect(doc.sections[2].items.map((i) => i.id)).toEqual(['x1'])
+  })
+
+  it('jen artefakty v pořadí sloupce Artefakty; aktivity, zdroje, úkoly, tým a stakeholdeři ne', () => {
+    expect(DOCUMENT_SECTIONS.map((s) => s.stateKey)).toEqual(['goals', 'risks', 'hypotheses', 'competitions', 'requirements', 'personas', 'scenarios', 'bugs'])
+    expect(doc.sections.some((s) => s.stateKey === 'activities')).toBe(false)
   })
 
   it('všechny sekce mají jedinečný typ', () => {
@@ -154,14 +158,6 @@ describe('documentToMarkdown', () => {
       '### Nákup',
       '',
       '- **Frekvence:** 3 denně',
-      '',
-      '## Aktivity',
-      '',
-      '### Kick-off',
-      '',
-      '#### Poznámky',
-      '',
-      'Poznámka',
       '',
     ].join('\n'))
   })

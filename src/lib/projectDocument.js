@@ -9,32 +9,20 @@
  */
 
 /**
- * Sekce dokumentu v pořadí jako v přehledu projektu (sekce Data), aktivity na konci.
+ * Sekce dokumentu: jen artefakty, v pořadí jako ve sloupci Artefakty na detailu projektu (sekce Data).
+ * Zdroje, úkoly, tým, stakeholdeři a aktivity do dokumentu nepatří.
  * stateKey = klíč kolekce ve state, entityType = typ v data/entities.yaml, labelKey = cesta v cs.js.
  */
 export const DOCUMENT_SECTIONS = [
-  { stateKey: 'sources', entityType: 'source', labelKey: 'sections.sources' },
+  { stateKey: 'goals', entityType: 'goal', labelKey: 'sections.goals' },
+  { stateKey: 'risks', entityType: 'risk', labelKey: 'sections.risks' },
+  { stateKey: 'hypotheses', entityType: 'hypothesis', labelKey: 'sections.hypothesis' },
+  { stateKey: 'competitions', entityType: 'competition', labelKey: 'sections.competition' },
+  { stateKey: 'requirements', entityType: 'requirement', labelKey: 'sections.requirements' },
   { stateKey: 'personas', entityType: 'persona', labelKey: 'sections.personas' },
   { stateKey: 'scenarios', entityType: 'scenario', labelKey: 'sections.scenarios' },
-  { stateKey: 'requirements', entityType: 'requirement', labelKey: 'sections.requirements' },
-  { stateKey: 'hypotheses', entityType: 'hypothesis', labelKey: 'sections.hypothesis' },
-  { stateKey: 'risks', entityType: 'risk', labelKey: 'sections.risks' },
   { stateKey: 'bugs', entityType: 'bug', labelKey: 'sections.bugs' },
-  { stateKey: 'goals', entityType: 'goal', labelKey: 'sections.goals' },
-  { stateKey: 'stakeholders', entityType: 'stakeholder', labelKey: 'sections.stakeholders' },
-  { stateKey: 'competitions', entityType: 'competition', labelKey: 'sections.competition' },
-  { stateKey: 'teamMembers', entityType: 'teamMember', labelKey: 'sections.team' },
-  { stateKey: 'tasks', entityType: 'task', labelKey: 'sections.tasks' },
-  { stateKey: 'activities', entityType: 'activity', labelKey: 'document.activities' },
 ]
-
-/**
- * Pole entit, které nemají definici atributů v data/entities.yaml, ale do dokumentu patří.
- * Aktivity mají v detailu jen poznámky (description).
- */
-export const DOCUMENT_EXTRA_FIELDS = {
-  activity: [{ key: 'description', labelKey: 'activity.description', type: 'textarea', sortOrder: 10 }],
-}
 
 /** Typy polí, které se v dokumentu zobrazí jako podnadpis + odstavec (ostatní jako vlastnost). */
 const BLOCK_TYPES = new Set(['textarea'])
@@ -200,7 +188,7 @@ export function buildProjectDocument(data, projectId, { fields = {}, sectionTitl
     const list = Array.isArray(data?.[section.stateKey]) ? data[section.stateKey] : []
     const defs = Array.isArray(fields[section.entityType]) ? fields[section.entityType] : []
     const items = list
-      .filter((e) => e?.id && e.projectId === projectId && !(section.stateKey === 'activities' && e.dismissed))
+      .filter((e) => e?.id && e.projectId === projectId)
       .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))
       .map((e) => {
         const docFields = defs.filter((f) => f?.key && isFieldVisible(f, e)).map((f) => documentField(f, e))

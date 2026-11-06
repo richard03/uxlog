@@ -9,7 +9,7 @@ import { useStore } from './useStore.js'
 import { useConfig } from './useConfig.js'
 import { useI18n } from './useI18n.js'
 import {
-  DOCUMENT_SECTIONS, DOCUMENT_EXTRA_FIELDS, documentToMarkdown, normalizeDocumentText,
+  DOCUMENT_SECTIONS, documentToMarkdown, normalizeDocumentText,
 } from '../lib/projectDocument.js'
 import { entityDetailRoute } from '../lib/entityRoutes.js'
 
@@ -26,24 +26,10 @@ export function useProjectDocument(projectId) {
   /** Zobrazit i prázdná pole (aby šla v dokumentu doplnit). */
   const showEmpty = ref(false)
 
-  /** Efektivní pole podle typu entity (konfigurace + vlastní pole), řešitel úkolu z členů týmu. */
+  /** Efektivní pole podle typu entity (konfigurace + vlastní pole). */
   const fields = computed(() => {
     const out = {}
-    for (const { entityType } of DOCUMENT_SECTIONS) {
-      const extra = (DOCUMENT_EXTRA_FIELDS[entityType] || []).map((f) => ({ ...f, label: tPath(f.labelKey) }))
-      out[entityType] = [...extra, ...getEffectiveEntityFields(entityType, tPath)]
-    }
-    out.task = out.task.map((f) =>
-      f.key === 'assignee'
-        ? {
-            ...f,
-            options: [
-              { value: '', label: t.document.notSelected },
-              ...store.getTeamMembers(projectId.value).filter((m) => m.name).map((m) => ({ value: m.name, label: m.name })),
-            ],
-          }
-        : f,
-    )
+    for (const { entityType } of DOCUMENT_SECTIONS) out[entityType] = getEffectiveEntityFields(entityType, tPath)
     return out
   })
 

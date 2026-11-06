@@ -59,7 +59,7 @@
           <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
           <AppBadge>{{ t.riskStatus[r.status] || t.riskStatus.open }}</AppBadge>
           <AppBadge v-if="r.likelihood">{{ t.risk.likelihood }}: {{ t.riskLevel[r.likelihood] }}</AppBadge>
-          <AppBadge v-if="r.impact">{{ t.risk.impact }}: {{ t.riskLevel[r.impact] }}</AppBadge>
+          <AppBadge v-if="r.impact">{{ t.risk.impact }}: {{ t.riskImpact[r.impact] }}</AppBadge>
           <AppBadge
             :variant="getEntityCompleteness(r, 'risk').filled === getEntityCompleteness(r, 'risk').total ? 'completeness-done' : 'completeness'"
             :aria-label="t.completeness.ariaLabel(getEntityCompleteness(r, 'risk').filled, getEntityCompleteness(r, 'risk').total)"

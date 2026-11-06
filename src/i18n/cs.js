@@ -219,6 +219,13 @@ export default {
     medium: 'Střední',
     low: 'Nízká',
   },
+  /** Dopad rizika (stejné hodnoty high/medium/low jako pravděpodobnost, jiné popisky). */
+  riskImpact: {
+    '': '— nevybráno —',
+    high: 'Velký',
+    medium: 'Střední',
+    low: 'Malý',
+  },
   goal: {
     label: 'Cíl',
     code: 'Kód',
