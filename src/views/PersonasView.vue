@@ -17,14 +17,13 @@
     </ColumnHeading>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.filter.status }}</span>
-      <div class="filter-bar-group">
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterProtopersona }" type="button" @click="filterProtopersona = !filterProtopersona">{{ t.personaStatus.protopersona }} ({{ countProtopersona }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterPersona }" type="button" @click="filterPersona = !filterPersona">{{ t.personaStatus.persona }} ({{ countPersona }})</button>
-      </div>
       <div class="filter-search">
         <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
         <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.filter.status">
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterProtopersona }" type="button" @click="filterProtopersona = !filterProtopersona">{{ t.personaStatus.protopersona }} ({{ countProtopersona }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterPersona }" type="button" @click="filterPersona = !filterPersona">{{ t.personaStatus.persona }} ({{ countPersona }})</button>
       </div>
     </div>
 

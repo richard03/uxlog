@@ -304,20 +304,9 @@ select.form-control {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--space-sm) var(--space-md);
   flex-wrap: wrap;
   margin-bottom: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.filter-bar-label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 .filter-bar-group {
@@ -363,7 +352,8 @@ select.form-control {
 
 /* Filter search input */
 .filter-search {
-  margin-left: auto;
+  flex: 1 1 100%; /* vlastní řádek nad přepínači */
+  min-width: 0;
   position: relative;
   display: flex;
   align-items: center;
@@ -377,7 +367,7 @@ select.form-control {
   border-radius: 4px;
   background: var(--bg);
   color: var(--text);
-  width: 180px;
+  width: 100%;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }

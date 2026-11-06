@@ -17,16 +17,15 @@
     </ColumnHeading>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.filter.priority }}</span>
-      <div class="filter-bar-group">
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.filter.priority">
         <button class="filter-badge" :class="{ 'filter-badge--active': filterMust }" type="button" @click="filterMust = !filterMust">{{ t.moscow.must }} ({{ countMust }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterShould }" type="button" @click="filterShould = !filterShould">{{ t.moscow.should }} ({{ countShould }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterCould }" type="button" @click="filterCould = !filterCould">{{ t.moscow.could }} ({{ countCould }})</button>
         <button class="filter-badge" :class="{ 'filter-badge--active': filterWont }" type="button" @click="filterWont = !filterWont">{{ t.moscow.wont }} ({{ countWont }})</button>
-      </div>
-      <div class="filter-search">
-        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
-        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
       </div>
     </div>
 

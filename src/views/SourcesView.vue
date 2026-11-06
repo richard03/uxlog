@@ -18,8 +18,11 @@
     <p class="sources-hint">{{ t.sources.hint }}</p>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.source.kind }}</span>
-      <div class="filter-bar-group">
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.source.kind">
         <button
           v-for="k in KINDS"
           :key="k"
@@ -34,10 +37,6 @@
           type="button"
           @click="onlyUnprocessed = !onlyUnprocessed"
         >{{ t.sources.unprocessed }} ({{ unprocessedCount }})</button>
-      </div>
-      <div class="filter-search">
-        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
-        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
       </div>
     </div>
 

@@ -17,15 +17,14 @@
     </ColumnHeading>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.filter.status }}</span>
-      <div class="filter-bar-group">
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterUntested }" type="button" @click="filterUntested = !filterUntested">{{ t.hypothesisStatus.untested }} ({{ countUntested }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterTested }" type="button" @click="filterTested = !filterTested">{{ t.hypothesisStatus.tested }} ({{ countTested }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterRefuted }" type="button" @click="filterRefuted = !filterRefuted">{{ t.hypothesisStatus.refuted }} ({{ countRefuted }})</button>
-      </div>
       <div class="filter-search">
         <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
         <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.filter.status">
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterUntested }" type="button" @click="filterUntested = !filterUntested">{{ t.hypothesisStatus.untested }} ({{ countUntested }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterTested }" type="button" @click="filterTested = !filterTested">{{ t.hypothesisStatus.tested }} ({{ countTested }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterRefuted }" type="button" @click="filterRefuted = !filterRefuted">{{ t.hypothesisStatus.refuted }} ({{ countRefuted }})</button>
       </div>
     </div>
 

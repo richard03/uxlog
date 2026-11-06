@@ -23,7 +23,7 @@ defineEmits(['edit'])
 <style scoped>
 .detail-item {
   display: grid;
-  grid-template-columns: 10rem 1fr auto;
+  grid-template-columns: 8rem 1fr auto;
   align-items: baseline;
   gap: 0 var(--space-sm);
   border-bottom: 1px solid var(--border);

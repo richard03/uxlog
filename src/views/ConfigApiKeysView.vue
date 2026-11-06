@@ -308,7 +308,7 @@ function saveAiField(serviceId, field, value) {
 
 .detail-item {
   display: grid;
-  grid-template-columns: 10rem 1fr;
+  grid-template-columns: 8rem 1fr;
   gap: 0 var(--space-sm);
   border-bottom: 1px solid var(--border);
   padding: var(--space-xs) 0;

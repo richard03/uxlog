@@ -17,15 +17,14 @@
     </ColumnHeading>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.filter.type }}</span>
-      <div class="filter-bar-group">
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterMain }" type="button" @click="filterMain = !filterMain">{{ t.scenario.scenarioType.main }} ({{ countMain }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterSecondary }" type="button" @click="filterSecondary = !filterSecondary">{{ t.scenario.scenarioType.secondary }} ({{ countSecondary }})</button>
-        <button class="filter-badge" :class="{ 'filter-badge--active': filterError }" type="button" @click="filterError = !filterError">{{ t.scenario.scenarioType.error }} ({{ countError }})</button>
-      </div>
       <div class="filter-search">
         <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
         <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.filter.type">
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterMain }" type="button" @click="filterMain = !filterMain">{{ t.scenario.scenarioType.main }} ({{ countMain }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterSecondary }" type="button" @click="filterSecondary = !filterSecondary">{{ t.scenario.scenarioType.secondary }} ({{ countSecondary }})</button>
+        <button class="filter-badge" :class="{ 'filter-badge--active': filterError }" type="button" @click="filterError = !filterError">{{ t.scenario.scenarioType.error }} ({{ countError }})</button>
       </div>
     </div>
 

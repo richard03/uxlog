@@ -17,8 +17,11 @@
     </ColumnHeading>
 
     <div class="filter-bar">
-      <span class="filter-bar-label">{{ t.filter.status }}</span>
-      <div class="filter-bar-group">
+      <div class="filter-search">
+        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
+        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
+      </div>
+      <div class="filter-bar-group" role="group" :aria-label="t.filter.status">
         <button
           v-for="s in STATUSES"
           :key="s"
@@ -27,10 +30,6 @@
           type="button"
           @click="statusFilters[s] = !statusFilters[s]"
         >{{ t.riskStatus[s] }} ({{ countByStatus[s] }})</button>
-      </div>
-      <div class="filter-search">
-        <input type="search" v-model="filterText" :placeholder="t.filter.search" class="filter-search-input" :aria-label="t.filter.search" />
-        <button v-if="filterText" class="filter-search-clear" type="button" :aria-label="t.filter.clearSearch" @click="filterText = ''">&#x2715;</button>
       </div>
     </div>
 
