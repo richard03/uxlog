@@ -53,7 +53,7 @@
         </div>
         <div class="form-group">
           <label for="tpl-desc">{{ t.config.templateDescription }}</label>
-          <textarea id="tpl-desc" v-model="templateForm.description" class="form-control" rows="3" />
+          <FormTextarea control-id="tpl-desc" v-model="templateForm.description" :rows="3" />
         </div>
         <div class="form-group form-group-row">
           <div class="form-group-half">
@@ -103,6 +103,7 @@ import EntityCard from '../components/EntityCard.vue'
 import Modal from '../components/Modal.vue'
 import AppBadge from '../components/AppBadge.vue'
 import AppButton from '../components/AppButton.vue'
+import FormTextarea from '../components/form/FormTextarea.vue'
 
 const router = useRouter()
 const scope = useConfigScope()

@@ -2,6 +2,7 @@
 
 use tauri::Manager;
 
+mod dictation;
 mod http_api;
 mod repository;
 mod storage;
@@ -167,6 +168,30 @@ fn vault_open_root(root: String) -> Result<(), String> {
     result.map(|_| ()).map_err(|e| format!("Nelze otevřít složku: {e}"))
 }
 
+/// Zahájí diktování (Recognita, živý přepis); vrací id sezení, průběh chodí v události uxlog-dictation.
+#[tauri::command]
+fn dictation_start(app: tauri::AppHandle, url: String, api_key: String) -> Result<u64, String> {
+    dictation::start(app, url, api_key)
+}
+
+/// Pošle blok zvuku (PCM s16le 16 kHz mono v base64) do běžícího diktování.
+#[tauri::command]
+fn dictation_audio(session: u64, data: String) -> Result<(), String> {
+    dictation::audio(session, base64_decode(&data)?)
+}
+
+/// Ukončí nahrávání – server dopřepíše zbytek a pošle done.
+#[tauri::command]
+fn dictation_stop(session: u64) -> Result<(), String> {
+    dictation::stop(session)
+}
+
+/// Okamžitě zavře spojení diktování.
+#[tauri::command]
+fn dictation_abort(session: u64) {
+    dictation::abort(session)
+}
+
 /// Jednoduchý base64 dekodér (standard alphabet).
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     const TABLE: [u8; 128] = {
@@ -260,6 +285,10 @@ pub fn run() {
             vault_open_root,
             vault_watch,
             vault_unwatch,
+            dictation_start,
+            dictation_audio,
+            dictation_stop,
+            dictation_abort,
         ])
         .run(tauri::generate_context!())
         .expect("Chyba při spuštění UXLog");

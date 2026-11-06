@@ -58,11 +58,11 @@
           </svg>
         </div>
         <div v-else class="connection-note-edit" @click.stop>
-          <textarea
+          <FormTextarea
             ref="noteTextareaRef"
             v-model="editNote"
-            class="form-control conn-note-textarea"
-            rows="2"
+            class="conn-note-textarea"
+            :rows="2"
             :placeholder="t.connection.notePlaceholder"
             @keydown.escape="cancelEdit"
           />
@@ -108,7 +108,7 @@
         </div>
         <div class="form-group">
           <label for="conn-note">{{ t.connection.note }}</label>
-          <textarea id="conn-note" v-model="newNote" class="form-control" rows="3" :placeholder="t.connection.notePlaceholder" />
+          <FormTextarea control-id="conn-note" v-model="newNote" :rows="3" :placeholder="t.connection.notePlaceholder" />
         </div>
         <p v-if="addError" class="form-error" role="alert">{{ addError }}</p>
         <div class="form-actions">
@@ -189,6 +189,7 @@ import AppButton from './AppButton.vue'
 import Modal from './Modal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import KebabMenu from './KebabMenu.vue'
+import FormTextarea from './form/FormTextarea.vue'
 
 const props = defineProps({
   projectId: { type: String, required: true },
@@ -637,7 +638,7 @@ a.connection-entity-link:hover {
   border-left: 1px solid var(--border);
 }
 
-.conn-note-textarea {
+.connection-note-edit :deep(.conn-note-textarea) {
   font-size: 0.85rem;
   resize: vertical;
   min-height: 3.5rem;

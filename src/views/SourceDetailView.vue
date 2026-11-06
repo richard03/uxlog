@@ -66,7 +66,7 @@
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
           <input v-if="editingType === 'text'" id="edit-field" v-model="editValue" class="form-control" />
-          <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="12" />
+          <FormTextarea v-else-if="editingType === 'textarea'" control-id="edit-field" v-model="editValue" :rows="12" />
           <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
             <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
@@ -101,6 +101,7 @@
 </template>
 
 <script setup>
+import FormTextarea from '../components/form/FormTextarea.vue'
 /**
  * Detail zdroje: kdy byl nahrán a zpracován, typ a text, zpracování pomocí AI (tlačítkem)
  * s revizí návrhů a souvislosti se záznamy, které ze zdroje vznikly.

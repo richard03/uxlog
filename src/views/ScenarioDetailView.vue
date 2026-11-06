@@ -51,7 +51,7 @@
         <div class="form-group">
           <label for="edit-field">{{ editingLabel }}</label>
           <input v-if="editingType === 'text' || editingType === 'url'" id="edit-field" v-model="editValue" class="form-control" />
-          <textarea v-else-if="editingType === 'textarea'" id="edit-field" v-model="editValue" class="form-control" rows="4" />
+          <FormTextarea v-else-if="editingType === 'textarea'" control-id="edit-field" v-model="editValue" :rows="4" />
           <select v-else-if="editingType === 'select'" id="edit-field" v-model="editValue" class="form-control">
             <option v-for="opt in editingOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup>
+import FormTextarea from '../components/form/FormTextarea.vue'
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from '../composables/useStore.js'

@@ -52,15 +52,21 @@
       </ol>
 
       <form class="nb-compose" @submit.prevent="submit">
+        <div class="nb-input-wrap" :class="{ 'nb-input-wrap--dictation': dictation.available.value || dictation.active.value }">
         <textarea
+          ref="inputEl"
           v-model="draft"
           class="nb-input"
+          :readonly="dictation.active.value"
           rows="4"
           :placeholder="mode === 'ask' ? t.notebook.askPlaceholder : t.notebook.changePlaceholder"
           :aria-label="t.notebook.inputLabel"
           @keydown.enter.ctrl.prevent="submit"
           @keydown.enter.meta.prevent="submit"
         ></textarea>
+        <DictationButton class="nb-mic" :dictation="dictation" />
+        </div>
+        <DictationStatus :dictation="dictation" />
         <div class="nb-compose-bar">
           <span class="nb-hint">{{ hint }}</span>
           <div class="nb-compose-actions">
@@ -92,6 +98,9 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import AppButton from './AppButton.vue'
 import NotebookModal from './NotebookModal.vue'
 import ExpandableText from './ExpandableText.vue'
+import DictationButton from './DictationButton.vue'
+import DictationStatus from './DictationStatus.vue'
+import { useDictation } from '../composables/useDictation.js'
 import { useI18n } from '../composables/useI18n.js'
 import { useNotebookChat } from '../composables/useNotebookChat.js'
 import { formatStatusBarDateTime } from '../utils/formatDate.js'
@@ -106,6 +115,14 @@ const {
   countOutcomes, legacyEntryId: legacyId, reviewHelpers,
 } = useNotebookChat(() => props.projectId)
 const draft = ref('')
+const inputEl = ref(null)
+
+/** Diktování zprávy hlasem (konektor Recognita) – text se vkládá na místo kurzoru. */
+const dictation = useDictation({
+  getValue: () => draft.value,
+  setValue: (text) => { draft.value = text },
+  getElement: () => inputEl.value,
+})
 const historyEl = ref(null)
 /** Nad viditelnou částí historie jsou starší zprávy (zobrazí se přechod nahoře). */
 const moreAbove = ref(false)
@@ -125,7 +142,7 @@ function onHistoryScroll() {
 const mode = ref('ask')
 
 /** Chat bez AI nejde použít. */
-const canSubmit = computed(() => !!draft.value.trim() && aiAvailable.value)
+const canSubmit = computed(() => !!draft.value.trim() && aiAvailable.value && !dictation.active.value)
 
 const submitLabel = computed(() => (mode.value === 'ask' ? t.notebook.sendQuestion : t.notebook.sendChange))
 
@@ -311,6 +328,20 @@ onBeforeUnmount(() => {
   resize: vertical;
   box-sizing: border-box;
   transition: border-color var(--transition);
+}
+
+.nb-input-wrap {
+  position: relative;
+}
+
+.nb-mic {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.nb-input-wrap--dictation .nb-input {
+  padding-right: calc(var(--space-sm) + 34px);
 }
 
 .nb-input:focus {

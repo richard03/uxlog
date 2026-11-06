@@ -15,6 +15,7 @@ import tauriLocalApiPlugin from './tauri-local-api/index.js'
 import flexiPlugin from './flexi/index.js'
 import geminiPlugin from './gemini/index.js'
 import openaiPlugin from './openai/index.js'
+import recognitaPlugin from './recognita/index.js'
 import vaultPlugin, { setVaultChangeApplier, setVaultStateReplacer } from './vault/index.js'
 import { applyVaultChanges, replaceStateFromVault } from '../stores/vaultImport.js'
 
@@ -40,6 +41,8 @@ export function installPlugins() {
   //    (poslední zapnutý „vyhraje" – pokud jsou oba zapnuté, použije se ten druhý)
   registerPlugin(geminiPlugin)
   registerPlugin(openaiPlugin)
+  // 3b. Recognita – diktování hlasem (spojení přes Rust, jen desktop)
+  registerPlugin(recognitaPlugin)
   // 4. vault – zápis dat do složky souborů (jen desktop, zapíná se v Konfiguraci)
   // Plugin nesahá do storů sám – funkci pro zápis načtených změn mu předává jádro (jednosměrná závislost)
   setVaultChangeApplier(applyVaultChanges)

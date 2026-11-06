@@ -701,7 +701,7 @@ types:
     createOnNewProject: true
     checklist:
       - id: main_scenarios
-        label: definovali jsme všechny hlavní scénáře
+        label: Definovali jsme všechny hlavní scénáře
       - id: secondary_scenarios
         label: "Definovali jsme všechny vedlejší scénáře, které chceme implementovat"
       - id: error_scenarios

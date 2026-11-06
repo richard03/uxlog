@@ -1,6 +1,6 @@
 [package]
 name = "uxlog"
-version = "1.2.43"
+version = "1.2.44"
 description = "UXLog – desktop aplikace pro logování UX design procesu"
 authors = ["UXLog"]
 edition = "2021"
@@ -24,6 +24,9 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 tiny_http = "0.12"
 dirs = "5"
 chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1", features = ["macros", "time", "sync"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 
 [profile.release]
 strip = true

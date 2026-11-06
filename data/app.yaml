@@ -10,6 +10,11 @@
 #   minChanges         podíl se posuzuje až od tohoto počtu změn v projektu
 # recommendations      doporučení dalších aktivit v panelu Aktivity
 #   minRequirementsForPrioritization  od kolika požadavků se stejnou prioritou doporučit prioritizační workshop
+# dictation            diktování přes konektor Recognita – časové limity v ms
+#   connectTimeoutMs   jak dlouho čekat na navázání spojení
+#   slowAfterMs        po jak dlouhé odmlce serveru ukázat „server odpovídá pomalu“ (diktování běží dál)
+#   stallAfterMs       po jak dlouhé odmlce serveru diktování ukončit jako výpadek (text zůstane)
+#   finishTimeoutMs    jak dlouho po ukončení čekat na dokončení přepisu (pak zůstane dosavadní text)
 
 projectColors:
   - "#e05252" # červená
@@ -55,3 +60,8 @@ vaultAutoImport:
   maxDeletes: 10
   maxShare: 0.3
   minChanges: 5
+dictation:
+  connectTimeoutMs: 12000
+  slowAfterMs: 8000
+  stallAfterMs: 20000
+  finishTimeoutMs: 20000

@@ -62,6 +62,9 @@
       <p class="service-hint">{{ t.settings.flexi.hint }}</p>
     </SectionCard>
 
+    <!-- Recognita – diktování hlasem (jen pokud je plugin aktivní) -->
+    <RecognitaSettingsSection v-if="isActive('recognita')" />
+
     <!-- AI služby – každá podmíněná svým pluginem -->
     <SectionCard
       v-for="service in aiServices"
@@ -149,7 +152,7 @@
 
 <script setup>
 /**
- * Stránka nastavení konektorů – Flexi API + AI služby.
+ * Stránka nastavení konektorů – složka dat, pluginy, Flexi API, Recognita (diktování) + AI služby.
  * Flexi API se konfiguruje v modálu (URL + klíč atomicky), AI služby inline.
  */
 import { reactive, ref, computed } from 'vue'
@@ -164,6 +167,7 @@ import InlineEditableDetailField from '../components/InlineEditableDetailField.v
 import Modal from '../components/Modal.vue'
 import AppButton from '../components/AppButton.vue'
 import VaultSettingsSection from '../components/VaultSettingsSection.vue'
+import RecognitaSettingsSection from '../components/RecognitaSettingsSection.vue'
 
 const { t } = useI18n()
 const { state, getData, persist: persistStore } = useStore()

@@ -7,6 +7,7 @@
  * aby chyba v konfiguraci nezastavila aplikaci.
  */
 
+import { normalizeDictationTimings } from './dictation.js'
 import { parseYaml } from './yaml.js'
 import { normalizeHexColor } from './color.js'
 import activityTypesYaml from '../../data/activity-types.yaml?raw'
@@ -158,7 +159,7 @@ export function normalizeCanvasCardColors(raw) {
 /**
  * Normalizuje obecnou konfiguraci aplikace.
  * @param {Object} raw
- * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number } }}
+ * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number }, dictation: Object }}
  */
 export function normalizeAppConfig(raw) {
   const colors = strList(raw?.projectColors).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c.trim())).map((c) => c.trim())
@@ -178,6 +179,7 @@ export function normalizeAppConfig(raw) {
       maxShare: share > 0 && share <= 1 ? share : vd.maxShare,
       minChanges: Math.max(1, num(v.minChanges, vd.minChanges)),
     },
+    dictation: normalizeDictationTimings(raw?.dictation),
   }
 }
 

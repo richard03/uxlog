@@ -25,6 +25,7 @@ const MIRRORED_KEYS = [
   'uxlog_last_api_ts',
   'uxlog_vault',
   'uxlog_vault_sync',
+  'uxlog_recognita',
 ]
 
 /**
@@ -313,4 +314,50 @@ export async function listenToVaultChanges(onChange) {
       console.error('[TauriBridge] vault change handler failed:', err)
     }
   })
+}
+
+// ---------------------------------------------------------------------------
+// Diktování (konektor Recognita) – spojení drží Rust (hlavička Authorization u WebSocketu)
+// ---------------------------------------------------------------------------
+
+/**
+ * Zahájí diktování; vrací id sezení. Průběh chodí přes listenToDictation.
+ * @param {string} url adresa ws/wss živého přepisu
+ * @param {string} apiKey
+ * @returns {Promise<number>}
+ */
+export async function dictationStart(url, apiKey) {
+  if (!isTauri) throw new Error('unsupported')
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke('dictation_start', { url, apiKey })
+}
+
+/** Pošle blok zvuku (base64 PCM s16le 16 kHz mono). */
+export async function dictationAudio(session, data) {
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke('dictation_audio', { session, data })
+}
+
+/** Ukončí nahrávání – server dopřepíše zbytek a pošle done. */
+export async function dictationStop(session) {
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke('dictation_stop', { session })
+}
+
+/** Okamžitě zavře spojení. */
+export async function dictationAbort(session) {
+  if (!isTauri) return
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke('dictation_abort', { session })
+}
+
+/**
+ * Přihlásí listener na události diktování ({ session, kind, data?, code?, closeCode? }).
+ * @param {(payload: Object) => void} onEvent
+ * @returns {Promise<() => void>} odhlášení
+ */
+export async function listenToDictation(onEvent) {
+  if (!isTauri) return () => {}
+  const { listen } = await import('@tauri-apps/api/event')
+  return listen('uxlog-dictation', (event) => onEvent(event.payload || {}))
 }

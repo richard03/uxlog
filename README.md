@@ -39,6 +39,7 @@ Další:
 - **flexi** - volitelná synchronizace s Flexi API
 - **openai** - integrace ChatGPT (poznámkový blok, návrhy vazeb)
 - **gemini** - Google Gemini AI (stejné funkce jako OpenAI)
+- **recognita** - diktování hlasem přes vlastní server Recognita (živý přepis, jen desktop). Nastavení: karta „Recognita – diktování“ v Konfigurace → Konektory (adresa, API klíč, jazyk, odborné termíny, Vyzkoušet spojení). Spojení WebSocket drží Rust `src-tauri/src/dictation.rs` (`tokio-tungstenite`, hlavička `Authorization`, ping, událost `uxlog-dictation`), mikrofon a převod na PCM 16 kHz `src/lib/plugins/recognita/microphone.js` (AudioWorklet `pcmWorklet.js`), stav a časové limity čistá logika `src/lib/dictation.js` (limity `dictation` v `data/app.yaml`), UI `useDictation` + `DictationButton`/`DictationStatus` (zabudované ve `FormTextarea` a v Chatu). Na macOS žádá o mikrofon `src-tauri/Info.plist`.
 
 ## Figma integrace
 
