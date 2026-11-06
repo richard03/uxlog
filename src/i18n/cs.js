@@ -9,6 +9,12 @@ export default {
   app: {
     title: 'UXLog',
     subtitle: 'Logování UX design procesu',
+    desktopOnlyTitle: 'UXLog je desktopová aplikace',
+    desktopOnly: 'Spusťte prosím nainstalovanou aplikaci UXLog. Ve webovém prohlížeči se data nemají kam uložit.',
+    previewWarning: 'Náhled v prohlížeči: data se ukládají jen do paměti a po obnovení stránky zmizí.',
+    initErrorTitle: 'Chyba při načítání',
+    initError: 'Aplikaci se nepodařilo spustit. Zkuste ji zavřít a otevřít znovu.',
+    initErrorDetail: (message) => `Technické info: ${message}`,
   },
   statusBar: {
     version: 'v',

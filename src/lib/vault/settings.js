@@ -1,5 +1,5 @@
 /**
- * Vault – nastavení zápisu do složky (uloženo v localStorage pod `uxlog_vault`, zrcadleno do Tauri).
+ * Vault – nastavení zápisu do složky (uloženo v úložišti aplikace pod `uxlog_vault`).
  * Nastavení je jen tohoto počítače (cesty se mezi počítači liší), proto není v datech projektu.
  * Čisté funkce.
  */

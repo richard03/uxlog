@@ -3,12 +3,8 @@
  */
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 
-const storage = new Map()
-vi.stubGlobal('localStorage', {
-  getItem: (k) => (storage.has(k) ? storage.get(k) : null),
-  setItem: (k, v) => storage.set(k, String(v)),
-  removeItem: (k) => storage.delete(k),
-})
+import { readStoredValue, writeStoredValue } from '../tauriBridge.js'
+
 vi.spyOn(console, 'log').mockImplementation(() => {})
 
 let store
@@ -73,17 +69,17 @@ describe('historie změn projektu (store)', () => {
   })
 
   it('historie se ukládá do vlastního klíče', async () => {
-    expect(JSON.parse(storage.get('uxlog_history'))).toBeTypeOf('object')
+    expect(JSON.parse(readStoredValue('uxlog_history'))).toBeTypeOf('object')
   })
 
-  it('initStore znovu načte historii z úložiště (Tauri obnovuje localStorage až po importu)', async () => {
+  it('initStore znovu načte historii z úložiště', async () => {
     const pid = store.addProject({ name: 'Načtení' }).id
     await tick()
-    const saved = storage.get('uxlog_history')
-    storage.set('uxlog_history', JSON.stringify({ [pid]: [] }))
+    const saved = readStoredValue('uxlog_history')
+    writeStoredValue('uxlog_history', JSON.stringify({ [pid]: [] }))
     store.initStore()
     expect(store.getProjectHistory(pid)).toEqual([])
-    storage.set('uxlog_history', saved)
+    writeStoredValue('uxlog_history', saved)
     store.initStore()
     expect(store.getProjectHistory(pid).length).toBeGreaterThan(0)
   })

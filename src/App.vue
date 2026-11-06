@@ -54,7 +54,7 @@ let syncing = false
 let stopStorageListener = null
 
 /**
- * Pokud se v nativním storage změnilo uxlog_data (např. PUT z Figmy), přepíše localStorage a Vue state.
+ * Pokud se v nativním storage změnilo uxlog_data (např. PUT z Figmy), převezme ho do paměti a obnoví Vue state.
  */
 async function applyUxlogDataFromDiskIfChanged() {
   if (!isTauri) return

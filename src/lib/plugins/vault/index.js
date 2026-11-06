@@ -33,7 +33,7 @@ import cs from '../../../i18n/cs.js'
 import { APP_VERSION } from '../../version.js'
 import { APP_CONFIG, ENTITY_CONFIG } from '../../dataConfig.js'
 import {
-  isTauri, mirrorToTauri, vaultDefaultRoot, vaultScan, vaultReadFile, vaultReadFiles, vaultApply,
+  isTauri, readStoredValue, writeStoredValue, vaultDefaultRoot, vaultScan, vaultReadFile, vaultReadFiles, vaultApply,
   vaultWatch, vaultUnwatch, listenToVaultChanges,
 } from '../../tauriBridge.js'
 import { buildVaultFiles, parseVaultFiles } from '../../vault/workspace.js'
@@ -129,7 +129,7 @@ const pendingReleases = new Map()
 
 function loadSettings() {
   try {
-    return parseVaultSettings(localStorage.getItem(VAULT_SETTINGS_KEY))
+    return parseVaultSettings(readStoredValue(VAULT_SETTINGS_KEY))
   } catch {
     return parseVaultSettings(null)
   }
@@ -137,8 +137,7 @@ function loadSettings() {
 
 function saveSettings() {
   const json = JSON.stringify(normalizeVaultSettings(vaultSettings))
-  try { localStorage.setItem(VAULT_SETTINGS_KEY, json) } catch { /* plné úložiště – nastavení zůstane v paměti */ }
-  mirrorToTauri(VAULT_SETTINGS_KEY, json)
+  writeStoredValue(VAULT_SETTINGS_KEY, json).catch(() => { /* plné úložiště (web) – nastavení zůstane v paměti */ })
 }
 
 /**
@@ -160,7 +159,7 @@ export function setVaultStateReplacer(fn) {
 /** Značky synchronizace, které si pamatuje databáze (klíč složky → syncId). */
 function loadCacheMarks() {
   try {
-    return parseVaultSync(localStorage.getItem(VAULT_SYNC_KEY))
+    return parseVaultSync(readStoredValue(VAULT_SYNC_KEY))
   } catch {
     return {}
   }
@@ -168,8 +167,7 @@ function loadCacheMarks() {
 
 function saveCacheSync(root, syncId) {
   const json = serializeVaultSync(loadCacheMarks(), root, syncId)
-  try { localStorage.setItem(VAULT_SYNC_KEY, json) } catch { /* plné úložiště – příště se databáze obnoví ze složky */ }
-  mirrorToTauri(VAULT_SYNC_KEY, json)
+  writeStoredValue(VAULT_SYNC_KEY, json).catch(() => { /* plné úložiště (web) – příště se databáze obnoví ze složky */ })
 }
 
 /** Zařadí operaci do fronty (operace se souborovým systémem neběží souběžně). */

@@ -58,8 +58,10 @@ npm run test:watch   # Vitest - watch mód
 ## Build
 
 ```bash
-npm run build        # web build do dist/
+npm run build        # sestaví frontend do dist/ (používá ho tauri:build, samostatně se nenasazuje)
 ```
+
+UXLog je jen desktopová aplikace. `npm run dev` otevřený v běžném prohlížeči slouží jen jako vývojový náhled – data se ukládají jen do paměti; produkční build mimo Tauri ukáže jen hlášku, že jde o desktopovou aplikaci.
 
 ## Desktop (Tauri)
 
@@ -93,7 +95,7 @@ Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Ko
 ## Architektura
 
 - **Vue 3** + **Vite** + **Tauri 2** (Rust)
-- **Web:** `localStorage`; **desktop (Tauri):** embedded `SQLite` přes nativní storage bridge
+- **Úložiště:** embedded `SQLite` (Rust `storage.rs`/`repository.rs`). Při startu ho `initStorage` (`src/lib/tauriBridge.js`, příkaz `load_all_storage`) načte celé do paměti – `main.js` teprve potom dynamicky načte zbytek aplikace (`src/app.js`), takže moduly čtoucí nastavení při importu vidí aktuální data. Čte se synchronně `readStoredValue`, zapisuje `writeStoredValue` (rovnou do SQLite), maže `removeStoredValue`. localStorage se nepoužívá; při prvním startu verze 1.2.46 se z něj jednorázově převezme, co v SQLite chybí, a vyčistí se.
 - **Historie změn projektu:** samostatný klíč `uxlog_history` (zápis v `persist()` → `stores/history.js`, logika rozdílů a vracení v `lib/history.js`)
 - **Dokument:** logika `lib/projectDocument.js` (sestavení dokumentu, uložení pole, Markdown, hledání), store `stores/document.js`, UI `useProjectDocument` + `useDocumentSearch` + `DocumentView.vue`
 - **Canvas:** rozvržení kartiček v `project.canvas` (logika `lib/canvas.js`, store `stores/canvas.js`, UI `useProjectCanvas` + `CanvasView.vue`); okna detailů nad plátnem: logika `lib/canvasWindows.js`, stav a tažení `useCanvasWindows`, okno `CanvasEntityWindow.vue` (stejná komponenta detailu jako v Datech, navigaci podle kontextu řeší `useEntityNavigation`)

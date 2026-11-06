@@ -19,7 +19,7 @@ Before finishing:
 
 ## Architecture Rules
 - **Business logic in `src/lib/`** as pure, unit-testable functions. Stores handle state + persistence. Never mix UI logic into lib/.
-- **Local-first:** Web build stores data in localStorage; desktop Tauri build stores data in embedded SQLite and exposes the same state to the local HTTP API. No external server required.
+- **Local-first, jen desktop:** UXLog je pouze desktopová aplikace (Tauri); webová verze neexistuje. Data jsou v embedded SQLite, které vidí i lokální HTTP API. No external server required. Úložiště: `initStorage` v `main.js` načte SQLite do paměti a teprve pak se dynamicky načte `src/app.js` se story a pluginy. Uložené hodnoty čti a zapisuj **jen** přes `readStoredValue`/`writeStoredValue`/`removeStoredValue` z `tauriBridge.js` – nikdy `localStorage` (nepoužívá se; mimo Tauri – testy, vývojový náhled – je úložiště jen v paměti). Nový uložený klíč pojmenuj s prefixem `uxlog_`.
 - **No cascading deletion:** Deleting an entity removes only relationship links, not related entities.
 - **All user-facing texts** in `src/i18n/cs.js` - never hardcode Czech strings in components.
 - **Plugins** (`src/lib/plugins/`) for optional features (AI, sync, Figma API). Don't add plugin logic to core.
@@ -73,7 +73,7 @@ Update `README.md`, `SPEC.md`, or `CLAUDE.md` when behavior, architecture, or wo
 - When HTML input is unavoidable, sanitize and normalize it before storing or rendering.
 - Only render HTML from trusted, sanitized Markdown/output pipelines.
 - The plugin API must not access other plugins or internal store functions outside the provided context (ctx).
-- API keys (OpenAI, Gemini) are stored only within the application (localStorage); they are never logged or sent over the Internet to any destination other than the relevant API.
+- API keys (OpenAI, Gemini) are stored only within the application (SQLite); they are never logged or sent over the Internet to any destination other than the relevant API.
 
 ### Performance
 - The application should be as non-blocking as possible. Wherever it is practical, use asynchronous code (Promises, etc.)

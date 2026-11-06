@@ -23,6 +23,7 @@
 
 import { isFlexiEnabled, flexiRequest, enqueue } from './flexiApi.js'
 import { pickNewer } from '../../storage.js'
+import { readStoredValue, writeStoredValue, removeStoredValue } from '../../tauriBridge.js'
 
 // ---------------------------------------------------------------------------
 // Emitter – náhrada přímého importu recordApiSync z dataStatus
@@ -50,7 +51,7 @@ const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 function loadTombstones() {
   try {
-    const raw = localStorage.getItem(TOMBSTONE_KEY)
+    const raw = readStoredValue(TOMBSTONE_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -59,7 +60,7 @@ function loadTombstones() {
 
 function saveTombstones(ts) {
   try {
-    localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(ts))
+    writeStoredValue(TOMBSTONE_KEY, JSON.stringify(ts)).catch(() => {})
   } catch (e) {
     console.error('[FlexiSync] saveTombstones failed:', e)
   }
@@ -129,7 +130,7 @@ const CHECKSUMS_KEY = 'uxlog_sync_checksums'
 /** @returns {{ [entityType: string]: { [id: string]: number } }} */
 function loadSyncTs() {
   try {
-    const raw = localStorage.getItem(SYNC_TS_KEY)
+    const raw = readStoredValue(SYNC_TS_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -138,7 +139,7 @@ function loadSyncTs() {
 
 function saveSyncTs(ts) {
   try {
-    localStorage.setItem(SYNC_TS_KEY, JSON.stringify(ts))
+    writeStoredValue(SYNC_TS_KEY, JSON.stringify(ts)).catch(() => {})
   } catch (e) {
     console.error('[FlexiSync] saveSyncTs failed:', e)
   }
@@ -151,7 +152,7 @@ function saveSyncTs(ts) {
 /** @returns {{ [entityType: string]: number }} */
 function loadLastFetchTs() {
   try {
-    const raw = localStorage.getItem(LAST_FETCH_TS_KEY)
+    const raw = readStoredValue(LAST_FETCH_TS_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -160,7 +161,7 @@ function loadLastFetchTs() {
 
 function saveLastFetchTs(ts) {
   try {
-    localStorage.setItem(LAST_FETCH_TS_KEY, JSON.stringify(ts))
+    writeStoredValue(LAST_FETCH_TS_KEY, JSON.stringify(ts)).catch(() => {})
   } catch (e) {
     console.error('[FlexiSync] saveLastFetchTs failed:', e)
   }
@@ -173,7 +174,7 @@ function saveLastFetchTs(ts) {
 /** @returns {{ [entityType: string]: string }} */
 function loadChecksums() {
   try {
-    const raw = localStorage.getItem(CHECKSUMS_KEY)
+    const raw = readStoredValue(CHECKSUMS_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -182,7 +183,7 @@ function loadChecksums() {
 
 function saveChecksums(checksums) {
   try {
-    localStorage.setItem(CHECKSUMS_KEY, JSON.stringify(checksums))
+    writeStoredValue(CHECKSUMS_KEY, JSON.stringify(checksums)).catch(() => {})
   } catch (e) {
     console.error('[FlexiSync] saveChecksums failed:', e)
   }
@@ -211,7 +212,7 @@ async function fetchApiChecksums() {
 /** @returns {{ [entityType: string]: { [uxlogId: string]: string|number } }} */
 function loadApiIdMap() {
   try {
-    const raw = localStorage.getItem(API_ID_MAP_KEY)
+    const raw = readStoredValue(API_ID_MAP_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -220,7 +221,7 @@ function loadApiIdMap() {
 
 function saveApiIdMap(map) {
   try {
-    localStorage.setItem(API_ID_MAP_KEY, JSON.stringify(map))
+    writeStoredValue(API_ID_MAP_KEY, JSON.stringify(map)).catch(() => {})
   } catch (e) {
     console.error('[FlexiSync] saveApiIdMap failed:', e)
   }

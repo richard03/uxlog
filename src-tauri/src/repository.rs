@@ -96,6 +96,15 @@ pub fn save_key_value(key: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Smaže hodnotu z key-value tabulky (neexistující klíč není chyba).
+pub fn remove_key_value(key: &str) -> Result<(), String> {
+    let connection = open_connection()?;
+    connection
+        .execute("DELETE FROM key_value_store WHERE key = ?1", params![key])
+        .map_err(|err| format!("Nelze smazat key-value záznam {key}: {err}"))?;
+    Ok(())
+}
+
 /// Načte textovou hodnotu z key-value tabulky.
 pub fn load_key_value(key: &str) -> Result<Option<String>, String> {
     let connection = open_connection()?;

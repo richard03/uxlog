@@ -1,10 +1,10 @@
 /**
- * Modul pro práci s localStorage.
+ * Modul pro práci s uloženými daty (úložiště aplikace – SQLite přes tauriBridge).
  * Centralizuje přístup k datům a zajišťuje konzistentní klíče.
  * V Tauri prostředí zrcadlí zápisy do nativního storage přes tauriBridge.
  */
 
-import { mirrorToTauri } from './tauriBridge.js'
+import { readStoredValue, writeStoredValue } from './tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_data'
 
@@ -109,12 +109,12 @@ export function deduplicateData(data) {
 }
 
 /**
- * Načte všechna data z localStorage.
+ * Načte všechna data z úložiště aplikace.
  * @returns {Object} Objekt s daty nebo prázdný objekt při chybě
  */
 export function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readStoredValue(STORAGE_KEY)
     const data = raw ? JSON.parse(raw) : getEmptyData()
     const before = raw ?? ''
     pruneOrphanEntities(data)
@@ -123,8 +123,8 @@ export function loadData() {
     stripRemovedProjectFields(data)
     const after = JSON.stringify(data)
     if (after !== before) {
-      // Úklid (sirotci, duplicity, přežitá a zrušená pole) něco změnil – okamžitě zapíšeme zpět do localStorage
-      localStorage.setItem(STORAGE_KEY, after)
+      // Úklid (sirotci, duplicity, přežitá a zrušená pole) něco změnil – okamžitě zapíšeme zpět
+      writeStoredValue(STORAGE_KEY, after).catch(() => {})
     }
     return data
   } catch (e) {
@@ -134,14 +134,12 @@ export function loadData() {
 }
 
 /**
- * Uloží všechna data do localStorage a zrcadlí do Tauri storage backendu.
+ * Uloží všechna data do úložiště aplikace (SQLite).
  * @param {Object} data - Data k uložení
  */
 export async function saveData(data) {
   try {
-    const json = JSON.stringify(data)
-    localStorage.setItem(STORAGE_KEY, json)
-    await mirrorToTauri(STORAGE_KEY, json)
+    await writeStoredValue(STORAGE_KEY, JSON.stringify(data))
   } catch (e) {
     console.error('saveData failed:', e)
     throw e
@@ -180,7 +178,7 @@ const HISTORY_STORAGE_KEY = 'uxlog_history'
  */
 export function loadHistoryData() {
   try {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY)
+    const raw = readStoredValue(HISTORY_STORAGE_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch (e) {
     console.error('loadHistoryData failed:', e)
@@ -189,15 +187,13 @@ export function loadHistoryData() {
 }
 
 /**
- * Uloží historii změn projektů do localStorage a zrcadlí ji do Tauri storage.
+ * Uloží historii změn projektů do úložiště aplikace (SQLite).
  * Chyba (např. plné úložiště) historii jen neuloží – nesmí zablokovat práci s daty.
  * @param {Object} history
  */
 export async function saveHistoryData(history) {
   try {
-    const json = JSON.stringify(history)
-    localStorage.setItem(HISTORY_STORAGE_KEY, json)
-    await mirrorToTauri(HISTORY_STORAGE_KEY, json)
+    await writeStoredValue(HISTORY_STORAGE_KEY, JSON.stringify(history))
   } catch (e) {
     console.error('saveHistoryData failed:', e)
   }

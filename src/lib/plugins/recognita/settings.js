@@ -1,10 +1,10 @@
 /**
  * Nastavení konektoru Recognita (diktování). Uloženo jen v tomto počítači
- * (localStorage `uxlog_recognita`, v Tauri zrcadlené do SQLite); není součástí exportu dat.
+ * (úložiště aplikace – SQLite, klíč `uxlog_recognita`); není součástí exportu dat.
  */
 
 import { ref } from 'vue'
-import { mirrorToTauri } from '../../tauriBridge.js'
+import { readStoredValue, writeStoredValue } from '../../tauriBridge.js'
 import { normalizeBaseUrl } from '../../dictation.js'
 
 const STORAGE_KEY = 'uxlog_recognita'
@@ -37,7 +37,7 @@ export function isRecognitaConfigured(settings) {
 
 function readStored() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readStoredValue(STORAGE_KEY)
     return normalizeRecognitaSettings(raw ? JSON.parse(raw) : {})
   } catch {
     return normalizeRecognitaSettings({})
@@ -61,16 +61,14 @@ export function saveRecognitaSettings(patch) {
   const next = normalizeRecognitaSettings({ ...recognitaSettings.value, ...(patch || {}) })
   recognitaSettings.value = next
   try {
-    const json = JSON.stringify(next)
-    localStorage.setItem(STORAGE_KEY, json)
-    mirrorToTauri(STORAGE_KEY, json)
+    writeStoredValue(STORAGE_KEY, JSON.stringify(next)).catch(() => {})
   } catch (e) {
     console.error('[Recognita] saveRecognitaSettings failed:', e)
   }
   return next
 }
 
-/** Znovu načte nastavení z localStorage (po obnově z Tauri při startu). */
+/** Znovu načte nastavení z úložiště aplikace. */
 export function reloadRecognitaSettings() {
   recognitaSettings.value = readStored()
 }

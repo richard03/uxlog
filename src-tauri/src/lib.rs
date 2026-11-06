@@ -21,6 +21,18 @@ fn load_storage(key: String) -> Result<Option<String>, String> {
     storage::load(&key)
 }
 
+/// Smaže storage klíč.
+#[tauri::command]
+fn remove_storage(key: String) -> Result<(), String> {
+    storage::remove(&key)
+}
+
+/// Načte všechny storage klíče najednou (start aplikace).
+#[tauri::command]
+fn load_all_storage() -> Result<std::collections::HashMap<String, String>, String> {
+    storage::load_all()
+}
+
 /// Vrátí seznam všech uložených storage klíčů.
 #[tauri::command]
 fn list_storage_keys() -> Vec<String> {
@@ -274,6 +286,8 @@ pub fn run() {
             save_storage,
             load_storage,
             list_storage_keys,
+            remove_storage,
+            load_all_storage,
             get_api_port,
             save_download_file,
             open_download_file,

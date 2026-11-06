@@ -2,7 +2,7 @@
  * Plugin: Google Gemini AI
  *
  * Poskytuje AI funkce (zápisník, návrhy souvislostí) přes Google Gemini API.
- * Každý plugin spravuje svůj vlastní API klíč v sdíleném localStorage.
+ * Každý plugin spravuje svůj vlastní API klíč ve sdíleném úložišti aplikace.
  */
 
 import {

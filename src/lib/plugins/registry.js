@@ -9,7 +9,7 @@
  */
 
 import { reactive, ref } from 'vue'
-import { mirrorToTauri } from '../tauriBridge.js'
+import { readStoredValue, writeStoredValue } from '../tauriBridge.js'
 
 // ---------------------------------------------------------------------------
 // Plugin config persistence (enabled/disabled state)
@@ -18,12 +18,12 @@ import { mirrorToTauri } from '../tauriBridge.js'
 const PLUGIN_CONFIG_KEY = 'uxlog_plugins'
 
 /**
- * Načte konfiguraci pluginů z localStorage.
+ * Načte konfiguraci pluginů z úložiště aplikace.
  * @returns {{ [pluginId: string]: { enabled: boolean } }}
  */
 export function loadPluginConfig() {
   try {
-    const raw = localStorage.getItem(PLUGIN_CONFIG_KEY)
+    const raw = readStoredValue(PLUGIN_CONFIG_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -31,14 +31,12 @@ export function loadPluginConfig() {
 }
 
 /**
- * Uloží konfiguraci pluginů do localStorage a zrcadlí do Tauri souboru.
+ * Uloží konfiguraci pluginů do úložiště aplikace (SQLite).
  * @param {{ [pluginId: string]: { enabled: boolean } }} config
  */
 export function savePluginConfig(config) {
   try {
-    const json = JSON.stringify(config)
-    localStorage.setItem(PLUGIN_CONFIG_KEY, json)
-    mirrorToTauri(PLUGIN_CONFIG_KEY, json)
+    writeStoredValue(PLUGIN_CONFIG_KEY, JSON.stringify(config)).catch(() => {})
   } catch (e) {
     console.error('[PluginRegistry] savePluginConfig failed:', e)
   }
@@ -255,7 +253,7 @@ export function setCoreRefs(refs) {
 }
 
 /**
- * Register a plugin. Respects the enabled/disabled config from localStorage.
+ * Register a plugin. Respects the enabled/disabled config from app storage.
  * Disabled plugins are stored in allPluginDefs but not installed.
  * @param {Object} plugin  Plugin definition with id, name, install()
  */
@@ -311,7 +309,7 @@ export function unregisterPlugin(id) {
 
 /**
  * Enable a plugin at runtime. Installs it if not already running.
- * Persists the enabled state to localStorage.
+ * Persists the enabled state to app storage.
  * @param {string} id
  */
 export function enablePlugin(id) {
@@ -334,7 +332,7 @@ export function enablePlugin(id) {
 
 /**
  * Disable a plugin at runtime. Uninstalls it but keeps the definition.
- * Persists the disabled state to localStorage.
+ * Persists the disabled state to app storage.
  * @param {string} id
  */
 export function disablePlugin(id) {

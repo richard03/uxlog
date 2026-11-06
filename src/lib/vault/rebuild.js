@@ -1,7 +1,7 @@
 /**
  * Vault – složka dat jako zdroj pravdy, databáze aplikace jako mezipaměť.
  *
- * Databáze (localStorage + SQLite) si pro každou složku pamatuje značku synchronizace (syncId),
+ * Databáze (SQLite) si pro každou složku pamatuje značku synchronizace (syncId),
  * kterou naposledy sama zapsala do jejího manifestu. Před každým zápisem se značky porovnají:
  *   shodné                       → databáze je se složkou v souladu (nanejvýš má novější úpravy)
  *   složka bez projektů          → první zápis: data aplikace se do složky zapíší (SEED)

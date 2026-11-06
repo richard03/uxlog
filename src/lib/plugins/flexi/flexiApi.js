@@ -2,6 +2,7 @@
  * Flexi API – konfigurace a HTTP vrstva.
  * Neobsahuje sync logiku (ta je v flexiSync.js) aby nevznikla cirkulární závislost se state.js.
  */
+import { readStoredValue, writeStoredValue, removeStoredValue } from '../../tauriBridge.js'
 
 const CONFIG_KEY = 'uxlog_flexi_config'
 
@@ -10,12 +11,12 @@ const CONFIG_KEY = 'uxlog_flexi_config'
 // ---------------------------------------------------------------------------
 
 /**
- * Načte konfiguraci Flexi API z localStorage.
+ * Načte konfiguraci Flexi API z úložiště aplikace.
  * @returns {{ url: string, apiKey: string, syncEnabled: boolean }}
  */
 export function loadFlexiConfig() {
   try {
-    const raw = localStorage.getItem(CONFIG_KEY)
+    const raw = readStoredValue(CONFIG_KEY)
     return raw ? JSON.parse(raw) : { url: '', apiKey: '', syncEnabled: true }
   } catch {
     return { url: '', apiKey: '', syncEnabled: true }
@@ -23,12 +24,12 @@ export function loadFlexiConfig() {
 }
 
 /**
- * Uloží konfiguraci Flexi API do localStorage.
+ * Uloží konfiguraci Flexi API do úložiště aplikace.
  * @param {{ url: string, apiKey: string }} config
  */
 export function saveFlexiConfig(config) {
   try {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config))
+    writeStoredValue(CONFIG_KEY, JSON.stringify(config)).catch(() => {})
   } catch (e) {
     console.error('[FlexiAPI] saveFlexiConfig failed:', e)
   }
@@ -111,7 +112,7 @@ const BULK_PATH = '/api/uxlog_batch'
 
 /** null = neznámé, true = podporováno, false = nepodporováno */
 const BULK_AVAILABLE_KEY = 'uxlog_bulk_available'
-let bulkAvailable = localStorage.getItem(BULK_AVAILABLE_KEY) === 'true' ? null : false
+let bulkAvailable = readStoredValue(BULK_AVAILABLE_KEY) === 'true' ? null : false
 
 /** Maximální počet operací v jednom bulk requestu (~15–20 KB při typické velikosti záznamu). */
 const MAX_BULK_OPS = 30
@@ -158,13 +159,13 @@ async function processBulk() {
   try {
     const resp = await flexiRequest('POST', BULK_PATH, bulkBody)
     bulkAvailable = true
-    localStorage.setItem(BULK_AVAILABLE_KEY, 'true')
+    writeStoredValue(BULK_AVAILABLE_KEY, 'true').catch(() => {})
     try { results = await resp.json() } catch { results = [] }
   } catch (e) {
     const isNotSupported = /HTTP (404|405|501)/.test(e.message) || e instanceof TypeError
     if (isNotSupported) {
       bulkAvailable = false
-      localStorage.removeItem(BULK_AVAILABLE_KEY)
+      removeStoredValue(BULK_AVAILABLE_KEY)
       console.info('[FlexiAPI] bulk endpoint není dostupný, přepínám na individuální požadavky')
       for (let i = ops.length - 1; i >= 0; i--) queue.unshift(ops[i])
     } else {

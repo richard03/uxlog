@@ -19,8 +19,7 @@ import {
 const history = reactive({ projects: normalizeHistory(loadHistoryData()) })
 
 /**
- * Znovu načte historii z úložiště. Volá initStore() – v Tauri se localStorage
- * obnovuje z nativního storage až po importu modulů.
+ * Znovu načte historii z úložiště (volá initStore()).
  */
 export function initHistory() {
   history.projects = normalizeHistory(loadHistoryData())

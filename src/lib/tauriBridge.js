@@ -1,125 +1,150 @@
 /**
- * Tauri bridge – detekce prostředí a zrcadlení localStorage do nativního storage.
+ * Tauri bridge – detekce prostředí a úložiště aplikace.
  *
- * V Tauri WebView localStorage funguje, ale data nejsou dostupná pro
- * lokální HTTP server (Figma plugin). Tento modul zrcadlí každý zápis
- * do SQLite backendu přes Tauri invoke a při startu obnoví localStorage z něj,
- * pokud je prázdný (první spuštění, vymazaná cache).
+ * UXLog je jen desktopová aplikace. Všechna uložená data (stav, historie, konfigurace, nastavení
+ * konektorů…) jsou v SQLite (Rust `storage.rs`). Při startu se načtou najednou do paměti
+ * (`initStorage`), čte se synchronně z paměti (`readStoredValue`) a každý zápis jde rovnou
+ * do SQLite (`writeStoredValue`). localStorage se nepoužívá – jen při prvním startu nové verze se
+ * z něj jednorázově převezme, co v SQLite chybí, a pak se vyčistí.
+ *
+ * Mimo Tauri (testy, náhled `npm run dev` v prohlížeči) je úložiště jen v paměti a po obnovení
+ * stránky se ztratí.
  */
 
 /** Vrátí true, pokud aplikace běží uvnitř Tauri WebView (v2). */
 export const isTauri =
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-/**
- * Klíče localStorage, které se zrcadlí do Tauri souborů.
- * Flexi-related klíče záměrně vynecháváme (deprecated).
- */
-const MIRRORED_KEYS = [
-  'uxlog_data',
-  'uxlog_history',
-  'uxlog_config',
-  'uxlog_plugins',
-  'uxlog_ai_keys',
-  'uxlog_last_save_ts',
-  'uxlog_last_api_ts',
-  'uxlog_vault',
-  'uxlog_vault_sync',
-  'uxlog_recognita',
-]
+/** Klíče aplikace (prefix) – podle něj se při migraci přebírá a čistí localStorage. */
+const KEY_PREFIX = 'uxlog_'
 
 /**
- * Uloží hodnotu do nativního storage přes Tauri IPC.
- * Vrací Promise, aby volající mohl čekat na dokončení zápisu.
- * @param {string} key  Klíč localStorage
- * @param {string} value  Serializovaná hodnota (JSON string nebo plain string)
+ * Hodnoty uložených klíčů v paměti (zrcadlo SQLite).
+ * @type {Map<string, string>}
+ */
+const values = new Map()
+
+let initialized = false
+let writesInFlight = 0
+
+/** Probíhá zápis do SQLite? (kontrola externích změn ho počká) */
+export function isMirrorInFlight() { return writesInFlight > 0 }
+
+async function invokeCmd(cmd, args) {
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke(cmd, args)
+}
+
+/**
+ * Načte úložiště do paměti. Volá se z main.js před načtením storů a pluginů – moduly, které
+ * čtou nastavení už při importu, proto vždy vidí data ze SQLite.
+ * Jednorázová migrace: klíče aplikace z localStorage (starší verze), které SQLite nemá, se do něj
+ * zapíšou; localStorage se pak od klíčů aplikace vyčistí. Kde SQLite hodnotu má, platí SQLite.
  * @returns {Promise<void>}
  */
-let _mirrorInFlight = 0
-export function isMirrorInFlight() { return _mirrorInFlight > 0 }
-
-export async function mirrorToTauri(key, value) {
+export async function initStorage() {
+  if (initialized) return
+  initialized = true
   if (!isTauri) return
-  _mirrorInFlight++
+  const stored = (await invokeCmd('load_all_storage')) || {}
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === 'string') values.set(key, value)
+  }
+  await migrateFromLocalStorage()
+}
+
+async function migrateFromLocalStorage() {
+  let ls
   try {
-    const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('save_storage', { key, value })
+    ls = window.localStorage
+  } catch {
+    return
+  }
+  if (!ls) return
+  const keys = []
+  for (let i = 0; i < ls.length; i++) {
+    const key = ls.key(i)
+    if (key && key.startsWith(KEY_PREFIX)) keys.push(key)
+  }
+  if (!keys.length) return
+  let failed = false
+  for (const key of keys) {
+    if (values.has(key)) continue
+    const value = ls.getItem(key)
+    if (value == null) continue
+    try {
+      await invokeCmd('save_storage', { key, value })
+      values.set(key, value)
+      console.log(`[Storage] převzato z localStorage: ${key}`)
+    } catch (err) {
+      failed = true
+      console.error(`[Storage] převzetí ${key} z localStorage selhalo:`, err)
+    }
+  }
+  // Vyčistit jen po úspěšném převzetí – jinak to zkusí příští start
+  if (!failed) {
+    for (const key of keys) {
+      try { ls.removeItem(key) } catch { /* nic */ }
+    }
+  }
+}
+
+/**
+ * Přečte uloženou hodnotu klíče.
+ * @param {string} key
+ * @returns {string|null}
+ */
+export function readStoredValue(key) {
+  return values.has(key) ? values.get(key) : null
+}
+
+/**
+ * Uloží hodnotu klíče (paměť + SQLite). Promise se odmítne, když se zápis do SQLite nepovede.
+ * @param {string} key
+ * @param {string} value
+ * @returns {Promise<void>}
+ */
+export async function writeStoredValue(key, value) {
+  values.set(key, value)
+  if (!isTauri) return
+  writesInFlight++
+  try {
+    await invokeCmd('save_storage', { key, value })
   } catch (err) {
-    console.error('[TauriBridge] mirrorToTauri failed:', err)
+    console.error(`[Storage] zápis ${key} selhal:`, err)
+    throw err
   } finally {
-    _mirrorInFlight--
+    writesInFlight--
   }
 }
 
 /**
- * Načte hodnotu z nativního storage přes Tauri IPC.
+ * Smaže uložený klíč.
  * @param {string} key
- * @returns {Promise<string|null>}
+ * @returns {Promise<void>}
  */
-async function loadFromTauri(key) {
-  if (!isTauri) return null
-  const { invoke } = await import('@tauri-apps/api/core')
-  return invoke('load_storage', { key })
-}
-
-/**
- * Znovu načte konkrétní klíč z nativního storage a přepíše jím localStorage.
- * Vrací načtenou hodnotu, nebo null pokud neexistuje.
- * @param {string} key
- * @returns {Promise<string|null>}
- */
-export async function reloadKeyFromTauri(key) {
-  const value = await loadFromTauri(key)
-  if (value == null) {
-    localStorage.removeItem(key)
-    return null
+export async function removeStoredValue(key) {
+  values.delete(key)
+  if (!isTauri) return
+  try {
+    await invokeCmd('remove_storage', { key })
+  } catch (err) {
+    console.error(`[Storage] smazání ${key} selhalo:`, err)
   }
-  localStorage.setItem(key, value)
-  return value
 }
 
 /**
- * Porovná `uxlog_data` v localStorage s nativním storage backendem.
- * Při rozdílu přepíše localStorage a vrátí true — volající pak může obnovit Vue state.
+ * Porovná `uxlog_data` v paměti s SQLite (změny přes lokální HTTP API, např. z Figmy).
+ * Při rozdílu převezme hodnotu ze SQLite a vrátí true — volající pak obnoví Vue state.
  * @returns {Promise<boolean>}
  */
 export async function pullUxlogDataFromDiskIntoApp() {
   if (!isTauri) return false
-  const { invoke } = await import('@tauri-apps/api/core')
-  const fromDisk = await invoke('load_storage', { key: 'uxlog_data' })
+  const fromDisk = await invokeCmd('load_storage', { key: 'uxlog_data' })
   if (fromDisk == null) return false
-  const cur = localStorage.getItem('uxlog_data') ?? ''
-  if (fromDisk === cur) return false
-  localStorage.setItem('uxlog_data', fromDisk)
+  if (fromDisk === (values.get('uxlog_data') ?? '')) return false
+  values.set('uxlog_data', fromDisk)
   return true
-}
-
-/**
- * Při startu Tauri aplikace obnoví chybějící klíče v localStorage z nativního storage.
- * Pokud storage backend ještě neobsahuje hodnotu, ale localStorage ano,
- * seedne backend z lokální hodnoty kvůli migraci starších instalací.
- * Volá se z main.js PŘED inicializací storů.
- */
-export async function restoreAllFromTauri() {
-  if (!isTauri) return
-  for (const key of MIRRORED_KEYS) {
-    const existing = localStorage.getItem(key)
-    try {
-      const value = await loadFromTauri(key)
-      if (value != null) {
-        if (existing) continue
-        localStorage.setItem(key, value)
-        console.log(`[TauriBridge] Obnoveno z nativního storage: ${key}`)
-        continue
-      }
-      if (existing) {
-        await mirrorToTauri(key, existing)
-        console.log(`[TauriBridge] Seednuto do nativního storage: ${key}`)
-      }
-    } catch (err) {
-      console.warn(`[TauriBridge] Nelze obnovit ${key}:`, err)
-    }
-  }
 }
 
 /**

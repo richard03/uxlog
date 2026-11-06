@@ -1,4 +1,4 @@
-**UXLog** is a desktop application for UX design process logging and cooperation with Figma. It operates in a closed environment without internet connection; plugins may add connections such as LLM services or external APIs.
+**UXLog** is a desktop application (desktop only – there is no web version) for UX design process logging and cooperation with Figma. All stored data – project data, change history, configuration and connector settings – lives in one embedded SQLite database; on startup it is loaded into memory before anything else, every save is written straight to it, and there is no second copy (such as browser storage) that could fall behind. Opened in an ordinary web browser, the app only says that it is a desktop application. It operates in a closed environment without internet connection; plugins may add connections such as LLM services or external APIs.
 
 ## Data Model
 
@@ -39,7 +39,7 @@
 Legacy fields `_ts` and `_uxlog_id`, written into records by an older version of the Flexi API sync, are removed from all records when the data loads (the current sync keeps its timestamps and id mapping outside the records), and the local HTTP API does not store them either. When two records with the same id meet (deduplication), the one with the later `updatedAt` (then `lastWorkedAt`, `createdAt`) wins.
 
 ### Data folder (vault) – project data as files
-The project data as a folder of plain files (the "vault"), so external tools such as Claude Code can read and edit it. The app writes the files, and changes made in the files come back into the app automatically (always; only conflicts and unusually large batches wait for the user). When the folder is on, it is the source of truth and the app database (localStorage + SQLite) is only a cache that can always be rebuilt from it.
+The project data as a folder of plain files (the "vault"), so external tools such as Claude Code can read and edit it. The app writes the files, and changes made in the files come back into the app automatically (always; only conflicts and unusually large batches wait for the user). When the folder is on, it is the source of truth and the app database (SQLite) is only a cache that can always be rebuilt from it. 
 
 Folder as the source of truth: every write gives the manifest (`.uxlog/manifest.json`) a new random sync mark (`syncId`), and the database remembers the mark it wrote last, together with the folder path (`uxlog_vault_sync`). Before every write/check the two marks are compared:
 - same mark → the database matches the folder (it may only hold newer edits that were not written yet) → the normal write and automatic loading follow;

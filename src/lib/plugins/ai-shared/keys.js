@@ -1,21 +1,21 @@
 /**
  * Sdílená správa API klíčů pro AI služby.
- * Oba pluginy (Gemini, OpenAI) sdílejí stejný localStorage klíč.
+ * Oba pluginy (Gemini, OpenAI) sdílejí stejný klíč úložiště.
  * Klíče nejsou součástí exportu dat.
  * V Tauri prostředí se zrcadlí do souborů přes tauriBridge.
  */
 
-import { mirrorToTauri } from '../../tauriBridge.js'
+import { readStoredValue, writeStoredValue } from '../../tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_ai_keys'
 
 /**
- * Načte API klíče z localStorage.
+ * Načte API klíče z úložiště aplikace.
  * @returns {Object} Mapa { serviceId: apiKey, serviceId_model: model, ... }
  */
 export function loadAiKeys() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readStoredValue(STORAGE_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch (e) {
     console.error('loadAiKeys failed:', e)
@@ -24,14 +24,12 @@ export function loadAiKeys() {
 }
 
 /**
- * Uloží API klíče do localStorage a zrcadlí do Tauri souboru.
+ * Uloží API klíče do úložiště aplikace (SQLite).
  * @param {Object} keys
  */
 export function saveAiKeys(keys) {
   try {
-    const json = JSON.stringify(keys)
-    localStorage.setItem(STORAGE_KEY, json)
-    mirrorToTauri(STORAGE_KEY, json)
+    writeStoredValue(STORAGE_KEY, JSON.stringify(keys)).catch(() => {})
   } catch (e) {
     console.error('saveAiKeys failed:', e)
   }

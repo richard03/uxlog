@@ -19,19 +19,15 @@ const logicalEntries = (root, layout) => [...diskOf(root).entries()]
   .map(([path, content]) => [toLogicalPath(path, layout), content])
   .filter(([path]) => path)
 
-/** Databáze aplikace (localStorage) v paměti – značka synchronizace. */
-const storage = new Map()
-vi.stubGlobal('localStorage', {
-  getItem: (k) => (storage.has(k) ? storage.get(k) : null),
-  setItem: (k, v) => storage.set(k, String(v)),
-  removeItem: (k) => storage.delete(k),
-})
+/** Úložiště aplikace (SQLite) v paměti – značka synchronizace. */
+const storage = vi.hoisted(() => new Map())
 vi.spyOn(console, 'log').mockImplementation(() => {})
 
 vi.mock('./cliSource.js', () => ({ default: '// uxlog cli' }))
 vi.mock('../../tauriBridge.js', () => ({
   isTauri: true,
-  mirrorToTauri: vi.fn(async () => {}),
+  readStoredValue: (key) => (storage.has(key) ? storage.get(key) : null),
+  writeStoredValue: vi.fn(async (key, value) => { storage.set(key, String(value)) }),
   vaultDefaultRoot: vi.fn(async () => 'C:\\Users\\x\\Documents\\UXLog\\Data'),
   vaultScan: vi.fn(async (root, layout) => logicalEntries(root, layout).map(([path, content]) => ({ path, hash: sha(content) }))),
   vaultReadFile: vi.fn(async (root, path, layout) => diskOf(root).get(toPhysicalPath(path, layout)) ?? null),

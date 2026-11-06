@@ -235,7 +235,6 @@ export default {
   name: 'Recognita (diktování)',
 
   install(ctx) {
-    // Nastavení mohlo dorazit až s obnovou localStorage z Tauri při startu
     reloadRecognitaSettings()
     ctx.registerCapability('dictation:start', startDictation)
     ctx.registerCapability('dictation:test', testConnection)

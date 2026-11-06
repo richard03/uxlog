@@ -3,12 +3,6 @@
  */
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 
-const storage = new Map()
-vi.stubGlobal('localStorage', {
-  getItem: (k) => (storage.has(k) ? storage.get(k) : null),
-  setItem: (k, v) => storage.set(k, String(v)),
-  removeItem: (k) => storage.delete(k),
-})
 vi.spyOn(console, 'log').mockImplementation(() => {})
 
 let store

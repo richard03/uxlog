@@ -1,7 +1,7 @@
 /**
  * Správa konfigurace (šablony aktivit, vlastní atributy entit, přepisy vestavěných atributů).
  *
- * Výchozí konfigurace (Konfigurace na přehledu projektů) je uložena v localStorage pod klíčem
+ * Výchozí konfigurace (Konfigurace na přehledu projektů) je uložena v úložišti aplikace (SQLite) pod klíčem
  * 'uxlog_config' a slouží jen jako vzor pro nové projekty. Každý projekt má vlastní kopii
  * v `project.config` (ukládá se s daty projektu); její úpravy ostatní projekty neovlivní.
  *
@@ -13,19 +13,19 @@ import { reactive, toRaw } from 'vue'
 import { ACTIVITY_TYPES, getActivityGuide } from '../activityTypes.js'
 import { ENTITY_FIELD_DEFAULTS } from '../entityFieldDefaults.js'
 import { generateId } from '../id.js'
-import { mirrorToTauri } from '../tauriBridge.js'
+import { readStoredValue, writeStoredValue } from '../tauriBridge.js'
 import { getEmptyConfig as emptyConfig, normalizeConfig, fillMissingProjectConfigs } from '../projectConfig.js'
 import { state, persist as persistData, setProjectConfigFactory } from './state.js'
 
 const STORAGE_KEY = 'uxlog_config'
 
 /**
- * Načte výchozí konfiguraci z localStorage.
+ * Načte výchozí konfiguraci z úložiště aplikace.
  * @returns {Object}
  */
 function loadConfig() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readStoredValue(STORAGE_KEY)
     return raw ? normalizeConfig(JSON.parse(raw)) : getEmptyConfig()
   } catch {
     return getEmptyConfig()
@@ -52,12 +52,10 @@ function cloneDefaultConfig() {
 setProjectConfigFactory(cloneDefaultConfig)
 
 /**
- * Uloží výchozí konfiguraci do localStorage a zrcadlí do Tauri souboru.
+ * Uloží výchozí konfiguraci do úložiště aplikace (SQLite).
  */
 function persistDefault() {
-  const json = JSON.stringify(toRaw(configState))
-  localStorage.setItem(STORAGE_KEY, json)
-  mirrorToTauri(STORAGE_KEY, json)
+  writeStoredValue(STORAGE_KEY, JSON.stringify(toRaw(configState))).catch((e) => console.error('[UXLog] uložení konfigurace selhalo:', e))
 }
 
 /**

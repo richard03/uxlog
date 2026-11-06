@@ -129,7 +129,7 @@ export function persist({ history = true } = {}) {
   if (history) recordChanges(diffStates(persistedSnapshot, raw, Object.keys(getEmptyData())))
 
   persistedSnapshot = JSON.parse(JSON.stringify(raw))
-  saveData(raw)
+  saveData(raw).catch((e) => console.error('[UXLog] uložení dat do databáze selhalo:', e))
 
   // Emituj událost pro pluginy (data-status, flexi sync, atd.)
   emit('data:persisted', { state: raw, deletedEntities })
