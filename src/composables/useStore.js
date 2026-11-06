@@ -44,6 +44,7 @@ export function useStore() {
     getSources: store.getSources,
     getSource: store.getSource,
     addSource: store.addSource,
+    addSourceForEntity: store.addSourceForEntity,
     updateSource: store.updateSource,
     deleteSource: store.deleteSource,
     getHypotheses: store.getHypotheses,

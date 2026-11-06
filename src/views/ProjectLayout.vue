@@ -54,15 +54,23 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 <style scoped>
 .project-layout {
   display: grid;
-  /* Obrazovka vlevo (tři díly – na detailu projektu tři sloupce), Chat vpravo přes dva díly */
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  column-gap: var(--space-lg);
+  /* 12sloupcový grid: obrazovka vlevo (--grid-project-content), Chat vpravo (--grid-project-chat) */
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  column-gap: var(--grid-gap);
   align-items: start;
 }
 
-/* Bez Zápisníku: obsah obrazovky přes celou šířku */
-.project-layout--no-chat {
-  grid-template-columns: minmax(0, 1fr);
+.project-layout > .project-layout-content {
+  grid-column: span var(--grid-project-content);
+}
+
+.project-layout > .project-layout-chat {
+  grid-column: span var(--grid-project-chat);
+}
+
+/* Bez Chatu: obsah obrazovky přes celou šířku */
+.project-layout--no-chat > .project-layout-content {
+  grid-column: 1 / -1;
 }
 
 .project-layout-header {
@@ -116,8 +124,9 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 
 /* Úzká okna: obsah nahoře, chat pod ním */
 @media (max-width: 800px) {
-  .project-layout {
-    grid-template-columns: minmax(0, 1fr);
+  .project-layout > .project-layout-content,
+  .project-layout > .project-layout-chat {
+    grid-column: 1 / -1;
   }
 
   .project-layout-chat {

@@ -840,7 +840,7 @@ const ASK_MAX_NOTES_CHARS = 12000
 /** Limit textu zdrojů v kontextu dotazu / pokynu (celkem a na jeden zdroj). */
 const SOURCES_CONTEXT_MAX_CHARS = 40000
 const SOURCE_CONTEXT_MAX_CHARS = 12000
-const SOURCE_KIND_LABELS = { document: 'dokument', interview: 'přepis rozhovoru', email: 'e-mail', other: 'jiný' }
+const SOURCE_KIND_LABELS = { document: 'dokument', interview: 'přepis rozhovoru', meeting: 'zápis z meetingu', email: 'e-mail', other: 'jiný' }
 
 /**
  * Zdroje projektu (dokumenty, přepisy rozhovorů, e-maily) jako kontext pro AI – od nejnovějších,

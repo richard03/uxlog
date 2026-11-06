@@ -116,7 +116,7 @@ import AddSourceModal from '../components/AddSourceModal.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
 import { formatDate } from '../utils/formatDate.js'
 
-const KINDS = ['document', 'interview', 'email', 'other']
+const KINDS = ['document', 'interview', 'meeting', 'email', 'other']
 
 const route = useRoute()
 const router = useRouter()

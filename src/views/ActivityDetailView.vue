@@ -22,7 +22,7 @@
 
     <!-- Sloupce: stav, termín, popis typu a poznámky | checklist | „Jak na to“; souvislosti pod nimi -->
     <div class="activity-layout-wrap">
-    <div class="activity-layout" :class="[`activity-layout--cols-${columnCount}`, { 'activity-layout--guide-only': hasSteps && !hasChecklist }]">
+    <div class="activity-layout" :class="[`activity-layout--cols-${columnCount}`, { 'activity-layout--guide-only': !hasChecklist }]">
       <div class="activity-layout-main">
         <section class="detail-section">
           <dl class="detail-list">
@@ -98,11 +98,12 @@
     />
       </div>
 
-      <!-- „Jak na to“ – po příchodu sbalené -->
-      <div v-if="hasSteps" class="activity-layout-guide">
-        <SectionCard :aria-label="t.activity.typeInfo">
+      <!-- Pravý sloupec: „Jak na to“ (po příchodu sbalené) a zápis z meetingu -->
+      <div class="activity-layout-guide">
+        <SectionCard v-if="hasSteps" :aria-label="t.activity.typeInfo">
           <ActivityGuide :guide="activityType.guide" part="steps" />
         </SectionCard>
+        <ActivityMeetingNotes :project-id="projectId" :activity-id="item.id" />
       </div>
     </div>
     </div>
@@ -161,6 +162,7 @@ import SectionCard from '../components/SectionCard.vue'
 import ActivityGuide from '../components/ActivityGuide.vue'
 import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
+import ActivityMeetingNotes from '../components/ActivityMeetingNotes.vue'
 import TaskAddModal from '../components/TaskAddModal.vue'
 import { getEffectiveActivityChecklist, resolveActivityChecklistItemLabel } from '../lib/activityChecklistLinks.js'
 import { formatCalendarDate } from '../utils/formatDate.js'
@@ -182,7 +184,8 @@ const hasChecklist = computed(() => Boolean(activityType.value || activityItem.v
 /** Pravý sloupec „Jak na to“ jen u typu aktivity s postupem nebo výstupy. */
 const hasSteps = computed(() => Boolean(activityType.value?.guide?.steps?.length || activityType.value?.guide?.outputs?.length))
 /** Počet sloupců rozložení (hlavní + checklist + „Jak na to“). */
-const columnCount = computed(() => 1 + (hasChecklist.value ? 1 : 0) + (hasSteps.value ? 1 : 0))
+/** Hlavní sloupec + checklist (je-li) + pravý sloupec („Jak na to“ a zápis z meetingu, vždy). */
+const columnCount = computed(() => 2 + (hasChecklist.value ? 1 : 0))
 
 const effectiveChecklist = computed(() =>
   getEffectiveActivityChecklist(activityItem.value, activityType.value?.checklist)
@@ -350,7 +353,7 @@ function doDelete() {
 </script>
 
 <style scoped>
-/* Až tři sloupce podle šířky obsahu: stav, popis a poznámky | checklist | „Jak na to“.
+/* Dva nebo tři sloupce ve 12sloupcovém gridu: stav, popis a poznámky | checklist (je-li) | „Jak na to“ + zápis z meetingu.
    Container query (na obalu – kontejner nemůže stylovat sám sebe) funguje i v úzkém okně nad plátnem. */
 /* Vodorovná linka odděluje sloupce od Souvislostí pod nimi */
 .activity-layout-wrap {
@@ -362,15 +365,16 @@ function doDelete() {
 
 .activity-layout {
   display: grid;
-  gap: var(--space-lg);
+  /* 12sloupcový grid; šířky sloupců = --grid-activity-* v style.css */
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  gap: var(--grid-gap);
   align-items: start;
 }
 
-/* Jednotný pětisloupcový layout: hlavní sloupec 2 díly, checklist 2 díly, „Jak na to“ 1 díl */
-.activity-layout--cols-1 { grid-template-columns: minmax(0, 1fr); }
-.activity-layout--cols-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.activity-layout--cols-2.activity-layout--guide-only { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-.activity-layout--cols-3 { grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr); }
+.activity-layout-main { grid-column: span var(--grid-activity-main); }
+.activity-layout-checklist { grid-column: span var(--grid-activity-checklist); }
+.activity-layout-guide { grid-column: span var(--grid-activity-side); }
+.activity-layout--guide-only .activity-layout-main { grid-column: span var(--grid-activity-main-wide); }
 
 .activity-layout > * {
   min-width: 0;
@@ -385,18 +389,28 @@ function doDelete() {
   margin-top: 0;
 }
 
+.activity-layout-guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.activity-layout-guide > * {
+  margin: 0;
+}
+
 /* Střední šířka: dva sloupce, třetí („Jak na to“) pod nimi přes celou šířku */
 @container (max-width: 1000px) {
-  .activity-layout--cols-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .activity-layout--cols-3 .activity-layout-main,
+  .activity-layout--cols-3 .activity-layout-checklist { grid-column: span 6; }
   .activity-layout--cols-3 .activity-layout-guide { grid-column: 1 / -1; }
 }
 
 /* Úzký prostor: vše pod sebou */
 @container (max-width: 700px) {
-  .activity-layout--cols-2,
-  .activity-layout--cols-2.activity-layout--guide-only,
-  .activity-layout--cols-3 { grid-template-columns: minmax(0, 1fr); }
-  .activity-layout--cols-3 .activity-layout-guide { grid-column: auto; }
+  .activity-layout .activity-layout-main,
+  .activity-layout .activity-layout-checklist,
+  .activity-layout .activity-layout-guide { grid-column: 1 / -1; }
 }
 
 .activity-type-desc {

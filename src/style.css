@@ -21,6 +21,26 @@
   /* Max. šířka layoutu – sdílí AppHeader i obsah (.container); při změně uprav i @media u .container */
   --layout-max-width: 1500px;
 
+  /* Layoutový grid: 12 sloupců, mezera --grid-gap. Šířky sloupců obrazovek = počet sloupců gridu
+     (ladí se jen tady). Vnořené gridy používají stejnou mezeru, takže sloupce lícují s hlavním gridem. */
+  --grid-columns: 12;
+  --grid-gap: var(--space-lg);
+  /* Seznam projektů: šířka dlaždice (3 = čtyři dlaždice na řádek) */
+  --grid-project-tile: 3;
+  /* Obrazovky projektu (ProjectLayout): obsah | Chat (jen detail projektu) */
+  --grid-project-content: 7;
+  --grid-project-chat: 5;
+  /* Detail projektu (uvnitř obsahu, součet = --grid-project-content) */
+  --grid-project-basics: 2;
+  --grid-project-activities: 3;
+  --grid-project-artifacts: 2;
+  /* Detail aktivity: hlavní sloupec | checklist | Jak na to + zápis z meetingu (součet 12) */
+  --grid-activity-main: 4;
+  --grid-activity-checklist: 4;
+  --grid-activity-side: 4;
+  /* Detail aktivity bez checklistu (součet 12) */
+  --grid-activity-main-wide: 8;
+
   /* Výchozí hodnoty (tmavý režim) pro případ, že data-theme ještě není nastaven.
      Neutrální odstíny jsou studené (navy), akcent oranžový. */
   --bg: #0f1724;

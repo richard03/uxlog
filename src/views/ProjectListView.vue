@@ -286,31 +286,31 @@ function saveProject() {
   gap: var(--space-sm);
 }
 
-/* Dlaždice projektů: 5 na řádek (jednotný pětisloupcový layout), na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
+/* Dlaždice projektů ve 12sloupcovém gridu (šířka dlaždice --grid-project-tile), na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
 .project-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  gap: var(--grid-gap);
   align-items: stretch;
 }
 
-@media (max-width: 1350px) {
-  .project-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.project-list > :deep(.entity-card) {
+  grid-column: span var(--grid-project-tile);
 }
 
 @media (max-width: 1100px) {
-  .project-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .project-list > :deep(.entity-card) { grid-column: span 4; }
 }
 
 @media (max-width: 800px) {
-  .project-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .project-list > :deep(.entity-card) { grid-column: span 6; }
 }
 
 @media (max-width: 520px) {
-  .project-list { grid-template-columns: minmax(0, 1fr); }
+  .project-list > :deep(.entity-card) { grid-column: 1 / -1; }
 }
 
 /* Dlaždice: název nahoře, štítky pod ním přes celou výšku */

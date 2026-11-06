@@ -32,3 +32,21 @@ describe('migrateNotebookToSources', () => {
     expect(store.getSources(pid)).toHaveLength(2)
   })
 })
+
+describe('addSourceForEntity', () => {
+  it('přidá zdroj propojený s aktivitou', () => {
+    const pid = store.addProject({ name: 'Meeting' }).id
+    const activity = store.addActivity(pid, { name: 'Workshop' })
+    const source = store.addSourceForEntity(pid, 'activities', activity.id, { name: 'Zápis', kind: 'meeting', content: 'Text' })
+    expect(source).toMatchObject({ projectId: pid, name: 'Zápis', kind: 'meeting', content: 'Text' })
+    const links = store.getConnectionsFor('activities', activity.id)
+    expect(links.some((c) => c.entityId1 === source.id || c.entityId2 === source.id)).toBe(true)
+  })
+
+  it('neexistující záznam nebo cizí projekt → nic nepřidá', () => {
+    const pid = store.addProject({ name: 'Jiný' }).id
+    const count = store.getSources(pid).length
+    expect(store.addSourceForEntity(pid, 'activities', 'neexistuje', { content: 'x' })).toBeNull()
+    expect(store.getSources(pid)).toHaveLength(count)
+  })
+})

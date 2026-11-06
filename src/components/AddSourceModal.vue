@@ -37,7 +37,7 @@
         v-model="draft.kind"
         :label="t.source.kind"
         control-id="source-kind"
-        :options="['document', 'interview', 'email', 'other'].map((k) => ({ value: k, label: t.sourceKind[k] }))"
+        :options="['document', 'interview', 'meeting', 'email', 'other'].map((k) => ({ value: k, label: t.sourceKind[k] }))"
       />
       <FormTextarea
         v-model="draft.content"

@@ -334,6 +334,8 @@ entities:
             labelKey: sourceKind.document
           - value: interview
             labelKey: sourceKind.interview
+          - value: meeting
+            labelKey: sourceKind.meeting
           - value: email
             labelKey: sourceKind.email
           - value: other

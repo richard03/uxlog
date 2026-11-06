@@ -286,9 +286,10 @@ function handleImported({ projectId: importedProjectId }) {
 <style scoped>
 .project-columns {
   display: grid;
-  /* Základní informace | Aktivity | Artefakty – tři stejné sloupce; Chat je vpravo v ProjectLayout */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-lg);
+  /* Základní informace | Aktivity | Artefakty ve sloupcích 12sloupcového gridu (vnořený grid se stejným
+     počtem sloupců a mezerou jako obsah v ProjectLayout, takže lícuje); Chat je vpravo v ProjectLayout */
+  grid-template-columns: repeat(var(--grid-project-content), minmax(0, 1fr));
+  gap: var(--grid-gap);
   align-items: start;
   margin-top: 0;
 }
@@ -296,6 +297,10 @@ function handleImported({ projectId: importedProjectId }) {
 .project-column {
   min-width: 0;
 }
+
+.project-columns > .project-column:nth-child(1) { grid-column: span var(--grid-project-basics); }
+.project-columns > .project-column:nth-child(2) { grid-column: span var(--grid-project-activities); }
+.project-columns > .project-column:nth-child(3) { grid-column: span var(--grid-project-artifacts); }
 
 .project-column-title {
   display: flex;
@@ -310,6 +315,7 @@ function handleImported({ projectId: importedProjectId }) {
   .project-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .project-columns > .project-column:nth-child(n) { grid-column: auto; }
 }
 
 @media (max-width: 800px) {
