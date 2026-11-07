@@ -1,10 +1,11 @@
 <template>
+  <!-- Do body: dialog nesmí uvěznit kontext vrstvení rodiče (např. přichycený detail) -->
+  <Teleport to="body">
   <div
     class="modal-overlay"
     role="alertdialog"
     aria-modal="true"
     :aria-labelledby="titleId"
-    @keydown.esc="cancel"
   >
     <div class="modal" ref="modalRef">
       <header class="modal-header">
@@ -23,10 +24,12 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
+import { useDialog } from '../composables/useDialog.js'
 import { useI18n } from '../composables/useI18n.js'
 import AppButton from './AppButton.vue'
 
@@ -51,26 +54,8 @@ function cancel() {
   emit('cancel')
 }
 
-function handleClick(e) {
-  if (modalRef.value && !modalRef.value.contains(e.target)) {
-    cancel()
-  }
-}
-
-let timeoutId
-
-onMounted(() => {
-  document.body.style.overflow = 'hidden'
-  timeoutId = setTimeout(() => {
-    document.addEventListener('click', handleClick)
-  }, 0)
-})
-
-onUnmounted(() => {
-  clearTimeout(timeoutId)
-  document.removeEventListener('click', handleClick)
-  document.body.style.overflow = ''
-})
+// Fokus (nejdřív na Zrušit), Esc, klik mimo a zámek posouvání stránky (jen nejvyšší dialog)
+useDialog(modalRef, { onClose: cancel })
 </script>
 
 <style scoped>

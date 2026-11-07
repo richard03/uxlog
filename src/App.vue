@@ -2,6 +2,7 @@
   <div class="app" :class="{ 'app--full-screen': route.meta.fullScreen }">
     <a href="#main" class="skip-link">{{ t.common.skipToContent }}</a>
     <AppHeader />
+    <SaveProblemBanner />
     <main id="main" class="main" role="main">
       <router-view v-slot="{ Component }">
         <Suspense>
@@ -25,17 +26,19 @@ import { useRoute } from 'vue-router'
 import { toRaw } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import StatusBar from './components/StatusBar.vue'
+import SaveProblemBanner from './components/SaveProblemBanner.vue'
 import ToastNotification from './components/ToastNotification.vue'
 import { useI18n } from './composables/useI18n.js'
 import { state, getData, persist } from './lib/stores/index.js'
 import { replaceStateFromStorage } from './lib/stores/state.js'
+import { applyExternalChanges } from './lib/stores/external.js'
 import { useVaultNotifications } from './composables/useVaultSettings.js'
 import { hasCapability, callCapability } from './lib/plugins/registry.js'
 import {
   isTauri,
-  isMirrorInFlight,
   listenToTauriStorageUpdates,
-  pullUxlogDataFromDiskIntoApp,
+  fetchExternalChanges,
+  reloadUxlogDataFromDisk,
   openExternal,
 } from './lib/tauriBridge.js'
 
@@ -46,24 +49,39 @@ const route = useRoute()
 
 /** Interval automatického syncu (každých 60 s). */
 const SYNC_INTERVAL_MS = 60_000
-/** Tauri: periodická kontrola nativního storage pro zápisy z Figma HTTP API mimo WebView. */
+/** Tauri: záložní kontrola změn z lokálního HTTP API (hlavní signál je událost uxlog-storage-updated). */
 const DISK_STORAGE_POLL_MS = 2_500
 let syncTimer = null
 let diskPollTimer = null
 let syncing = false
 let stopStorageListener = null
 
+/** Poslední vyzvednutá revize změn z lokálního HTTP API (backend začíná od 0 při každém startu). */
+let externalRevision = 0
+let checkingExternal = false
+
 /**
- * Pokud se v nativním storage změnilo uxlog_data (např. PUT z Figmy), převezme ho do paměti a obnoví Vue state.
+ * Vyzvedne změny z lokálního HTTP API (PUT z Figmy) a sloučí je do stavu po záznamech.
+ * Dotaz na revizi je levný – celá databáze se načte jen výjimečně (backend změny už nemá).
  */
-async function applyUxlogDataFromDiskIfChanged() {
-  if (!isTauri) return
-  if (isMirrorInFlight()) return
-  const changed = await pullUxlogDataFromDiskIntoApp()
-  if (!changed) return
-  replaceStateFromStorage()
-  if (hasCapability('sync:set-snapshot')) {
-    callCapability('sync:set-snapshot', toRaw(getData()))
+async function applyExternalDataChanges() {
+  if (!isTauri || checkingExternal) return
+  checkingExternal = true
+  try {
+    const result = await fetchExternalChanges(externalRevision)
+    if (result.reset) {
+      if (await reloadUxlogDataFromDisk()) {
+        replaceStateFromStorage()
+        if (hasCapability('sync:set-snapshot')) callCapability('sync:set-snapshot', toRaw(getData()))
+      }
+    } else if (result.changes.length) {
+      applyExternalChanges(result.changes)
+    }
+    externalRevision = result.revision
+  } catch (err) {
+    console.error('[UXLog] vyzvednutí změn z lokálního API selhalo:', err)
+  } finally {
+    checkingExternal = false
   }
 }
 
@@ -91,10 +109,10 @@ function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
     // Záložka se stala viditelnou: okamžitý sync + obnov interval
     runSync()
-    applyUxlogDataFromDiskIfChanged()
+    applyExternalDataChanges()
     if (!syncTimer) syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
     if (isTauri && !diskPollTimer) {
-      diskPollTimer = setInterval(applyUxlogDataFromDiskIfChanged, DISK_STORAGE_POLL_MS)
+      diskPollTimer = setInterval(applyExternalDataChanges, DISK_STORAGE_POLL_MS)
     }
   } else {
     // Záložka na pozadí: zastav periodický sync
@@ -130,18 +148,18 @@ onMounted(() => {
   document.addEventListener('click', handleExternalLink)
   // Počáteční sync hned po startu
   runSync()
-  applyUxlogDataFromDiskIfChanged()
+  applyExternalDataChanges()
   // Opakovaný sync pro zachycení změn z jiných prohlížečů
   syncTimer = setInterval(runSync, SYNC_INTERVAL_MS)
   if (isTauri) {
-    diskPollTimer = setInterval(applyUxlogDataFromDiskIfChanged, DISK_STORAGE_POLL_MS)
+    diskPollTimer = setInterval(applyExternalDataChanges, DISK_STORAGE_POLL_MS)
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
   if (isTauri) {
     listenToTauriStorageUpdates(async (payload) => {
       if (payload?.key !== 'uxlog_data') return
-      await applyUxlogDataFromDiskIfChanged()
+      await applyExternalDataChanges()
     }).then((unlisten) => {
       stopStorageListener = unlisten
     })

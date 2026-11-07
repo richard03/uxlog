@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.1.0",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -21,18 +24,17 @@
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-shell": "^2",
     "jspdf": "^4.2.1",
-    "mammoth": "^1.8.0",
+    "mammoth": "^1.13.0",
     "pdfjs-dist": "^4.10.38",
-    "vue": "^3.4.21",
+    "vue": "^3.5.45",
     "vue-router": "^4.3.0",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "@vue/test-utils": "^2.4.4",
+    "@vitejs/plugin-vue": "^6.0.10",
     "pdfmake": "^0.3.7",
-    "vite": "^5.2.0",
-    "vitest": "^2.0.5"
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
   }
 }

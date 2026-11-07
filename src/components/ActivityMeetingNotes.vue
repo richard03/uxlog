@@ -39,7 +39,7 @@
       <p v-if="!aiAvailable" class="meeting-note">{{ t.activity.meeting.aiUnavailable }}</p>
 
       <div v-if="lastSource" class="meeting-result" role="status">
-        <span v-if="status?.processing">{{ t.activity.meeting.processing }}</span>
+        <span v-if="status?.processing">{{ t.activity.meeting.processing }}<AiCancelButton /></span>
         <span v-else-if="status?.review">{{ t.activity.meeting.reviewing }}</span>
         <span v-else-if="status?.error" class="meeting-error">{{ status.error }}</span>
         <span v-else-if="status?.notice">{{ status.notice }}</span>
@@ -73,6 +73,7 @@ import { useMeetingNotes } from '../composables/useMeetingNotes.js'
 import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 import SectionCard from './SectionCard.vue'
 import AppButton from './AppButton.vue'
+import AiCancelButton from './AiCancelButton.vue'
 import FormTextarea from './form/FormTextarea.vue'
 import NotebookModal from './NotebookModal.vue'
 

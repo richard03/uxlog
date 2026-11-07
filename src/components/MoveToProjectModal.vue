@@ -1,10 +1,11 @@
 <template>
+  <!-- Do body: dialog nesmí uvěznit kontext vrstvení rodiče (např. přichycený detail) -->
+  <Teleport to="body">
   <div
     class="modal-overlay"
     role="dialog"
     aria-modal="true"
     :aria-labelledby="titleId"
-    @keydown.esc="$emit('close')"
   >
     <div class="modal" ref="modalRef">
       <header class="modal-header">
@@ -30,10 +31,12 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useDialog } from '../composables/useDialog.js'
 import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import { FormSelect } from './form'
@@ -85,25 +88,8 @@ function doAction() {
   }
 }
 
-function handleClick(e) {
-  if (modalRef.value && !modalRef.value.contains(e.target)) {
-    emit('close')
-  }
-}
-
-let timeoutId
-onMounted(() => {
-  document.body.style.overflow = 'hidden'
-  timeoutId = setTimeout(() => {
-    document.addEventListener('click', handleClick)
-  }, 0)
-})
-
-onUnmounted(() => {
-  clearTimeout(timeoutId)
-  document.removeEventListener('click', handleClick)
-  document.body.style.overflow = ''
-})
+// Fokus, Esc, klik mimo a zámek posouvání stránky (jen nejvyšší dialog)
+useDialog(modalRef, { onClose: () => emit('close') })
 </script>
 
 <style scoped>

@@ -18,7 +18,7 @@
           </div>
 
           <div v-if="entry.id !== legacyId" class="nb-bubble nb-bubble--ai" :class="`nb-bubble--${displayStatus(entry)}`">
-            <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : entry.mode === 'change' ? t.notebook.changeProcessing : t.notebook.processing }}</template>
+            <template v-if="displayStatus(entry) === 'processing'">{{ entry.mode === 'ask' ? t.notebook.askProcessing : entry.mode === 'change' ? t.notebook.changeProcessing : t.notebook.processing }}<AiCancelButton /></template>
             <template v-else-if="displayStatus(entry) === 'review'">
               {{ t.notebook.reviewPending }}
             </template>
@@ -96,6 +96,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import AppButton from './AppButton.vue'
+import AiCancelButton from './AiCancelButton.vue'
 import NotebookModal from './NotebookModal.vue'
 import ExpandableText from './ExpandableText.vue'
 import DictationButton from './DictationButton.vue'

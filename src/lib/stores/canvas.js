@@ -27,7 +27,7 @@ import { deleteTask } from './tasks.js'
 import { deleteBug } from './bugs.js'
 
 /** Mazání entity podle typu kartičky – stejné funkce jako v detailu (včetně úklidu vazeb). */
-const DELETE_BY_TYPE = {
+export const DELETE_BY_TYPE = {
   goals: deleteGoal,
   stakeholders: deleteStakeholder,
   teamMembers: deleteTeamMember,

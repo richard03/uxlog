@@ -12,6 +12,7 @@ import {
   buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer, buildSourcesContext,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
+import { aiFetch } from '../ai-shared/request.js'
 
 const SERVICE_ID = 'gemini'
 const DEFAULT_MODEL = 'gemini-1.5-flash-latest'
@@ -25,10 +26,11 @@ const DEFAULT_MODEL = 'gemini-1.5-flash-latest'
  * @returns {Promise<string>}
  */
 async function callGemini(apiKey, prompt, model, { json = false } = {}) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-  const res = await fetch(url, {
+  // Klíč v hlavičce, ne v URL (URL se může objevit v logu nebo chybové hlášce)
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+  const res = await aiFetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.1, ...(json ? { responseMimeType: 'application/json' } : {}) },

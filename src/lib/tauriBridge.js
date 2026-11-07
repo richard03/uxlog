@@ -5,11 +5,15 @@
  * konektorů…) jsou v SQLite (Rust `storage.rs`). Při startu se načtou najednou do paměti
  * (`initStorage`), čte se synchronně z paměti (`readStoredValue`) a každý zápis jde rovnou
  * do SQLite (`writeStoredValue`). localStorage se nepoužívá – jen při prvním startu nové verze se
- * z něj jednorázově převezme, co v SQLite chybí, a pak se vyčistí.
+ * z něj jednorázově převezme, co v SQLite chybí, a pak se vyčistí, a jako nouzová záloha:
+ * když zápis do SQLite selže, hodnota se dočasně uloží do localStorage (`lib/saveRecovery.js`),
+ * zápis se opakuje a při dalším startu se neuložená záloha obnoví.
  *
  * Mimo Tauri (testy, náhled `npm run dev` v prohlížeči) je úložiště jen v paměti a po obnovení
  * stránky se ztratí.
  */
+
+import { backupKeyFor, keyFromBackup, retryDelay, summarizeSaveProblem } from './saveRecovery.js'
 
 /** Vrátí true, pokud aplikace běží uvnitř Tauri WebView (v2). */
 export const isTauri =
@@ -25,10 +29,27 @@ const KEY_PREFIX = 'uxlog_'
 const values = new Map()
 
 let initialized = false
-let writesInFlight = 0
 
-/** Probíhá zápis do SQLite? (kontrola externích změn ho počká) */
-export function isMirrorInFlight() { return writesInFlight > 0 }
+/**
+ * Klíče, jejichž poslední zápis do SQLite selhal: klíč → { error, backedUp }.
+ * Hodnota k zápisu je vždy aktuální hodnota v `values`.
+ * @type {Map<string, { error: string, backedUp: boolean }>}
+ */
+const failedWrites = new Map()
+let retryAttempt = 0
+let retryTimer = null
+let retrying = false
+/** Klíče obnovené při startu ze zálohy (pro jednorázové oznámení). */
+let restoredKeys = []
+const saveProblemListeners = new Set()
+
+function localStorageOrNull() {
+  try {
+    return window.localStorage || null
+  } catch {
+    return null
+  }
+}
 
 async function invokeCmd(cmd, args) {
   const { invoke } = await import('@tauri-apps/api/core')
@@ -51,6 +72,35 @@ export async function initStorage() {
     if (typeof value === 'string') values.set(key, value)
   }
   await migrateFromLocalStorage()
+  await restoreBackups()
+}
+
+/**
+ * Obnoví neuložené změny z nouzové zálohy (zápis do SQLite minule selhal a aplikace se zavřela).
+ * Záloha je novější než SQLite – převezme se do paměti a zkusí se zapsat; povede-li se, smaže se.
+ */
+async function restoreBackups() {
+  const ls = localStorageOrNull()
+  if (!ls) return
+  const found = []
+  for (let i = 0; i < ls.length; i++) {
+    const key = keyFromBackup(ls.key(i))
+    if (key) found.push(key)
+  }
+  for (const key of found) {
+    const value = ls.getItem(backupKeyFor(key))
+    if (value == null) continue
+    values.set(key, value)
+    restoredKeys.push(key)
+    try {
+      await invokeCmd('save_storage', { key, value })
+      ls.removeItem(backupKeyFor(key))
+    } catch (err) {
+      console.error(`[Storage] obnovu ${key} ze zálohy nejde zapsat:`, err)
+      failedWrites.set(key, { error: String(err?.message ?? err), backedUp: true })
+    }
+  }
+  if (failedWrites.size) scheduleRetry()
 }
 
 async function migrateFromLocalStorage() {
@@ -107,14 +157,141 @@ export function readStoredValue(key) {
 export async function writeStoredValue(key, value) {
   values.set(key, value)
   if (!isTauri) return
-  writesInFlight++
   try {
     await invokeCmd('save_storage', { key, value })
   } catch (err) {
     console.error(`[Storage] zápis ${key} selhal:`, err)
+    markWriteFailed(key, err)
     throw err
+  }
+  if (failedWrites.has(key) && values.get(key) === value) markWriteSaved(key)
+}
+
+/** Zápis selhal: hodnotu zálohuje do localStorage a naplánuje další pokus. */
+function markWriteFailed(key, err) {
+  failedWrites.set(key, { error: String(err?.message ?? err), backedUp: backupValue(key, values.get(key)) })
+  notifySaveProblem()
+  scheduleRetry()
+}
+
+/** Zápis se povedl: smaže zálohu klíče. */
+function markWriteSaved(key) {
+  failedWrites.delete(key)
+  try { localStorageOrNull()?.removeItem(backupKeyFor(key)) } catch { /* nic */ }
+  if (!failedWrites.size) {
+    retryAttempt = 0
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+  notifySaveProblem()
+}
+
+/** Uloží hodnotu do nouzové zálohy; false = záloha se nevešla nebo localStorage nejde použít. */
+function backupValue(key, value) {
+  const ls = localStorageOrNull()
+  if (!ls || typeof value !== 'string') return false
+  try {
+    ls.setItem(backupKeyFor(key), value)
+    return true
+  } catch (err) {
+    console.error(`[Storage] nouzová záloha ${key} selhala:`, err)
+    return false
+  }
+}
+
+function scheduleRetry() {
+  if (retryTimer || !failedWrites.size) return
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    retryAttempt++
+    retryFailedWrites()
+  }, retryDelay(retryAttempt))
+}
+
+/**
+ * Zkusí znovu zapsat do SQLite všechny klíče, jejichž zápis selhal (aktuální hodnoty).
+ * @returns {Promise<boolean>} true = vše je uložené
+ */
+export async function retryFailedWrites() {
+  if (!isTauri || retrying) return !failedWrites.size
+  retrying = true
+  notifySaveProblem()
+  try {
+    for (const key of [...failedWrites.keys()]) {
+      const value = values.get(key)
+      try {
+        await invokeCmd('save_storage', { key, value })
+        if (values.get(key) === value) markWriteSaved(key)
+      } catch (err) {
+        failedWrites.set(key, { error: String(err?.message ?? err), backedUp: backupValue(key, values.get(key)) })
+      }
+    }
   } finally {
-    writesInFlight--
+    retrying = false
+    notifySaveProblem()
+    scheduleRetry()
+  }
+  return !failedWrites.size
+}
+
+/**
+ * Stav ukládání pro UI.
+ * @returns {{ keys: string[], backedUp: boolean, error: string, retrying: boolean }|null} null = vše uloženo
+ */
+export function getSaveProblem() {
+  const summary = summarizeSaveProblem(failedWrites)
+  return summary ? { ...summary, retrying } : null
+}
+
+/**
+ * Odebírá změny stavu ukládání.
+ * @param {(problem: ReturnType<typeof getSaveProblem>) => void} fn
+ * @returns {() => void} zrušení odběru
+ */
+export function onSaveProblemChange(fn) {
+  saveProblemListeners.add(fn)
+  return () => saveProblemListeners.delete(fn)
+}
+
+function notifySaveProblem() {
+  const problem = getSaveProblem()
+  for (const fn of saveProblemListeners) {
+    try { fn(problem) } catch (err) { console.error('[Storage] posluchač stavu ukládání selhal:', err) }
+  }
+}
+
+/**
+ * Klíče obnovené při startu z nouzové zálohy (jednou – další volání vrátí []).
+ * @returns {string[]}
+ */
+export function takeRestoredKeys() {
+  const out = restoredKeys
+  restoredKeys = []
+  return out
+}
+
+/**
+ * Uloží hlavní stav aplikace (`uxlog_data`) inkrementálně: do paměti celou hodnotu, do SQLite jen
+ * změněné a smazané záznamy. Když předchozí zápis selhal (databáze nemá všechny změny), zapíše se
+ * celý stav; při selhání se uplatní stejná nouzová záloha a opakování jako u writeStoredValue
+ * (opakuje se už celý stav).
+ * @param {string} fullValue - celý stav jako JSON (zrcadlo v paměti, záloha)
+ * @param {{ upserts: Array<{ collection: string, record: Object }>, deletes: Array<{ collection: string, id: string }> }} changes
+ * @returns {Promise<void>}
+ */
+export async function writeAppDataChanges(fullValue, changes) {
+  const key = 'uxlog_data'
+  if (!isTauri || failedWrites.has(key)) return writeStoredValue(key, fullValue)
+  values.set(key, fullValue)
+  const upserts = Array.isArray(changes?.upserts) ? changes.upserts : []
+  const deletes = Array.isArray(changes?.deletes) ? changes.deletes : []
+  if (!upserts.length && !deletes.length) return
+  try {
+    await invokeCmd('save_app_data_changes', { upserts, deletes })
+  } catch (err) {
+    console.error(`[Storage] uložení změn ${key} selhalo:`, err)
+    markWriteFailed(key, err)
+    throw err
   }
 }
 
@@ -125,6 +302,7 @@ export async function writeStoredValue(key, value) {
  */
 export async function removeStoredValue(key) {
   values.delete(key)
+  if (failedWrites.has(key)) markWriteSaved(key)
   if (!isTauri) return
   try {
     await invokeCmd('remove_storage', { key })
@@ -134,15 +312,30 @@ export async function removeStoredValue(key) {
 }
 
 /**
- * Porovná `uxlog_data` v paměti s SQLite (změny přes lokální HTTP API, např. z Figmy).
- * Při rozdílu převezme hodnotu ze SQLite a vrátí true — volající pak obnoví Vue state.
- * @returns {Promise<boolean>}
+ * Změny dat z lokálního HTTP API (Figma plugin) novější než revize `since`.
+ * Backend drží v paměti posledních ~1000 změn; `reset: true` = požadované změny už nemá
+ * a je potřeba načíst databázi celou (`reloadUxlogDataFromDisk`). Mimo Tauri nic.
+ * @param {number} since
+ * @returns {Promise<{ revision: number, changes: Array<{ revision: number, collection: string, record: Object }>, reset: boolean }>}
  */
-export async function pullUxlogDataFromDiskIntoApp() {
+export async function fetchExternalChanges(since) {
+  if (!isTauri) return { revision: since, changes: [], reset: false }
+  const result = await invokeCmd('external_changes_since', { since })
+  return {
+    revision: Number.isInteger(result?.revision) ? result.revision : since,
+    changes: Array.isArray(result?.changes) ? result.changes : [],
+    reset: result?.reset === true,
+  }
+}
+
+/**
+ * Načte `uxlog_data` ze SQLite do paměti (záloha, když změny z HTTP API nejdou sloučit po záznamech).
+ * @returns {Promise<boolean>} true = hodnota se načetla (volající pak obnoví Vue state)
+ */
+export async function reloadUxlogDataFromDisk() {
   if (!isTauri) return false
   const fromDisk = await invokeCmd('load_storage', { key: 'uxlog_data' })
   if (fromDisk == null) return false
-  if (fromDisk === (values.get('uxlog_data') ?? '')) return false
   values.set('uxlog_data', fromDisk)
   return true
 }
@@ -229,6 +422,25 @@ export async function listenToTauriStorageUpdates(onChange) {
 async function invokeTauri(command, args) {
   const { invoke } = await import('@tauri-apps/api/core')
   return invoke(command, args)
+}
+
+/**
+ * Záznamy, které backend při startu odložil kvůli poškození (jednou; mimo Tauri []).
+ * @returns {Promise<Array<{ collection: string, id: string, reason: string, payload: string }>>}
+ */
+export async function takeQuarantineReport() {
+  if (!isTauri) return []
+  const list = await invokeTauri('take_quarantine_report')
+  return Array.isArray(list) ? list : []
+}
+
+/**
+ * Čas posledního použití API klíčů lokálního API (id → ms epoch, jen od startu aplikace); mimo Tauri {}.
+ * @returns {Promise<Object.<string, number>>}
+ */
+export async function localApiKeyUsage() {
+  if (!isTauri) return {}
+  return (await invokeTauri('local_api_key_usage')) || {}
 }
 
 /**

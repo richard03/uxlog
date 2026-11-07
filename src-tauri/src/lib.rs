@@ -3,6 +3,7 @@
 use tauri::Manager;
 
 mod dictation;
+mod external_changes;
 mod http_api;
 mod repository;
 mod storage;
@@ -13,6 +14,15 @@ mod vault_watch;
 #[tauri::command]
 fn save_storage(key: String, value: String) -> Result<(), String> {
     storage::save(&key, &value)
+}
+
+/// Uloží jen změněné a smazané záznamy hlavního stavu (místo přepsání celého stavu).
+#[tauri::command]
+fn save_app_data_changes(
+    upserts: Vec<repository::RecordUpsert>,
+    deletes: Vec<repository::RecordDelete>,
+) -> Result<(), String> {
+    storage::save_app_data_changes(&upserts, &deletes)
 }
 
 /// Načte hodnotu z embedded storage backendu (volá WebView při startu).
@@ -42,7 +52,25 @@ fn list_storage_keys() -> Vec<String> {
 /// Vrátí port, na kterém běží lokální HTTP API pro Figma plugin.
 #[tauri::command]
 fn get_api_port() -> u16 {
-    17842
+    http_api::PORT
+}
+
+/// Záznamy odložené při startu kvůli poškození (jednou – další volání vrátí prázdný seznam).
+#[tauri::command]
+fn take_quarantine_report() -> Vec<repository::QuarantinedRecord> {
+    repository::take_quarantine_report()
+}
+
+/// Změny dat z lokálního HTTP API novější než revize `since` (WebView je sloučí do stavu).
+#[tauri::command]
+fn external_changes_since(since: u64) -> external_changes::ExternalChanges {
+    external_changes::since(since)
+}
+
+/// Čas posledního použití API klíčů lokálního API (id klíče → ms epoch, jen od startu aplikace).
+#[tauri::command]
+fn local_api_key_usage() -> std::collections::HashMap<String, i64> {
+    http_api::key_usage_snapshot()
 }
 
 /// Uloží soubor do adresáře Dokumenty/UXLog a vrátí jeho plnou cestu.
@@ -284,11 +312,15 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             save_storage,
+            save_app_data_changes,
             load_storage,
             list_storage_keys,
             remove_storage,
             load_all_storage,
             get_api_port,
+            local_api_key_usage,
+            external_changes_since,
+            take_quarantine_report,
             save_download_file,
             open_download_file,
             vault_default_root,

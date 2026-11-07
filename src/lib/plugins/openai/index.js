@@ -12,6 +12,7 @@ import {
   buildAskContext, buildAskNotes, buildAskMethodology, buildAskPrompt, parseAskAnswer, buildSourcesContext,
 } from '../ai-shared/prompts.js'
 import { getAiKey, loadAiKeys } from '../ai-shared/keys.js'
+import { aiFetch } from '../ai-shared/request.js'
 
 const SERVICE_ID = 'openai'
 const DEFAULT_MODEL = 'gpt-4o-mini'
@@ -25,7 +26,7 @@ const DEFAULT_MODEL = 'gpt-4o-mini'
  * @returns {Promise<string>}
  */
 async function callOpenAI(apiKey, prompt, model, { json = false } = {}) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await aiFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

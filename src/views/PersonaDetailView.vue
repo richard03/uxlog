@@ -9,8 +9,8 @@
         <AppButton v-if="!inCanvas" variant="secondary" @click="showImport = true">{{ t.project.import }}</AppButton>
         <ExportButton v-if="!inCanvas" :get-yaml="() => store.exportEntityData('personas', item?.id)" :filename="item?.name || t.persona.label" />
         <KebabMenu
-          :items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.persona.delete, action: 'delete', variant: 'danger' }]"
-          @action="(a) => { if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
+          :items="[{ label: t.entityConversion.action, action: 'changeType' }, { label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.persona.delete, action: 'delete', variant: 'danger' }]"
+          @action="(a) => { if (a === 'changeType') showChangeType = true; else if (a === 'move') showMove = true; else if (a === 'copy') showCopy = true; else if (a === 'delete') confirmDelete() }"
         />
       </template>
     </ProjectPageHeader>
@@ -68,6 +68,7 @@
 
     <ConfirmDialog v-if="showConfirm" :title="t.persona.delete" :message="t.persona.deleteConfirm" @confirm="doDelete" @cancel="showConfirm = false" />
     <ImportModal v-if="showImport" :project-id="projectId" @close="showImport = false" @imported="() => { showImport = false }" />
+    <ChangeEntityTypeModal v-if="showChangeType && item" collection="personas" :entity="item" @close="showChangeType = false" @converted="onTypeChanged" />
     <MoveToProjectModal v-if="showMove" state-key="personas" :entity-id="item?.id" :current-project-id="projectId" @close="showMove = false" @moved="leaveDetail({ name: 'personas', params: { id: projectId } })" />
     <MoveToProjectModal v-if="showCopy" mode="copy" state-key="personas" :entity-id="item?.id" :current-project-id="projectId" @close="showCopy = false" @copied="showCopy = false" />
   </div>
@@ -94,12 +95,13 @@ import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
+import ChangeEntityTypeModal from '../components/ChangeEntityTypeModal.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import AppButton from '../components/AppButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
 
 const route = useRoute()
-const { leaveDetail, inCanvas } = useEntityNavigation()
+const { leaveDetail, replaceDetail, inCanvas } = useEntityNavigation()
 const store = useStore()
 const { t } = useI18n()
 
@@ -117,6 +119,13 @@ const breadcrumbs = computed(() => [
 const showConfirm = ref(false)
 const showImport = ref(false)
 const showMove = ref(false)
+const showChangeType = ref(false)
+
+/** Po změně typu záznamu otevře detail nového záznamu (původní už neexistuje). */
+function onTypeChanged({ collection, id }) {
+  showChangeType.value = false
+  replaceDetail(collection, projectId.value, id)
+}
 const showCopy = ref(false)
 
 const headerFields = [

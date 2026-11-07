@@ -4,9 +4,39 @@
  * V Tauri prostředí zrcadlí zápisy do nativního storage přes tauriBridge.
  */
 
-import { readStoredValue, writeStoredValue } from './tauriBridge.js'
+import { readStoredValue, writeStoredValue, writeAppDataChanges } from './tauriBridge.js'
 
 const STORAGE_KEY = 'uxlog_data'
+
+/**
+ * Chyba posledního načtení dat (null = načteno v pořádku). Dokud trvá, saveData nezapisuje –
+ * prázdný stav, který aplikace místo nečitelných dat zobrazuje, by data v databázi přepsal.
+ * @type {string|null}
+ */
+let dataLoadError = null
+const loadErrorListeners = new Set()
+
+function setDataLoadError(error) {
+  dataLoadError = error
+  for (const fn of loadErrorListeners) {
+    try { fn(error) } catch (e) { console.error('[UXLog] posluchač chyby načtení selhal:', e) }
+  }
+}
+
+/** Chyba posledního načtení dat (null = v pořádku). */
+export function getDataLoadError() {
+  return dataLoadError
+}
+
+/**
+ * Odebírá změny chyby načtení dat.
+ * @param {(error: string|null) => void} fn
+ * @returns {() => void}
+ */
+export function onDataLoadErrorChange(fn) {
+  loadErrorListeners.add(fn)
+  return () => loadErrorListeners.delete(fn)
+}
 
 /**
  * Porovná dva záznamy se stejným id a vrátí ten novější.
@@ -116,6 +146,7 @@ export function loadData() {
   try {
     const raw = readStoredValue(STORAGE_KEY)
     const data = raw ? JSON.parse(raw) : getEmptyData()
+    if (data === null || typeof data !== 'object' || Array.isArray(data)) throw new Error('Data nejsou objekt')
     const before = raw ?? ''
     pruneOrphanEntities(data)
     deduplicateData(data)
@@ -126,9 +157,11 @@ export function loadData() {
       // Úklid (sirotci, duplicity, přežitá a zrušená pole) něco změnil – okamžitě zapíšeme zpět
       writeStoredValue(STORAGE_KEY, after).catch(() => {})
     }
+    if (dataLoadError) setDataLoadError(null)
     return data
   } catch (e) {
     console.error('loadData failed:', e)
+    setDataLoadError(String(e?.message ?? e))
     return getEmptyData()
   }
 }
@@ -138,12 +171,28 @@ export function loadData() {
  * @param {Object} data - Data k uložení
  */
 export async function saveData(data) {
+  if (dataLoadError) {
+    // Nečitelná data v databázi se nesmí přepsat prázdným stavem
+    throw new Error(`Ukládání je pozastavené, data se nepodařilo načíst: ${dataLoadError}`)
+  }
   try {
     await writeStoredValue(STORAGE_KEY, JSON.stringify(data))
   } catch (e) {
     console.error('saveData failed:', e)
     throw e
   }
+}
+
+/**
+ * Uloží jen změněné a smazané záznamy (celý stav zůstává v paměti jako JSON).
+ * @param {string} json - celý stav jako JSON
+ * @param {{ upserts: Array<{ collection: string, record: Object }>, deletes: Array<{ collection: string, id: string }> }} changes
+ */
+export async function saveDataChanges(json, changes) {
+  if (dataLoadError) {
+    throw new Error(`Ukládání je pozastavené, data se nepodařilo načíst: ${dataLoadError}`)
+  }
+  await writeAppDataChanges(json, changes)
 }
 
 /**

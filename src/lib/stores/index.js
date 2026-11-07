@@ -52,6 +52,7 @@ export {
   getCanvasFrames, addCanvasFrame, updateCanvasFrame, moveCanvasFrame, deleteCanvasFrame,
 } from './canvas.js'
 export { getProjectDocument, updateDocumentEntity, updateDocumentField } from './document.js'
+export { convertEntity } from './conversion.js'
 export {
   getConnectionsFor, getConnections, addConnection, updateConnection, deleteConnection,
 } from './connections.js'

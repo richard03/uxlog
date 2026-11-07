@@ -105,7 +105,7 @@ function normalizeCompletenessItem(c) {
 /**
  * Normalizuje definice entit.
  * @param {Object} raw - { entities: { <typ>: { codePrefix, defaults, fields, completeness } } }
- * @returns {Object.<string, { codePrefix: string, defaults: Object, fields: Array<Object>|null, completeness: Array<Object>|null }>}
+ * @returns {Object.<string, { codePrefix: string, convertible: boolean, defaults: Object, fields: Array<Object>|null, completeness: Array<Object>|null }>}
  */
 export function normalizeEntityConfig(raw) {
   const out = {}
@@ -117,6 +117,7 @@ export function normalizeEntityConfig(raw) {
     }
     out[type] = {
       codePrefix: str(e.codePrefix).trim(),
+      convertible: e.convertible === true,
       defaults: isObject(e.defaults) ? e.defaults : {},
       fields: Array.isArray(e.fields)
         ? e.fields.filter((f) => isObject(f) && typeof f.key === 'string' && f.key && typeof f.type === 'string')
@@ -135,6 +136,7 @@ const APP_DEFAULTS = {
   canvasCardColors: [{ color: '#fde68a', labelKey: 'yellow' }],
   recommendations: { minRequirementsForPrioritization: 5 },
   vaultAutoImport: { maxDeletes: 10, maxShare: 0.3, minChanges: 5 },
+  ai: { requestTimeoutMs: 120000 },
 }
 
 /**
@@ -159,7 +161,7 @@ export function normalizeCanvasCardColors(raw) {
 /**
  * Normalizuje obecnou konfiguraci aplikace.
  * @param {Object} raw
- * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number }, dictation: Object }}
+ * @returns {{ projectColors: string[], canvasCardColors: Array<{ color: string, labelKey: string|null }>, recommendations: Object, vaultAutoImport: { maxDeletes: number, maxShare: number, minChanges: number }, ai: { requestTimeoutMs: number }, dictation: Object }}
  */
 export function normalizeAppConfig(raw) {
   const colors = strList(raw?.projectColors).filter((c) => /^#[0-9a-f]{3,8}$/i.test(c.trim())).map((c) => c.trim())
@@ -178,6 +180,10 @@ export function normalizeAppConfig(raw) {
       maxDeletes: Math.max(0, num(v.maxDeletes, vd.maxDeletes)),
       maxShare: share > 0 && share <= 1 ? share : vd.maxShare,
       minChanges: Math.max(1, num(v.minChanges, vd.minChanges)),
+    },
+    ai: {
+      // Pod 5 s by AI nestihla odpovědět ani na krátký dotaz
+      requestTimeoutMs: Math.max(5000, num(isObject(raw?.ai) ? raw.ai.requestTimeoutMs : undefined, APP_DEFAULTS.ai.requestTimeoutMs)),
     },
     dictation: normalizeDictationTimings(raw?.dictation),
   }

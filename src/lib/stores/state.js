@@ -10,7 +10,7 @@
  */
 
 import { reactive, toRaw } from 'vue'
-import { loadData, saveData, getEmptyData, pickNewer } from '../storage.js'
+import { loadData, saveDataChanges, getEmptyData, pickNewer } from '../storage.js'
 import { emit } from '../plugins/registry.js'
 import { diffStates } from '../history.js'
 import { recordChanges, initHistory } from './history.js'
@@ -100,7 +100,9 @@ export function persist({ history = true } = {}) {
   deduplicateState()
 
   // Orazítkuj updatedAt na každém záznamu, který se změnil od posledního persist()
+  // a zapamatuj si ho – do databáze se ukládají jen změněné záznamy
   const now = new Date().toISOString()
+  const changedIds = {}
   for (const key of Object.keys(getEmptyData())) {
     if (!Array.isArray(state[key])) continue
     const prevMap = new Map((persistedSnapshot[key] || []).map((r) => [r.id, r]))
@@ -109,6 +111,7 @@ export function persist({ history = true } = {}) {
       const prev = prevMap.get(record.id)
       if (!prev || JSON.stringify(toRaw(record)) !== JSON.stringify(prev)) {
         record.updatedAt = now
+        ;(changedIds[key] ||= new Set()).add(record.id)
       }
     }
   }
@@ -128,8 +131,17 @@ export function persist({ history = true } = {}) {
 
   if (history) recordChanges(diffStates(persistedSnapshot, raw, Object.keys(getEmptyData())))
 
-  persistedSnapshot = JSON.parse(JSON.stringify(raw))
-  saveData(raw).catch((e) => console.error('[UXLog] uložení dat do databáze selhalo:', e))
+  const json = JSON.stringify(raw)
+  persistedSnapshot = JSON.parse(json)
+  // Záznamy ze snímku (kopie) – pozdější úpravy stavu se do právě odesílaných změn nepromítnou
+  const upserts = []
+  for (const [key, ids] of Object.entries(changedIds)) {
+    for (const record of persistedSnapshot[key] || []) {
+      if (record?.id && ids.has(record.id)) upserts.push({ collection: key, record })
+    }
+  }
+  const deletes = Object.entries(deletedEntities).flatMap(([key, ids]) => ids.map((id) => ({ collection: key, id })))
+  saveDataChanges(json, { upserts, deletes }).catch((e) => console.error('[UXLog] uložení dat do databáze selhalo:', e))
 
   // Emituj událost pro pluginy (data-status, flexi sync, atd.)
   emit('data:persisted', { state: raw, deletedEntities })

@@ -45,8 +45,6 @@
         :to="{ name: 'personaDetail', params: { id: projectId, personaId: p.id } }"
         :entity-id="p.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.persona.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(p.id); else if (a === 'move') confirmMoveItem(p.id); else if (a === 'copy') copyTarget = p.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="p.code" variant="badge-accent">{{ p.code }}</AppBadge>
@@ -84,15 +82,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.persona.delete"
-      :message="t.persona.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="personas" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="personas" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -104,11 +93,8 @@ import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
-import KebabMenu from '../components/KebabMenu.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -150,20 +136,6 @@ const breadcrumbs = computed(() => [
 const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', status: 'protopersona', description: '', motivation: '', needs: '', problems: '', targetGroupSize: '', targetGroupValue: '' })
-
-const deleteTarget = ref(null)
-function confirmDeleteItem(id) { deleteTarget.value = id }
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deletePersona(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
-
-const moveTarget = ref(null)
-const copyTarget = ref(null)
-function confirmMoveItem(id) { moveTarget.value = id }
-
 
 function openForm() {
   form.value = { code: generateNextCode(getCodePrefix('persona'), items.value), name: '', status: 'protopersona', description: '', motivation: '', needs: '', problems: '', targetGroupSize: '', targetGroupValue: '' }

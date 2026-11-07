@@ -192,6 +192,15 @@ label {
   font-size: 0.9rem;
 }
 
+/* Řádek tlačítek formuláře (komponenta FormActions i přímo psaná třída) */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-md);
+}
+
 .form-group {
   margin-bottom: var(--space-md);
 }

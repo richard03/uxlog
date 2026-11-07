@@ -128,6 +128,7 @@ export function useStore() {
     copyEntityToProject: store.copyEntityToProject,
     moveEntitiesToProject: store.moveEntitiesToProject,
     copyEntitiesToProject: store.copyEntitiesToProject,
+    convertEntity: store.convertEntity,
     // Connections (souvislosti)
     getConnectionsFor: store.getConnectionsFor,
     getConnections: store.getConnections,

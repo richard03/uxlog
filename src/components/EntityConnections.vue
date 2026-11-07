@@ -123,6 +123,7 @@
       <div v-if="aiLoading" class="ai-loading" role="status">
         <span class="ai-spinner" aria-hidden="true"></span>
         <span>{{ t.connection.aiLoading }}</span>
+        <AiCancelButton />
       </div>
       <div v-else-if="aiError" class="ai-error" role="alert">
         <p class="ai-error-msg">{{ aiError }}</p>
@@ -186,6 +187,7 @@ import { useEntityNavigation } from '../composables/useEntityNavigation.js'
 import { useI18n } from '../composables/useI18n.js'
 import { hasCapability, callCapability } from '../lib/plugins/registry.js'
 import AppButton from './AppButton.vue'
+import AiCancelButton from './AiCancelButton.vue'
 import Modal from './Modal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import KebabMenu from './KebabMenu.vue'

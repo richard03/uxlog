@@ -2,6 +2,7 @@
 #
 # entities.<typ>:
 #   codePrefix    prefix automatického kódu (PER-001 …); jen entity s kódem v hlavičce detailu
+#   convertible   true = záznam lze v detailu převést na jiný typ s convertible: true (Změnit typ)
 #   defaults      výchozí hodnoty nové entity (factory). id, projectId a časová razítka doplňuje kód.
 #                 Při čtení uložených dat se chybějící pole doplní odsud – pole nemažte, jen přidávejte.
 #   fields        atributy zobrazené ve formuláři/detailu (uživatel je může dál upravit v Konfiguraci):
@@ -29,6 +30,7 @@ entities:
       color: ''
 
   goal:
+    convertible: true
     codePrefix: GOL
     defaults:
       code: ''
@@ -60,6 +62,7 @@ entities:
       - metrics
 
   stakeholder:
+    convertible: true
     defaults:
       name: ''
       description: ''
@@ -142,6 +145,7 @@ entities:
       - interestLevel
 
   competition:
+    convertible: true
     defaults:
       name: ''
       description: ''
@@ -198,6 +202,7 @@ entities:
       - inspiration
 
   hypothesis:
+    convertible: true
     codePrefix: HYP
     defaults:
       code: ''
@@ -245,6 +250,7 @@ entities:
           value: refuted
 
   risk:
+    convertible: true
     codePrefix: RSK
     defaults:
       code: ''
@@ -350,6 +356,7 @@ entities:
       - content
 
   persona:
+    convertible: true
     codePrefix: PER
     defaults:
       code: ''
@@ -447,6 +454,7 @@ entities:
       - targetGroupValue
 
   scenario:
+    convertible: true
     codePrefix: SCN
     defaults:
       code: ''
@@ -563,6 +571,7 @@ entities:
       - userCount
 
   requirement:
+    convertible: true
     codePrefix: REQ
     defaults:
       code: ''
@@ -692,6 +701,7 @@ entities:
       - email
 
   task:
+    convertible: true
     codePrefix: TSK
     defaults:
       code: ''
@@ -731,6 +741,7 @@ entities:
             labelKey: task.statusOptions.cancelled
 
   bug:
+    convertible: true
     codePrefix: BUG
     defaults:
       code: ''

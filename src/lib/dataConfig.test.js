@@ -92,6 +92,14 @@ describe('normalizace – poškozená konfigurace', () => {
     expect(normalizeAppConfig(undefined).projectColors.length).toBe(1)
   })
 
+  it('app: časový limit AI – výchozí, z konfigurace a nejméně 5 s', () => {
+    expect(normalizeAppConfig(undefined).ai.requestTimeoutMs).toBe(120000)
+    expect(normalizeAppConfig({ ai: { requestTimeoutMs: 60000 } }).ai.requestTimeoutMs).toBe(60000)
+    expect(normalizeAppConfig({ ai: { requestTimeoutMs: 10 } }).ai.requestTimeoutMs).toBe(5000)
+    expect(normalizeAppConfig({ ai: 'x' }).ai.requestTimeoutMs).toBe(120000)
+    expect(APP_CONFIG.ai.requestTimeoutMs).toBe(120000)
+  })
+
   it('paleta kartiček Canvasu: app.yaml má platné barvy, normalizace toleruje chyby', () => {
     expect(APP_CONFIG.canvasCardColors.length).toBeGreaterThan(5)
     for (const c of APP_CONFIG.canvasCardColors) {

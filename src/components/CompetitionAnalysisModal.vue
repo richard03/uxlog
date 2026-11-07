@@ -22,6 +22,7 @@
     <!-- Processing view -->
     <div v-else-if="view === 'processing'" class="ca-processing" aria-live="polite">
       <p>{{ t.competition.analyzing }}</p>
+      <AiCancelButton />
     </div>
 
     <!-- Výsledky — sdílený náhled (PendingReview*) -->
@@ -81,6 +82,7 @@
 import { ref, reactive, watch } from 'vue'
 import Modal from './Modal.vue'
 import AppButton from './AppButton.vue'
+import AiCancelButton from './AiCancelButton.vue'
 import PendingReviewLayout from './PendingReviewLayout.vue'
 import PendingReviewRow from './PendingReviewRow.vue'
 import PendingReviewAiFields from './PendingReviewAiFields.vue'

@@ -299,6 +299,24 @@ export function removeCanvasCards(layout, keys) {
 }
 
 /**
+ * Přenese pozici a barvu kartičky na nový klíč (záznam změnil typ, kartička zůstává na místě).
+ * @param {Object} layout
+ * @param {string} oldKey
+ * @param {string} newKey
+ * @returns {Object}
+ */
+export function renameCanvasCard(layout, oldKey, newKey) {
+  const base = normalizeCanvasLayout(layout)
+  if (!oldKey || !newKey || oldKey === newKey) return base
+  const rename = (obj) => {
+    const out = filterKeys(obj, (key) => key !== oldKey)
+    if (oldKey in obj) out[newKey] = obj[oldKey]
+    return out
+  }
+  return { ...base, positions: rename(base.positions), colors: rename(base.colors) }
+}
+
+/**
  * Obdélník obklopující vybrané kartičky (v souřadnicích plátna); bez vybraných kartiček null.
  * @param {Array<{ key: string, x: number, y: number }>} cards
  * @param {Iterable<string>} keys

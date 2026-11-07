@@ -58,8 +58,6 @@
         :to="{ name: 'sourceDetail', params: { id: projectId, sourceId: s.id } }"
         :entity-id="s.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.source.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') deleteTarget = s.id; else if (a === 'move') moveTarget = s.id; else if (a === 'copy') copyTarget = s.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="s.code" variant="badge-accent">{{ s.code }}</AppBadge>
@@ -82,15 +80,6 @@
       @saved="(s) => { showAdd = false; router.push({ name: 'sourceDetail', params: { id: projectId, sourceId: s.id } }) }"
     />
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.source.delete"
-      :message="t.source.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="sources" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="sources" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -104,10 +93,8 @@ import { useStore } from '../composables/useStore.js'
 import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import AppButton from '../components/AppButton.vue'
@@ -157,16 +144,7 @@ const breadcrumbs = computed(() => [
 
 const showAdd = ref(false)
 const showImport = ref(false)
-const deleteTarget = ref(null)
-const moveTarget = ref(null)
-const copyTarget = ref(null)
 
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deleteSource(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
 </script>
 
 <style scoped>

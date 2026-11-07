@@ -5,6 +5,7 @@
   "permissions": [
     "shell:allow-open",
     "dialog:allow-open",
-    "core:event:default"
+    "core:event:default",
+    "core:window:allow-destroy"
   ]
 }

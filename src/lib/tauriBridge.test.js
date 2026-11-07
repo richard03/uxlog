@@ -3,6 +3,10 @@ import { describe, it, expect, vi } from 'vitest'
 // Prostředí Tauri: SQLite backend v paměti, starý localStorage z předchozí verze
 const sqlite = new Map()
 let failSave = false
+let externalLog = null
+let lastSince = null
+let failChanges = false
+const changeBatches = []
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(async (cmd, args) => {
     if (cmd === 'load_all_storage') return Object.fromEntries(sqlite)
@@ -12,6 +16,15 @@ vi.mock('@tauri-apps/api/core', () => ({
     }
     if (cmd === 'remove_storage') sqlite.delete(args.key)
     if (cmd === 'load_storage') return sqlite.has(args.key) ? sqlite.get(args.key) : null
+    if (cmd === 'save_app_data_changes') {
+      if (failChanges) throw new Error('db locked')
+      changeBatches.push(args)
+      return null
+    }
+    if (cmd === 'external_changes_since') {
+      lastSince = args.since
+      return externalLog
+    }
     return null
   }),
 }))
@@ -53,17 +66,83 @@ describe('úložiště aplikace (SQLite)', () => {
     expect(bridge.readStoredValue('uxlog_vault_sync')).toBeNull()
   })
 
-  it('nepovedený zápis do SQLite se nahlásí volajícímu', async () => {
+  it('nepovedený zápis do SQLite se nahlásí volajícímu, zálohuje a po úspěchu záloha zmizí', async () => {
+    vi.useFakeTimers()
+    const seen = []
+    const stop = bridge.onSaveProblemChange((p) => seen.push(p))
     failSave = true
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(bridge.writeStoredValue('uxlog_data', '{}')).rejects.toThrow('disk full')
+    await expect(bridge.writeStoredValue('uxlog_data', '{"a":1}')).rejects.toThrow('disk full')
+    expect(local.get('uxlog-unsaved:uxlog_data')).toBe('{"a":1}')
+    expect(bridge.getSaveProblem()).toMatchObject({ keys: ['uxlog_data'], backedUp: true, error: 'disk full' })
+
+    // Další změna během výpadku: záloha drží nejnovější hodnotu
+    await expect(bridge.writeStoredValue('uxlog_data', '{"a":2}')).rejects.toThrow()
+    expect(local.get('uxlog-unsaved:uxlog_data')).toBe('{"a":2}')
+
+    // Opakovaný pokus se naplánuje sám; po obnově databáze zapíše nejnovější hodnotu
     failSave = false
+    await vi.advanceTimersByTimeAsync(5_000)
+    await vi.waitFor(() => expect(sqlite.get('uxlog_data')).toBe('{"a":2}'))
+    expect(local.has('uxlog-unsaved:uxlog_data')).toBe(false)
+    expect(bridge.getSaveProblem()).toBeNull()
+    expect(seen.at(-1)).toBeNull()
+    stop()
+    vi.useRealTimers()
   })
 
-  it('změna dat zvenku (lokální HTTP API) se pozná a převezme', async () => {
+  it('ruční „Zkusit znovu“ a selhání zálohy (plný localStorage)', async () => {
+    failSave = true
+    const origSet = localStorage.setItem
+    localStorage.setItem = () => { throw new Error('quota') }
+    await expect(bridge.writeStoredValue('uxlog_history', '[1]')).rejects.toThrow()
+    expect(bridge.getSaveProblem()).toMatchObject({ backedUp: false })
+    expect(await bridge.retryFailedWrites()).toBe(false)
+    localStorage.setItem = origSet
+    failSave = false
+    expect(await bridge.retryFailedWrites()).toBe(true)
+    expect(sqlite.get('uxlog_history')).toBe('[1]')
+    expect(bridge.getSaveProblem()).toBeNull()
+  })
+
+  it('hlavní stav se ukládá jen po změněných záznamech', async () => {
+    changeBatches.length = 0
+    const changes = { upserts: [{ collection: 'goals', record: { id: 'g1' } }], deletes: [{ collection: 'bugs', id: 'b1' }] }
+    await bridge.writeAppDataChanges('{"goals":[{"id":"g1"}]}', changes)
+    expect(changeBatches).toEqual([changes])
+    expect(bridge.readStoredValue('uxlog_data')).toBe('{"goals":[{"id":"g1"}]}')
+    // Prázdná dávka do databáze nic neposílá
+    await bridge.writeAppDataChanges('{"goals":[{"id":"g1"}]}', { upserts: [], deletes: [] })
+    expect(changeBatches).toHaveLength(1)
+  })
+
+  it('po selhání změn se opakuje uložení celého stavu', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    failChanges = true
+    await expect(bridge.writeAppDataChanges('{"v":1}', { upserts: [{ collection: 'goals', record: { id: 'g' } }], deletes: [] })).rejects.toThrow('db locked')
+    expect(bridge.getSaveProblem()?.keys).toEqual(['uxlog_data'])
+    expect(local.get('uxlog-unsaved:uxlog_data')).toBe('{"v":1}')
+    failChanges = false
+    // Dokud trvá problém, další uložení jde celé (databáze nemá všechny změny)
+    changeBatches.length = 0
+    await bridge.writeAppDataChanges('{"v":2}', { upserts: [{ collection: 'goals', record: { id: 'g' } }], deletes: [] })
+    expect(changeBatches).toHaveLength(0)
+    expect(sqlite.get('uxlog_data')).toBe('{"v":2}')
+    expect(bridge.getSaveProblem()).toBeNull()
+    expect(local.has('uxlog-unsaved:uxlog_data')).toBe(false)
+  })
+
+  it('změny z lokálního HTTP API se vyzvednou podle revize', async () => {
+    externalLog = { revision: 2, changes: [{ revision: 2, collection: 'goals', record: { id: 'g1' } }], reset: false }
+    expect(await bridge.fetchExternalChanges(1)).toEqual(externalLog)
+    expect(lastSince).toBe(1)
+    externalLog = null
+    expect(await bridge.fetchExternalChanges(3)).toEqual({ revision: 3, changes: [], reset: false })
+  })
+
+  it('při resetu se uxlog_data načte ze SQLite celé', async () => {
     sqlite.set('uxlog_data', '{"projects":["z Figmy"]}')
-    expect(await bridge.pullUxlogDataFromDiskIntoApp()).toBe(true)
+    expect(await bridge.reloadUxlogDataFromDisk()).toBe(true)
     expect(bridge.readStoredValue('uxlog_data')).toBe('{"projects":["z Figmy"]}')
-    expect(await bridge.pullUxlogDataFromDiskIntoApp()).toBe(false)
   })
 })

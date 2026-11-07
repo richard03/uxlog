@@ -9,6 +9,9 @@
     <!-- Složka dat (jen desktop) -->
     <VaultSettingsSection />
 
+    <!-- Lokální API pro Figma plugin (jen desktop) -->
+    <LocalApiKeysSection />
+
     <!-- Pluginy -->
     <SectionCard :title="t.plugins.title" :aria-label="t.plugins.title">
       <p class="service-hint">{{ t.plugins.hint }}</p>
@@ -168,6 +171,7 @@ import Modal from '../components/Modal.vue'
 import AppButton from '../components/AppButton.vue'
 import VaultSettingsSection from '../components/VaultSettingsSection.vue'
 import RecognitaSettingsSection from '../components/RecognitaSettingsSection.vue'
+import LocalApiKeysSection from '../components/LocalApiKeysSection.vue'
 
 const { t } = useI18n()
 const { state, getData, persist: persistStore } = useStore()

@@ -47,8 +47,6 @@
         :to="{ name: 'requirementDetail', params: { id: projectId, requirementId: r.id } }"
         :entity-id="r.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.requirement.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(r.id); else if (a === 'move') confirmMoveItem(r.id); else if (a === 'copy') copyTarget = r.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
@@ -88,15 +86,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.requirement.delete"
-      :message="t.requirement.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="requirements" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="requirements" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -108,11 +97,8 @@ import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
-import KebabMenu from '../components/KebabMenu.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -160,20 +146,6 @@ const breadcrumbs = computed(() => [
 const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', motivation: '', priority: 'could', wontHaveExplanation: '' })
-
-const deleteTarget = ref(null)
-function confirmDeleteItem(id) { deleteTarget.value = id }
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deleteRequirement(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
-
-const moveTarget = ref(null)
-const copyTarget = ref(null)
-function confirmMoveItem(id) { moveTarget.value = id }
-
 
 function openForm() {
   form.value = { code: generateNextCode(getCodePrefix('requirement'), items.value), name: '', description: '', motivation: '', priority: 'could', wontHaveExplanation: '' }

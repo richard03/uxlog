@@ -384,6 +384,24 @@ describe('dlouhé poznámky – useknutá odpověď a zpracování po částech'
     expect(calls).toBe(4) // část s Evou se zkusila dvakrát
   })
 
+  it('processNotebookInParts: zrušení ukončí celé zpracování, vypršení limitu se neopakuje', async () => {
+    const text = ['Jana je účetní.', 'Petr je vedoucí.', 'Eva je studentka.'].join('\n\n')
+    let calls = 0
+    const cancelled = Object.assign(new Error('zrušeno'), { code: 'AI_CANCELLED' })
+    await expect(processNotebookInParts(text, 'ctx', async () => { calls++; throw cancelled }, 20)).rejects.toBe(cancelled)
+    expect(calls).toBe(1)
+
+    calls = 0
+    const callModel = async (prompt) => {
+      calls++
+      if (prompt.includes('Petr')) throw Object.assign(new Error('limit'), { code: 'AI_TIMEOUT' })
+      return JSON.stringify({ actions: [action(prompt.includes('Jana') ? 'Jana' : 'Eva')] })
+    }
+    const res = await processNotebookInParts(text, 'ctx', callModel, 20)
+    expect(res).toMatchObject({ failedParts: 1, totalParts: 3 })
+    expect(calls).toBe(3) // část s Petrem jen jednou
+  })
+
   it('processNotebookInParts vyhodí chybu, když nezíská žádnou akci kvůli selhání', async () => {
     await expect(processNotebookInParts('text', 'ctx', async () => 'nesmysl')).rejects.toThrow(/neúplnou nebo neplatnou/)
     await expect(processNotebookInParts('text', 'ctx', async () => '{"actions": []}')).resolves.toMatchObject({ actions: [], failedParts: 0 })

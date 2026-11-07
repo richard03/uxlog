@@ -31,6 +31,7 @@
           :disabled="!aiAvailable || status.processing || status.review || !item.content"
           @click="processSource(item.id)"
         >{{ status.processing ? t.sources.processing : item.processedAt ? t.sources.processAgain : t.sources.process }}</AppButton>
+        <AiCancelButton v-if="status.processing" />
       </template>
     </ColumnHeading>
 
@@ -130,6 +131,7 @@ import KebabMenu from '../components/KebabMenu.vue'
 import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import InlineEditableDetailField from '../components/InlineEditableDetailField.vue'
 import AppButton from '../components/AppButton.vue'
+import AiCancelButton from '../components/AiCancelButton.vue'
 import EntityConnections from '../components/EntityConnections.vue'
 import NotebookModal from '../components/NotebookModal.vue'
 

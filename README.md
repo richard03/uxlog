@@ -22,6 +22,7 @@ Další:
 - **Zdroje** – nahrané dokumenty (Word, PDF, text, e-mail) nebo vložené texty; tlačítkem Zpracovat je AI rozebere na návrhy záznamů (potvrzené záznamy se se zdrojem propojí v Souvislostech); existující záznamy doplní (AI vepíše sloučený text, citace přenese doslova) a revize ukazuje vedle sebe současný záznam, citace z nového textu a upravitelný návrh. Čtení souborů `useAddSource` (knihovny `mammoth` a `pdfjs-dist`, rozbor e-mailu `lib/sourceFiles.js`).
 - **Chat** (dříve Zápisník) – „Zeptat se“ (odpověď z dat projektu a textu zdrojů) a „Měnit data“ (AI navrhne změny podle pokynu, projdou revizí)
 - **Data / Canvas / Dokument** – přepínač pohledu projektu vedle loga; Dokument zobrazí všechna data projektu jako text s nadpisy a odstavci, který jde upravovat přímo (změny se ukládají do záznamů), s fulltextovým hledáním (Ctrl+F) a exportem do Markdownu; Canvas je nekonečné plátno přes celé okno: entity jako kartičky, výběr myší (i obdélníkem), přetahování jednotlivých kartiček i skupin, posun a zoom plátna, dvojklik otevře detail entity v plovoucím okně nad plátnem (každá entita ve vlastním okně, okna jde přesouvat a měnit jim velikost); nad výběrem plovoucí lišta s barvou kartiček a menu „…“ (přesun, kopie, smazání); filtr typů na horní hraně zvýrazní kartičky jednoho typu; nástroj Rámeček (F) kreslí rámečky s nadpisem, kartičky přetažené do rámečku se s ním přesouvají
+- **Změna typu záznamu** – v menu „…“ detailu (např. požadavek → scénář); porovnání vedle sebe: vlevo původní záznam, vpravo upravitelný nový
 - Vazby mezi entitami (many-to-many) s automatickým propojováním
 - Fulltextové vyhledávání napříč všemi entitami
 - Export/import dat v JSON a YAML s řešením konfliktů
@@ -35,7 +36,7 @@ Další:
 ## Pluginy
 
 - **data-status** - sledování času poslední synchronizace
-- **tauri-local-api** - HTTP API server na localhost:8000 (komunikace s Figma pluginem)
+- **tauri-local-api** - HTTP API server na 127.0.0.1:17842 (komunikace s Figma pluginem); přístup jen s API klíčem z karty „Lokální API – Figma plugin“ v Konfigurace → Konektory
 - **flexi** - volitelná synchronizace s Flexi API
 - **openai** - integrace ChatGPT (poznámkový blok, návrhy vazeb)
 - **gemini** - Google Gemini AI (stejné funkce jako OpenAI)
@@ -43,7 +44,7 @@ Další:
 
 ## Figma integrace
 
-Figma plugin (`figma-plugin/`) komunikuje s UXLog přes lokální HTTP API server (Tauri). Designer vybere prvky ve Figmě a plugin je pošle do UXLog.
+Figma plugin (`figma-plugin/`) komunikuje s UXLog přes lokální HTTP API server (Tauri, `src-tauri/src/http_api.rs`). Designer vybere prvky ve Figmě a plugin je pošle do UXLog. V nastavení pluginu se zadává adresa `http://127.0.0.1:17842` a API klíč vytvořený v UXLogu (Konfigurace → Konektory → Lokální API); aplikace ukládá jen SHA-256 otisk klíče (`uxlog_local_api_keys`, `src/lib/localApiKeys.js`).
 
 ## Vývoj
 
@@ -65,7 +66,7 @@ UXLog je jen desktopová aplikace. `npm run dev` otevřený v běžném prohlí�
 
 ## Desktop (Tauri)
 
-Vyžaduje [Rust](https://rustup.rs) a na Windows runtime **WebView2**.
+Vyžaduje [Rust](https://rustup.rs) a na Windows runtime **WebView2**. Node.js 20.19+ nebo 22.12+ (Vite 8, Vitest 5).
 
 ```bash
 npm run tauri:dev    # vývojové okno + Vite
@@ -94,8 +95,8 @@ Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Ko
 
 ## Architektura
 
-- **Vue 3** + **Vite** + **Tauri 2** (Rust)
-- **Úložiště:** embedded `SQLite` (Rust `storage.rs`/`repository.rs`). Při startu ho `initStorage` (`src/lib/tauriBridge.js`, příkaz `load_all_storage`) načte celé do paměti – `main.js` teprve potom dynamicky načte zbytek aplikace (`src/app.js`), takže moduly čtoucí nastavení při importu vidí aktuální data. Čte se synchronně `readStoredValue`, zapisuje `writeStoredValue` (rovnou do SQLite), maže `removeStoredValue`. localStorage se nepoužívá; při prvním startu verze 1.2.46 se z něj jednorázově převezme, co v SQLite chybí, a vyčistí se.
+- **Vue 3** + **Vite 8** (Rolldown) + **Tauri 2** (Rust); testy **Vitest 5**
+- **Úložiště:** embedded `SQLite` (Rust `storage.rs`/`repository.rs`). Při startu ho `initStorage` (`src/lib/tauriBridge.js`, příkaz `load_all_storage`) načte celé do paměti – `main.js` teprve potom dynamicky načte zbytek aplikace (`src/app.js`), takže moduly čtoucí nastavení při importu vidí aktuální data. Čte se synchronně `readStoredValue`, zapisuje `writeStoredValue` (rovnou do SQLite; při selhání nouzová záloha v localStorage `uxlog-unsaved:*` a opakované pokusy), maže `removeStoredValue`. Jinak se localStorage nepoužívá; při prvním startu verze 1.2.46 se z něj jednorázově převezme, co v SQLite chybí, a vyčistí se.
 - **Historie změn projektu:** samostatný klíč `uxlog_history` (zápis v `persist()` → `stores/history.js`, logika rozdílů a vracení v `lib/history.js`)
 - **Dokument:** logika `lib/projectDocument.js` (sestavení dokumentu, uložení pole, Markdown, hledání), store `stores/document.js`, UI `useProjectDocument` + `useDocumentSearch` + `DocumentView.vue`
 - **Canvas:** rozvržení kartiček v `project.canvas` (logika `lib/canvas.js`, store `stores/canvas.js`, UI `useProjectCanvas` + `CanvasView.vue`); okna detailů nad plátnem: logika `lib/canvasWindows.js`, stav a tažení `useCanvasWindows`, okno `CanvasEntityWindow.vue` (stejná komponenta detailu jako v Datech, navigaci podle kontextu řeší `useEntityNavigation`)

@@ -13,8 +13,9 @@ export default defineConfig({
     emptyOutDir: false,
     target: 'node18',
     minify: false,
-    rollupOptions: {
-      output: { entryFileNames: 'uxlog-cli.mjs', format: 'es', inlineDynamicImports: true },
+    // Vite 8 (Rolldown): jeden soubor bez dělení na části
+    rolldownOptions: {
+      output: { entryFileNames: 'uxlog-cli.mjs', format: 'es', codeSplitting: false },
     },
   },
   ssr: { noExternal: true, target: 'node' },

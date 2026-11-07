@@ -77,7 +77,122 @@ pub fn init_repository(app_data_dir: PathBuf) -> Result<(), String> {
     let mut connection = open_connection()?;
     run_migrations(&connection)?;
     migrate_legacy_files_if_needed(&mut connection)?;
+    // Poškozené záznamy odložit stranou, aby kvůli nim nespadlo načtení celé aplikace
+    match quarantine_corrupt_records(&mut connection) {
+        Ok(found) if !found.is_empty() => {
+            eprintln!("[UXLog] odloženo poškozených záznamů: {}", found.len());
+            if let Ok(mut report) = quarantine_report().lock() {
+                report.extend(found);
+            }
+        }
+        Ok(_) => {}
+        Err(err) => eprintln!("[UXLog] kontrola poškozených záznamů selhala: {err}"),
+    }
     Ok(())
+}
+
+/// Záznam odložený kvůli poškození (tabulka `quarantined_records`).
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct QuarantinedRecord {
+    pub collection: String,
+    pub id: String,
+    pub reason: String,
+    /// Původní obsah (neplatné UTF-8 nahrazené), aby šel ručně opravit.
+    pub payload: String,
+}
+
+/// Záznamy odložené při tomto startu (WebView si je jednou vyzvedne a oznámí).
+static QUARANTINE_REPORT: OnceLock<std::sync::Mutex<Vec<QuarantinedRecord>>> = OnceLock::new();
+
+fn quarantine_report() -> &'static std::sync::Mutex<Vec<QuarantinedRecord>> {
+    QUARANTINE_REPORT.get_or_init(|| std::sync::Mutex::new(Vec::new()))
+}
+
+/// Vrátí a vyprázdní seznam záznamů odložených při startu.
+pub fn take_quarantine_report() -> Vec<QuarantinedRecord> {
+    quarantine_report()
+        .lock()
+        .map(|mut r| std::mem::take(&mut *r))
+        .unwrap_or_default()
+}
+
+/// Proč payload není použitelný záznam (platný JSON objekt); None = v pořádku.
+fn payload_problem(payload: Option<&str>) -> Option<String> {
+    let Some(text) = payload else {
+        return Some("payload není platný text".to_string());
+    };
+    match serde_json::from_str::<Value>(text) {
+        Ok(Value::Object(_)) => None,
+        Ok(_) => Some("payload není JSON objekt".to_string()),
+        Err(err) => Some(format!("neplatný JSON: {err}")),
+    }
+}
+
+/// Hodnota sloupce jako text (cokoli – i neplatné UTF-8 – kvůli zobrazení a ruční opravě).
+fn lossy_text(value: rusqlite::types::ValueRef<'_>) -> String {
+    use rusqlite::types::ValueRef;
+    match value {
+        ValueRef::Text(b) | ValueRef::Blob(b) => String::from_utf8_lossy(b).into_owned(),
+        ValueRef::Integer(n) => n.to_string(),
+        ValueRef::Real(n) => n.to_string(),
+        ValueRef::Null => String::new(),
+    }
+}
+
+/// Přesune poškozené řádky `entity_records` do `quarantined_records` (nic se nemaže natrvalo).
+fn quarantine_corrupt_records(connection: &mut Connection) -> Result<Vec<QuarantinedRecord>, String> {
+    let mut found: Vec<(i64, QuarantinedRecord)> = Vec::new();
+    {
+        let mut statement = connection
+            .prepare("SELECT rowid, entity_type, id, payload_json FROM entity_records")
+            .map_err(|err| format!("Nelze připravit kontrolu záznamů: {err}"))?;
+        let mut rows = statement
+            .query([])
+            .map_err(|err| format!("Nelze číst záznamy: {err}"))?;
+        while let Some(row) = rows.next().map_err(|err| format!("Nelze číst záznam: {err}"))? {
+            let rowid: i64 = row.get(0).map_err(|err| format!("Nelze číst rowid: {err}"))?;
+            let payload_ref = row.get_ref(3).map_err(|err| format!("Nelze číst payload: {err}"))?;
+            // Jen text v platném UTF-8 je použitelný payload
+            let strict = match payload_ref {
+                rusqlite::types::ValueRef::Text(b) => std::str::from_utf8(b).ok(),
+                _ => None,
+            };
+            if let Some(reason) = payload_problem(strict) {
+                let column = |i: usize| row.get_ref(i).map(lossy_text).unwrap_or_default();
+                found.push((
+                    rowid,
+                    QuarantinedRecord {
+                        collection: column(1),
+                        id: column(2),
+                        reason,
+                        payload: lossy_text(payload_ref),
+                    },
+                ));
+            }
+        }
+    }
+    if found.is_empty() {
+        return Ok(Vec::new());
+    }
+    let transaction = connection
+        .transaction()
+        .map_err(|err| format!("Nelze otevřít transakci pro odložení záznamů: {err}"))?;
+    for (rowid, record) in &found {
+        transaction
+            .execute(
+                "INSERT INTO quarantined_records (entity_type, id, payload_json, reason)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![record.collection, record.id, record.payload, record.reason],
+            )
+            .map_err(|err| format!("Nelze odložit záznam {}/{}: {err}", record.collection, record.id))?;
+        transaction
+            .execute("DELETE FROM entity_records WHERE rowid = ?1", params![rowid])
+            .map_err(|err| format!("Nelze odebrat poškozený záznam: {err}"))?;
+    }
+    transaction
+        .commit()
+        .map_err(|err| format!("Nelze potvrdit odložení záznamů: {err}"))?;
+    Ok(found.into_iter().map(|(_, r)| r).collect())
 }
 
 /// Uloží textovou hodnotu do key-value tabulky.
@@ -175,6 +290,69 @@ pub fn save_app_data_map(data: &Map<String, Value>) -> Result<(), String> {
     Ok(())
 }
 
+/// Změna jednoho záznamu pro inkrementální uložení.
+#[derive(Debug, serde::Deserialize)]
+pub struct RecordUpsert {
+    pub collection: String,
+    pub record: Value,
+}
+
+/// Smazání jednoho záznamu pro inkrementální uložení.
+#[derive(Debug, serde::Deserialize)]
+pub struct RecordDelete {
+    pub collection: String,
+    pub id: String,
+}
+
+/// Uloží jen změněné a smazané záznamy (jedna transakce) místo přepsání celého stavu.
+/// Neznámá kolekce nebo záznam bez id = chyba celé dávky (nic se nezapíše).
+pub fn save_app_data_changes(upserts: &[RecordUpsert], deletes: &[RecordDelete]) -> Result<(), String> {
+    let mut connection = open_connection()?;
+    apply_app_data_changes(&mut connection, upserts, deletes)
+}
+
+fn apply_app_data_changes(
+    connection: &mut Connection,
+    upserts: &[RecordUpsert],
+    deletes: &[RecordDelete],
+) -> Result<(), String> {
+    for change in upserts {
+        if !is_supported_collection(&change.collection) {
+            return Err(format!("Neznámá kolekce: {}", change.collection));
+        }
+        if !change.record.is_object() || change.record.get("id").and_then(Value::as_str).is_none() {
+            return Err(format!("Záznam v kolekci {} nemá platné id", change.collection));
+        }
+    }
+    for change in deletes {
+        if !is_supported_collection(&change.collection) {
+            return Err(format!("Neznámá kolekce: {}", change.collection));
+        }
+    }
+    let transaction = connection
+        .transaction()
+        .map_err(|err| format!("Nelze otevřít transakci pro uložení změn: {err}"))?;
+    for change in deletes {
+        transaction
+            .execute(
+                "DELETE FROM entity_records WHERE entity_type = ?1 AND id = ?2",
+                params![change.collection, change.id],
+            )
+            .map_err(|err| format!("Nelze smazat {}/{}: {err}", change.collection, change.id))?;
+    }
+    for change in upserts {
+        upsert_entity_in_transaction(&transaction, &change.collection, &change.record)?;
+    }
+    // Sirotci vznikají jen smazáním projektu – jinak se celá tabulka neprochází
+    if deletes.iter().any(|d| d.collection == "projects") {
+        prune_orphans_in_transaction(&transaction)?;
+    }
+    transaction
+        .commit()
+        .map_err(|err| format!("Nelze potvrdit uložení změn: {err}"))?;
+    Ok(())
+}
+
 /// Načte celý stav aplikace jako JSON řetězec kompatibilní s původním blobem.
 pub fn load_app_data_json() -> Result<Option<String>, String> {
     let data = load_app_data_map()?;
@@ -207,13 +385,25 @@ pub fn load_app_data_map() -> Result<Map<String, Value>, String> {
         .map_err(|err| format!("Nelze číst app state: {err}"))?;
 
     for row in rows {
-        let (entity_type, payload_json) =
-            row.map_err(|err| format!("Nelze dekódovat řádek app state: {err}"))?;
+        // Poškozený řádek (vznikl až za běhu – při startu se odkládají) se přeskočí,
+        // aby nezablokoval načtení ostatních dat
+        let (entity_type, payload_json) = match row {
+            Ok(r) => r,
+            Err(err) => {
+                eprintln!("[UXLog] přeskočen nečitelný řádek: {err}");
+                continue;
+            }
+        };
         if !is_supported_collection(&entity_type) {
             continue;
         }
-        let value: Value = serde_json::from_str(&payload_json)
-            .map_err(|err| format!("Poškozený payload v kolekci {entity_type}: {err}"))?;
+        let value: Value = match serde_json::from_str(&payload_json) {
+            Ok(v) => v,
+            Err(err) => {
+                eprintln!("[UXLog] přeskočen poškozený záznam v kolekci {entity_type}: {err}");
+                continue;
+            }
+        };
         let entry = data
             .entry(entity_type)
             .or_insert_with(|| Value::Array(Vec::new()));
@@ -366,6 +556,15 @@ fn run_migrations(connection: &Connection) -> Result<(), String> {
               ON entity_records (project_id);
             CREATE INDEX IF NOT EXISTS idx_entity_records_change_ts
               ON entity_records (change_ts);
+
+            -- Poškozené záznamy odložené při startu (k ruční opravě, aplikace je nenačítá)
+            CREATE TABLE IF NOT EXISTS quarantined_records (
+              entity_type TEXT,
+              id TEXT,
+              payload_json TEXT,
+              reason TEXT,
+              quarantined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             ",
         )
         .map_err(|err| format!("Nelze vytvořit schéma SQLite: {err}"))?;
@@ -645,22 +844,20 @@ fn sanitize_app_data_value(value: Value) -> Map<String, Value> {
 
 /// Odstraní duplicitní záznamy podle `id` a ponechá novější variantu.
 fn deduplicate_records(records: Vec<Value>) -> Vec<Value> {
-    let mut result = Vec::<Value>::new();
+    let mut result = Vec::<Value>::with_capacity(records.len());
+    // id → pozice ve výsledku (pořadí podle prvního výskytu)
+    let mut index = std::collections::HashMap::<String, usize>::with_capacity(records.len());
 
     for record in records {
-        let Some(id) = record.get("id").and_then(Value::as_str) else {
+        let Some(id) = record.get("id").and_then(Value::as_str).map(str::to_string) else {
             continue;
         };
-        if let Some(existing_index) = result.iter().position(|item| {
-            item.get("id")
-                .and_then(Value::as_str)
-                .map(|existing_id| existing_id == id)
-                .unwrap_or(false)
-        }) {
+        if let Some(&existing_index) = index.get(&id) {
             if should_replace_record(&result[existing_index], &record) {
                 result[existing_index] = record;
             }
         } else {
+            index.insert(id, result.len());
             result.push(record);
         }
     }
@@ -745,7 +942,11 @@ fn parse_iso_timestamp_ms(value: &str) -> Option<i64> {
 
 #[cfg(test)]
 mod tests {
-    use super::{record_change_ts, sanitize_app_data_value};
+    use super::{
+        payload_problem, quarantine_corrupt_records, record_change_ts, run_migrations,
+        sanitize_app_data_value,
+    };
+    use rusqlite::{params, Connection};
     use serde_json::json;
 
     /// Ověří, že sanitizace ponechá novější duplicitní záznam.
@@ -799,5 +1000,133 @@ mod tests {
         });
 
         assert_eq!(record_change_ts(&record), 1_800_000_000_000_i64);
+    }
+
+    fn memory_db() -> Connection {
+        let connection = Connection::open_in_memory().unwrap();
+        run_migrations(&connection).unwrap();
+        connection
+    }
+
+    fn insert_raw(connection: &Connection, entity_type: &str, id: &str, payload: rusqlite::types::Value) {
+        connection
+            .execute(
+                "INSERT INTO entity_records (entity_type, id, payload_json) VALUES (?1, ?2, ?3)",
+                params![entity_type, id, payload],
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn quarantine_moves_only_corrupt_rows() {
+        use rusqlite::types::Value as Sql;
+        let mut connection = memory_db();
+        insert_raw(&connection, "goals", "ok", Sql::Text("{\"id\":\"ok\"}".into()));
+        insert_raw(&connection, "goals", "broken", Sql::Text("{\"id\":\"broken\"".into()));
+        insert_raw(&connection, "goals", "array", Sql::Text("[1,2]".into()));
+        insert_raw(&connection, "goals", "binary", Sql::Blob(vec![0xff, 0xfe, b'{']));
+
+        let found = quarantine_corrupt_records(&mut connection).unwrap();
+        let mut ids: Vec<_> = found.iter().map(|r| r.id.as_str()).collect();
+        ids.sort();
+        assert_eq!(ids, vec!["array", "binary", "broken"]);
+        assert!(found.iter().any(|r| r.payload == "{\"id\":\"broken\""));
+
+        let left: i64 = connection
+            .query_row("SELECT COUNT(*) FROM entity_records", [], |r| r.get(0))
+            .unwrap();
+        let kept: i64 = connection
+            .query_row("SELECT COUNT(*) FROM quarantined_records", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!((left, kept), (1, 3));
+        // Druhý průchod už nic nenajde
+        assert!(quarantine_corrupt_records(&mut connection).unwrap().is_empty());
+    }
+
+    #[test]
+    fn incremental_changes_upsert_delete_and_prune_orphans() {
+        let mut connection = memory_db();
+        let up = |collection: &str, record: serde_json::Value| super::RecordUpsert {
+            collection: collection.to_string(),
+            record,
+        };
+        super::apply_app_data_changes(
+            &mut connection,
+            &[
+                up("projects", json!({ "id": "p1" })),
+                up("goals", json!({ "id": "g1", "projectId": "p1", "name": "A" })),
+                up("goals", json!({ "id": "g2", "projectId": "p1" })),
+            ],
+            &[],
+        )
+        .unwrap();
+        // Změna jednoho záznamu a smazání druhého
+        super::apply_app_data_changes(
+            &mut connection,
+            &[up("goals", json!({ "id": "g1", "projectId": "p1", "name": "B" }))],
+            &[super::RecordDelete { collection: "goals".into(), id: "g2".into() }],
+        )
+        .unwrap();
+        let name: String = connection
+            .query_row("SELECT payload_json FROM entity_records WHERE id = 'g1'", [], |r| r.get(0))
+            .unwrap();
+        assert!(name.contains("\"B\""));
+        let count = |c: &Connection| -> i64 {
+            c.query_row("SELECT COUNT(*) FROM entity_records", [], |r| r.get(0)).unwrap()
+        };
+        assert_eq!(count(&connection), 2);
+        // Smazání projektu odstraní i jeho záznamy
+        super::apply_app_data_changes(
+            &mut connection,
+            &[],
+            &[super::RecordDelete { collection: "projects".into(), id: "p1".into() }],
+        )
+        .unwrap();
+        assert_eq!(count(&connection), 0);
+    }
+
+    #[test]
+    fn incremental_changes_reject_invalid_batch_entirely() {
+        let mut connection = memory_db();
+        let result = super::apply_app_data_changes(
+            &mut connection,
+            &[
+                super::RecordUpsert { collection: "projects".into(), record: json!({ "id": "p1" }) },
+                super::RecordUpsert { collection: "secrets".into(), record: json!({ "id": "x" }) },
+            ],
+            &[],
+        );
+        assert!(result.is_err());
+        let count: i64 = connection
+            .query_row("SELECT COUNT(*) FROM entity_records", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
+        assert!(super::apply_app_data_changes(
+            &mut connection,
+            &[super::RecordUpsert { collection: "goals".into(), record: json!({ "name": "bez id" }) }],
+            &[],
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn deduplicate_keeps_first_position_and_newer_record() {
+        let out = super::deduplicate_records(vec![
+            json!({ "id": "a", "updatedAt": "2026-01-01" }),
+            json!({ "id": "b" }),
+            json!({ "id": "a", "updatedAt": "2026-02-01" }),
+            json!({ "name": "bez id" }),
+        ]);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0]["updatedAt"], "2026-02-01");
+        assert_eq!(out[1]["id"], "b");
+    }
+
+    #[test]
+    fn payload_problem_detects_invalid_payloads() {
+        assert_eq!(payload_problem(Some("{\"id\":\"a\"}")), None);
+        assert!(payload_problem(Some("nope")).is_some());
+        assert!(payload_problem(Some("42")).is_some());
+        assert!(payload_problem(None).is_some());
     }
 }

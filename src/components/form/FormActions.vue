@@ -7,7 +7,8 @@
 <script setup>
 /**
  * FormActions – řádek tlačítek pro akce formuláře (uložit, zrušit).
- * Zobrazuje tlačítka zarovnaná vpravo s mezerou mezi nimi.
+ * Zobrazuje tlačítka zarovnaná vpravo s mezerou mezi nimi (styl .form-actions je globální v style.css –
+ * používají ho i formuláře, které třídu píšou přímo).
  */
 </script>
 
@@ -16,12 +17,3 @@ export default {
   name: 'FormActions',
 }
 </script>
-
-<style scoped>
-.form-actions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-</style>

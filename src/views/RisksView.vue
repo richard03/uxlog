@@ -51,8 +51,6 @@
         :to="{ name: 'riskDetail', params: { id: projectId, riskId: r.id } }"
         :entity-id="r.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.risk.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') deleteTarget = r.id; else if (a === 'move') moveTarget = r.id; else if (a === 'copy') copyTarget = r.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="r.code" variant="badge-accent">{{ r.code }}</AppBadge>
@@ -84,15 +82,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.risk.delete"
-      :message="t.risk.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="risks" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="risks" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -104,10 +93,8 @@ import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -154,17 +141,6 @@ const breadcrumbs = computed(() => [
 const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', mitigation: '' })
-
-const deleteTarget = ref(null)
-const moveTarget = ref(null)
-const copyTarget = ref(null)
-
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deleteRisk(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
 
 function openForm() {
   form.value = { code: generateNextCode(getCodePrefix('risk'), items.value), name: '', description: '', mitigation: '' }

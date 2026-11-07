@@ -6,21 +6,122 @@
 //! Endpointy:
 //!   GET  /api/uxlog_projects           – seznam projektů
 //!   GET  /api/uxlog_{entityType}       – seznam entit daného typu
-//!   PUT  /api/uxlog_{entityType}/{id}  – aktualizace entity
+//!   PUT  /api/uxlog_{entityType}/{id}  – úprava existující entity: poslaná pole se sloučí
+//!                                        do uloženého záznamu (ostatní pole zůstanou)
 //!   GET  /api/uxlog_checksum           – kontrolní součty kolekcí
 //!
 //! Veškerá data čte/zapisuje ze stejné SQLite repository jako WebView.
-//! Server je dostupný pouze z localhost.
+//! Server naslouchá jen na 127.0.0.1.
+//!
+//! Zabezpečení (každý požadavek kromě preflightu OPTIONS):
+//!   - hlavička `Host` musí být 127.0.0.1:PORT nebo localhost:PORT (ochrana proti DNS rebindingu),
+//!   - `Authorization: Bearer <klíč>` musí odpovídat jednomu z API klíčů vytvořených v aplikaci
+//!     (Konektory → Lokální API). Ukládá se jen SHA-256 otisk klíče (`uxlog_local_api_keys`,
+//!     formát viz `src/lib/localApiKeys.js`). Bez klíčů API nepustí nikoho.
 
 use crate::repository;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::sync::{Mutex, OnceLock};
 use std::thread;
 use tauri::{AppHandle, Emitter};
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
+pub const PORT: u16 = 17842;
 const LISTEN_ADDR: &str = "127.0.0.1:17842";
+
+/// Uložený klíč s otisky API klíčů (zapisuje ho jen WebView).
+const API_KEYS_STORAGE_KEY: &str = "uxlog_local_api_keys";
+
+/// Čas posledního použití klíčů (id → ms epoch); jen v paměti, po restartu se začíná znovu.
+static KEY_USAGE: OnceLock<Mutex<HashMap<String, i64>>> = OnceLock::new();
+
+fn key_usage() -> &'static Mutex<HashMap<String, i64>> {
+    KEY_USAGE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Kopie času posledního použití klíčů (pro obrazovku Konektory).
+pub fn key_usage_snapshot() -> HashMap<String, i64> {
+    key_usage().lock().map(|m| m.clone()).unwrap_or_default()
+}
+
+/// Je hlavička Host jedna z povolených adres serveru?
+fn is_allowed_host(host: Option<&str>) -> bool {
+    let Some(host) = host else { return false };
+    let host = host.trim().to_ascii_lowercase();
+    host == format!("127.0.0.1:{PORT}") || host == format!("localhost:{PORT}")
+}
+
+/// Token z hlavičky `Authorization: Bearer <token>`.
+fn bearer_token(header: Option<&str>) -> Option<&str> {
+    let value = header?.trim();
+    let (scheme, token) = value.split_once(' ')?;
+    if !scheme.eq_ignore_ascii_case("bearer") {
+        return None;
+    }
+    let token = token.trim();
+    (!token.is_empty()).then_some(token)
+}
+
+/// SHA-256 otisk tokenu jako hex (stejně jako `crypto.subtle` ve WebView).
+fn sha256_hex(token: &str) -> String {
+    Sha256::digest(token.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// Porovnání v konstantním čase (délka se neskrývá – otisky mají pevnou délku).
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+/// Id klíče, jehož otisk odpovídá tokenu (uložená data poškozená nebo bez klíčů = None).
+fn authorized_key_id(token: &str, keys_json: Option<&str>) -> Option<String> {
+    let data: serde_json::Value = serde_json::from_str(keys_json?).ok()?;
+    let hash = sha256_hex(token);
+    let mut found = None;
+    for key in data.get("keys")?.as_array()? {
+        let (Some(id), Some(stored)) = (
+            key.get("id").and_then(|v| v.as_str()),
+            key.get("hash").and_then(|v| v.as_str()),
+        ) else {
+            continue;
+        };
+        // Projde všechny klíče bez předčasného konce
+        if constant_time_eq(&stored.to_ascii_lowercase(), &hash) && found.is_none() {
+            found = Some(id.to_string());
+        }
+    }
+    found
+}
+
+/// Hodnota hlavičky požadavku (bez ohledu na velikost písmen v názvu).
+fn header_value<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
+    request
+        .headers()
+        .iter()
+        .find(|h| h.field.as_str().as_str().eq_ignore_ascii_case(name))
+        .map(|h| h.value.as_str())
+}
+
+/// Ověří klíč požadavku; při úspěchu zaznamená čas použití.
+fn authorize(request: &Request) -> bool {
+    let Some(token) = bearer_token(header_value(request, "Authorization")) else {
+        return false;
+    };
+    let stored = repository::load_key_value(API_KEYS_STORAGE_KEY).ok().flatten();
+    let Some(id) = authorized_key_id(token, stored.as_deref()) else {
+        return false;
+    };
+    if let Ok(mut usage) = key_usage().lock() {
+        usage.insert(id, chrono::Utc::now().timestamp_millis());
+    }
+    true
+}
 
 /// Payload události oznamující změnu zrcadleného storage klíče.
 #[derive(Clone, Serialize)]
@@ -54,8 +155,15 @@ fn handle_request(
     request: &mut Request,
     app_handle: &AppHandle,
 ) -> Response<std::io::Cursor<Vec<u8>>> {
+    if !is_allowed_host(header_value(request, "Host")) {
+        return cors_response(StatusCode(403), r#"{"error":"Forbidden host"}"#);
+    }
+    // Preflight prohlížeče hlavičku Authorization neposílá
     if request.method() == &Method::Options {
         return cors_response(StatusCode(204), "");
+    }
+    if !authorize(request) {
+        return cors_response(StatusCode(401), r#"{"error":"Unauthorized"}"#);
     }
 
     let url = request.url().to_string();
@@ -166,33 +274,63 @@ fn handle_put_entity(
         Err(_) => return cors_response(StatusCode(400), r#"{"error":"Invalid JSON"}"#),
     };
 
-    let uxlog_id = incoming
-        .get("_uxlog_id")
-        .or_else(|| incoming.get("id"))
-        .and_then(|v| v.as_str())
-        .unwrap_or(put_id);
-
-    let mut record = incoming.clone();
-    if let Some(obj) = record.as_object_mut() {
-        obj.insert(
-            "id".to_string(),
-            serde_json::Value::String(uxlog_id.to_string()),
-        );
-        // Přežitá pole starší Flexi synchronizace se do záznamů neukládají
-        obj.remove("_uxlog_id");
-        obj.remove("_ts");
-    } else {
+    if !incoming.is_object() {
         return cors_response(
             StatusCode(400),
             r#"{"error":"Entity body must be an object"}"#,
         );
     }
+    let uxlog_id = put_id;
+
+    // Jen úprava existujícího záznamu; poslaná pole se sloučí do uloženého
+    let existing = match repository::get_entity(collection, uxlog_id) {
+        Ok(Some(existing)) => existing,
+        Ok(None) => return cors_response(StatusCode(404), r#"{"error":"Entity not found"}"#),
+        Err(err) => return server_error_response(&err),
+    };
+    let record = merge_record(&existing, &incoming);
 
     if let Err(err) = repository::upsert_entity(collection, uxlog_id, &record) {
         return server_error_response(&err);
     }
+    // WebView si vyzvedne jen poslaná pole a sloučí je do svého aktuálního záznamu
+    // (celý záznam z databáze by mohl vrátit úpravu, jejíž uložení z WebView ještě běží)
+    crate::external_changes::record(collection, record_patch(uxlog_id, &incoming));
     emit_storage_updated(app_handle, "uxlog_data");
     cors_response(StatusCode(200), r#"{"ok":true}"#)
+}
+
+/// Pole, která zápis přes API nesmí změnit (identita a příslušnost k projektu) nebo se neukládají.
+const PROTECTED_FIELDS: &[&str] = &["id", "projectId", "createdAt", "_uxlog_id", "_ts"];
+
+/// Sloučí poslaná pole do uloženého záznamu (mělce: pole na nejvyšší úrovni se nahradí celá).
+/// Chráněná pole zůstanou z uloženého záznamu; zastaralá pole starší synchronizace se zahodí.
+fn merge_record(existing: &serde_json::Value, incoming: &serde_json::Value) -> serde_json::Value {
+    let mut merged = existing.as_object().cloned().unwrap_or_default();
+    if let Some(fields) = incoming.as_object() {
+        for (key, value) in fields {
+            if !PROTECTED_FIELDS.contains(&key.as_str()) {
+                merged.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    merged.remove("_uxlog_id");
+    merged.remove("_ts");
+    serde_json::Value::Object(merged)
+}
+
+/// Změna pro WebView: id záznamu a poslaná pole bez chráněných.
+fn record_patch(id: &str, incoming: &serde_json::Value) -> serde_json::Value {
+    let mut patch = serde_json::Map::new();
+    if let Some(fields) = incoming.as_object() {
+        for (key, value) in fields {
+            if !PROTECTED_FIELDS.contains(&key.as_str()) {
+                patch.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    patch.insert("id".to_string(), serde_json::Value::String(id.to_string()));
+    serde_json::Value::Object(patch)
 }
 
 /// GET /api/uxlog_checksum – checksum per kolekce podle skutečného obsahu.
@@ -262,7 +400,7 @@ fn cors_response(status: StatusCode, body: &str) -> Response<std::io::Cursor<Vec
     resp.add_header(
         Header::from_bytes(
             "Access-Control-Allow-Methods",
-            "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+            "GET, PUT, OPTIONS",
         )
         .unwrap(),
     );
@@ -278,4 +416,92 @@ fn cors_response(status: StatusCode, body: &str) -> Response<std::io::Cursor<Vec
     );
     resp.add_header(Header::from_bytes("Access-Control-Max-Age", "86400").unwrap());
     resp
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TOKEN: &str = "uxlog_0123456789abcdef";
+
+    fn keys_json(hash: &str) -> String {
+        serde_json::json!({ "keys": [
+            { "id": "other", "hash": "0".repeat(64) },
+            { "id": "k1", "hash": hash },
+        ] })
+        .to_string()
+    }
+
+    #[test]
+    fn host_must_be_local_server_address() {
+        assert!(is_allowed_host(Some("127.0.0.1:17842")));
+        assert!(is_allowed_host(Some("LOCALHOST:17842")));
+        assert!(!is_allowed_host(Some("evil.example:17842")));
+        assert!(!is_allowed_host(Some("127.0.0.1")));
+        assert!(!is_allowed_host(Some("127.0.0.1:80")));
+        assert!(!is_allowed_host(None));
+    }
+
+    #[test]
+    fn bearer_token_parsing() {
+        assert_eq!(bearer_token(Some("Bearer abc")), Some("abc"));
+        assert_eq!(bearer_token(Some("bearer   abc ")), Some("abc"));
+        assert_eq!(bearer_token(Some("Basic abc")), None);
+        assert_eq!(bearer_token(Some("Bearer ")), None);
+        assert_eq!(bearer_token(Some("abc")), None);
+        assert_eq!(bearer_token(None), None);
+    }
+
+    #[test]
+    fn sha256_matches_known_vector() {
+        assert_eq!(
+            sha256_hex("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn authorizes_only_matching_key() {
+        let json = keys_json(&sha256_hex(TOKEN));
+        assert_eq!(authorized_key_id(TOKEN, Some(&json)), Some("k1".to_string()));
+        assert_eq!(authorized_key_id("uxlog_wrong", Some(&json)), None);
+        // Velká písmena v uloženém otisku nevadí
+        let upper = keys_json(&sha256_hex(TOKEN).to_uppercase());
+        assert_eq!(authorized_key_id(TOKEN, Some(&upper)), Some("k1".to_string()));
+    }
+
+    #[test]
+    fn merge_keeps_other_fields_and_protects_identity() {
+        let existing = serde_json::json!({
+            "id": "g1", "projectId": "p1", "createdAt": "2026-01-01",
+            "name": "Starý", "description": "Popis z aplikace", "customFields": { "a": 1 }
+        });
+        let incoming = serde_json::json!({
+            "name": "Z Figmy", "id": "jiny", "projectId": "p9", "createdAt": "x",
+            "_uxlog_id": "g1", "_ts": 5
+        });
+        let merged = merge_record(&existing, &incoming);
+        assert_eq!(merged["name"], "Z Figmy");
+        assert_eq!(merged["description"], "Popis z aplikace");
+        assert_eq!(merged["customFields"]["a"], 1);
+        assert_eq!(merged["id"], "g1");
+        assert_eq!(merged["projectId"], "p1");
+        assert_eq!(merged["createdAt"], "2026-01-01");
+        assert!(merged.get("_uxlog_id").is_none());
+        assert!(merged.get("_ts").is_none());
+    }
+
+    #[test]
+    fn patch_contains_only_sent_fields_and_id() {
+        let patch = record_patch("g1", &serde_json::json!({ "name": "X", "projectId": "p9", "_ts": 1 }));
+        assert_eq!(patch, serde_json::json!({ "id": "g1", "name": "X" }));
+    }
+
+    #[test]
+    fn no_or_corrupt_keys_deny_everyone() {
+        assert_eq!(authorized_key_id(TOKEN, None), None);
+        assert_eq!(authorized_key_id(TOKEN, Some("{nope")), None);
+        assert_eq!(authorized_key_id(TOKEN, Some(r#"{"keys":[]}"#)), None);
+        assert_eq!(authorized_key_id(TOKEN, Some(r#"{"keys":[{"hash":"x"}]}"#)), None);
+    }
 }

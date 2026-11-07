@@ -29,8 +29,6 @@
         :to="{ name: 'competitionDetail', params: { id: projectId, competitionId: c.id } }"
         :entity-id="c.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.competition.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(c.id); else if (a === 'move') confirmMoveItem(c.id); else if (a === 'copy') copyTarget = c.id }"
       >
         <div class="card-badges">
           <AppBadge
@@ -56,16 +54,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.competition.delete"
-      :message="t.competition.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="competitions" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="competitions" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
-
     <CompetitionAnalysisModal
       v-if="showAnalysis"
       :project-data="projectData"
@@ -83,11 +71,9 @@ import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
 import KebabMenu from '../components/KebabMenu.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import CompetitionAnalysisModal from '../components/CompetitionAnalysisModal.vue'
@@ -171,20 +157,6 @@ const breadcrumbs = computed(() => [
 const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ name: '', description: '', strengths: '', weaknesses: '', inspiration: '' })
-
-const deleteTarget = ref(null)
-function confirmDeleteItem(id) { deleteTarget.value = id }
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deleteCompetition(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
-
-const moveTarget = ref(null)
-const copyTarget = ref(null)
-function confirmMoveItem(id) { moveTarget.value = id }
-
 
 function openForm() {
   form.value = { name: '', description: '', strengths: '', weaknesses: '', inspiration: '' }

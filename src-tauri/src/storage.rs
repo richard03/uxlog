@@ -27,6 +27,14 @@ pub fn load(key: &str) -> Result<Option<String>, String> {
     }
 }
 
+/// Uloží jen změněné a smazané záznamy hlavního stavu aplikace.
+pub fn save_app_data_changes(
+    upserts: &[repository::RecordUpsert],
+    deletes: &[repository::RecordDelete],
+) -> Result<(), String> {
+    repository::save_app_data_changes(upserts, deletes)
+}
+
 /// Smaže storage klíč (hlavní stav aplikace smazat nejde).
 pub fn remove(key: &str) -> Result<(), String> {
     if key == APP_DATA_KEY {

@@ -98,6 +98,7 @@ select { appearance: auto; }
 .panel.active { display: block; }
 .panel h3 { font-size: 13px; margin-bottom: 8px; font-weight: 600; }
 .form-group { margin-bottom: 10px; }
+.form-group .hint { margin: 4px 0 0; font-size: 11px; color: #888; }
 .form-group label { display: block; font-size: 11px; color: var(--text-label); margin-bottom: 4px; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
@@ -312,11 +313,12 @@ select { appearance: auto; }
   <h3>Nastavení připojení</h3>
   <div class="form-group">
     <label for="apiUrl">URL API:</label>
-    <input type="text" id="apiUrl" placeholder="https://example.com/api">
+    <input type="text" id="apiUrl" placeholder="http://127.0.0.1:17842">
   </div>
   <div class="form-group">
     <label for="apiKey">API klíč (Bearer token):</label>
-    <input type="password" id="apiKey" placeholder="Váš API klíč">
+    <input type="password" id="apiKey" placeholder="uxlog_…">
+    <p class="hint">Klíč vytvoříte v aplikaci UXLog: Konfigurace › Konektory › Lokální API.</p>
   </div>
   <div id="settingsStatus" class="hidden"></div>
   <div class="btn-group">
@@ -717,6 +719,9 @@ async function apiRequest(method, path, body) {
   if (!response.ok) {
     let detail = '';
     try { detail = await response.text(); } catch (e) {}
+    if (response.status === 401) {
+      throw new Error('UXLog odmítl API klíč – vytvořte nový v UXLogu (Konfigurace › Konektory › Lokální API).');
+    }
     throw new Error(`HTTP ${response.status}${detail ? ': ' + detail : ''}`);
   }
   const text = await response.text();
@@ -783,6 +788,19 @@ async function fetchAllEntities(projectId) {
     }
   }
   return result;
+}
+
+/**
+ * Tělo zápisu: jen změněná pole (hodnoty z karty). UXLog je sloučí do uloženého záznamu,
+ * takže pole, která karta nezná nebo nezměnila, se v aplikaci nepřepíšou.
+ */
+function changedFieldsBody(entity, changes) {
+  var body = {};
+  for (var i = 0; i < changes.length; i++) {
+    var field = changes[i].field;
+    body[field] = entity && entity[field] !== undefined ? entity[field] : changes[i].newValue;
+  }
+  return body;
 }
 
 async function updateEntity(entityType, entityId, data) {
@@ -1438,7 +1456,8 @@ document.getElementById('btnSyncExecute').addEventListener('click', async functi
       for (var pdi = 0; pdi < unresolvedDiffs.length; pdi++) {
         var d = unresolvedDiffs[pdi];
         try {
-          await updateEntity(d.entityType, d.entityId, d.entity);
+          var pending = d.changes.filter(function(c) { return !c._resolved; });
+          await updateEntity(d.entityType, d.entityId, changedFieldsBody(d.entity, pending));
           successCount++;
           succeededDiffs.push(d);
         } catch (e) {
@@ -1674,10 +1693,10 @@ window.acceptField = async function(diffIdx, changeIdx) {
   if (currentSyncAction === 'push') {
     // Push single field to API
     try {
-      // Send full entity with the accepted field value to API
+      // Do UXLogu jen potvrzené pole; uložený snímek karty se aktualizuje celý
       var fullEntity = Object.assign({}, d.entity);
       fullEntity[ch.field] = ch.newValue;
-      await updateEntity(d.entityType, d.entityId, fullEntity);
+      await updateEntity(d.entityType, d.entityId, changedFieldsBody(fullEntity, [ch]));
       // Update stored entity on card
       parent.postMessage({ pluginMessage: { type: 'update-stored-entities', updates: [{ entityId: d.entityId, entity: fullEntity }] } }, '*');
       d.entity = fullEntity;

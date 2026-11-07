@@ -1,10 +1,11 @@
 <template>
+  <!-- Do body: dialog nesmí uvěznit kontext vrstvení rodiče (např. přichycený detail) -->
+  <Teleport to="body">
   <div
     class="modal-overlay"
     role="dialog"
     aria-modal="true"
     :aria-labelledby="titleId"
-    @keydown.esc="emit('close')"
   >
     <div class="modal" :class="{ 'modal-large': size === 'large' }" ref="modalRef">
       <header class="modal-header">
@@ -18,10 +19,12 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
+import { useDialog } from '../composables/useDialog.js'
 import { useI18n } from '../composables/useI18n.js'
 import AppButton from './AppButton.vue'
 
@@ -37,32 +40,8 @@ const emit = defineEmits(['close'])
 const modalRef = ref(null)
 const titleId = 'modal-title-' + Math.random().toString(36).slice(2)
 
-/**
- * Zachytí kliknutí mimo modal.
- * Ignoruje kliknutí na elementy, které byly odstraněny z DOM (např. při přepnutí obsahu).
- */
-function handleClick(e) {
-  if (!e.target.isConnected) return
-  if (modalRef.value && !modalRef.value.contains(e.target)) {
-    emit('close')
-  }
-}
-
-let timeoutId
-
-onMounted(() => {
-  document.body.style.overflow = 'hidden'
-  // Zpoždění přidání listeneru, aby se nezachytil stejný klik, který modal otevřel
-  timeoutId = setTimeout(() => {
-    document.addEventListener('click', handleClick)
-  }, 0)
-})
-
-onUnmounted(() => {
-  clearTimeout(timeoutId)
-  document.removeEventListener('click', handleClick)
-  document.body.style.overflow = ''
-})
+// Fokus, Esc, klik mimo a zámek posouvání stránky (jen nejvyšší dialog)
+useDialog(modalRef, { onClose: () => emit('close') })
 </script>
 
 <style scoped>

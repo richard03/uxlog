@@ -43,5 +43,19 @@ export function useEntityNavigation() {
     else router.push(fallback)
   }
 
-  return { canvasWindow, inCanvas: Boolean(canvasWindow), detailRoute, openDetail, leaveDetail }
+  /**
+   * Nahradí otevřený detail detailem jiné entity (po změně typu záznamu): v okně nad plátnem
+   * otevře nové okno a současné zavře, jinak nahradí routu (Zpět nevede na smazaný záznam).
+   */
+  function replaceDetail(type, projectId, id) {
+    if (canvasWindow) {
+      canvasWindow.open(type, id)
+      canvasWindow.close()
+      return
+    }
+    const to = detailRoute(type, projectId, id)
+    if (to) router.replace(to)
+  }
+
+  return { canvasWindow, inCanvas: Boolean(canvasWindow), detailRoute, openDetail, leaveDetail, replaceDetail }
 }

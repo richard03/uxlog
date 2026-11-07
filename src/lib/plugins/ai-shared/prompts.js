@@ -496,7 +496,10 @@ export async function processNotebookInParts(notebookText, projectContext, callM
         results.push(parseActions(await callModel(prompt)).actions)
         done = true
       } catch (e) {
+        // Zrušení uživatelem ukončí celé zpracování; vypršení limitu se neopakuje (čekalo by se znovu)
+        if (e?.code === 'AI_CANCELLED') throw e
         firstError = firstError || e
+        if (e?.code === 'AI_TIMEOUT') break
       }
     }
     if (!done) failedParts++

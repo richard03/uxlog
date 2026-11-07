@@ -19,7 +19,9 @@ const mockAddFont = vi.fn()
 const mockSplitTextToSize = vi.fn((text) => [text])
 
 vi.mock('jspdf', () => ({
-  jsPDF: vi.fn(() => ({
+  // Volá se přes `new` – mock musí být obyčejná funkce, ne šipková
+  jsPDF: vi.fn(function () {
+    return {
     save: mockSave,
     text: mockText,
     addPage: mockAddPage,
@@ -33,7 +35,8 @@ vi.mock('jspdf', () => ({
     addFont: mockAddFont,
     splitTextToSize: mockSplitTextToSize,
     internal: { pageSize: { getHeight: () => 297 } },
-  })),
+    }
+  }),
 }))
 
 vi.mock('./pdfFonts.js', () => ({

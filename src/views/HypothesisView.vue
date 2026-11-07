@@ -46,8 +46,6 @@
         :to="{ name: 'hypothesisDetail', params: { id: projectId, hypothesisId: h.id } }"
         :entity-id="h.id"
         :dnd="dnd"
-        :kebab-items="[{ label: t.common.moveToProject, action: 'move' }, { label: t.common.copyToProject, action: 'copy' }, { label: t.hypothesis.delete, action: 'delete', variant: 'danger' }]"
-        @action="(a) => { if (a === 'delete') confirmDeleteItem(h.id); else if (a === 'move') confirmMoveItem(h.id); else if (a === 'copy') copyTarget = h.id }"
       >
         <div class="card-badges">
           <AppBadge v-if="h.code" variant="badge-accent">{{ h.code }}</AppBadge>
@@ -76,15 +74,6 @@
       </form>
     </Modal>
 
-    <ConfirmDialog
-      v-if="deleteTarget"
-      :title="t.hypothesis.delete"
-      :message="t.hypothesis.deleteConfirm"
-      @confirm="doDeleteItem"
-      @cancel="deleteTarget = null"
-    />
-    <MoveToProjectModal v-if="moveTarget" state-key="hypotheses" :entity-id="moveTarget" :current-project-id="projectId" @close="moveTarget = null" @moved="moveTarget = null" />
-    <MoveToProjectModal v-if="copyTarget" mode="copy" state-key="hypotheses" :entity-id="copyTarget" :current-project-id="projectId" @close="copyTarget = null" @copied="copyTarget = null" />
   </div>
 </template>
 
@@ -96,11 +85,8 @@ import { useI18n } from '../composables/useI18n.js'
 import ColumnHeading from '../components/ColumnHeading.vue'
 import ProjectPageHeader from '../components/ProjectPageHeader.vue'
 import Modal from '../components/Modal.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ImportModal from '../components/ImportModal.vue'
 import ExportButton from '../components/ExportButton.vue'
-import KebabMenu from '../components/KebabMenu.vue'
-import MoveToProjectModal from '../components/MoveToProjectModal.vue'
 import EntityCard from '../components/EntityCard.vue'
 import AppBadge from '../components/AppBadge.vue'
 import { useDraggableList } from '../composables/useDraggableList.js'
@@ -145,20 +131,6 @@ const breadcrumbs = computed(() => [
 const showForm = ref(false)
 const showImport = ref(false)
 const form = ref({ code: '', name: '', description: '', status: 'untested', explanation: '' })
-
-const deleteTarget = ref(null)
-function confirmDeleteItem(id) { deleteTarget.value = id }
-function doDeleteItem() {
-  if (deleteTarget.value) {
-    store.deleteHypothesis(deleteTarget.value)
-    deleteTarget.value = null
-  }
-}
-
-const moveTarget = ref(null)
-const copyTarget = ref(null)
-function confirmMoveItem(id) { moveTarget.value = id }
-
 
 function openForm() {
   form.value = { code: generateNextCode(getCodePrefix('hypothesis'), items.value), name: '', description: '', status: 'untested', explanation: '' }
