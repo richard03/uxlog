@@ -96,9 +96,9 @@ const apiKeyCount = computed(() => {
 </script>
 
 <style scoped>
-.project-vault { margin-top: var(--space-lg); }
+.project-vault { margin-top: var(--space-md); }
 .project-vault-path { margin: 0 0 var(--space-sm); font-family: var(--font-mono); font-size: 0.9rem; word-break: break-all; }
 .project-vault-error { margin: 0 0 var(--space-sm); color: var(--error); font-size: 0.85rem; }
-.project-vault-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.project-vault-actions { display: flex; flex-wrap: wrap; gap: var(--space-md); }
 .project-vault-hint { margin: var(--space-sm) 0 0; color: var(--text-muted); font-size: 0.85rem; }
 </style>

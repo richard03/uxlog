@@ -21,7 +21,7 @@ defineProps({
 .app-card-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 @media (max-width: 640px) {

@@ -155,11 +155,11 @@ async function confirmOverwrite() {
 .detail-item dd { margin: 0; }
 .vault-path { font-family: var(--font-mono); word-break: break-all; }
 .value-empty { color: var(--text-muted); }
-.card-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-sm); }
+.card-actions { display: flex; flex-wrap: wrap; gap: var(--space-md); margin-top: var(--space-md); }
 .service-hint { margin: var(--space-sm) 0 0; color: var(--text-muted); font-size: 0.85rem; }
 .vault-error { margin: var(--space-sm) 0 0; color: var(--error); }
 .vault-list { margin: var(--space-sm) 0 0; padding-left: var(--space-md); font-size: 0.85rem; }
 .vault-list code { word-break: break-all; }
 .vault-subtitle { margin: var(--space-md) 0 0; font-size: 0.9rem; font-weight: 600; }
-.vault-conflict { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: 2px 0; }
+.vault-conflict { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: 2px 0; }
 </style>

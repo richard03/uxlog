@@ -186,7 +186,7 @@ function doConvert() {
 .conv-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: var(--space-lg);
+  column-gap: var(--space-md);
 }
 
 .conv-col-title {
@@ -238,7 +238,7 @@ function doConvert() {
 .conv-number-unit {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 10rem);
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .conv-actions {

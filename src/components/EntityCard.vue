@@ -41,7 +41,7 @@ defineEmits(['action'])
 .entity-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -75,13 +75,13 @@ defineEmits(['action'])
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .entity-card :deep(.card-badges) {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   margin-bottom: var(--space-xs);
 }
 
@@ -99,7 +99,7 @@ defineEmits(['action'])
 .entity-card :deep(.card-meta) {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   margin-top: var(--space-sm);
 }
 </style>

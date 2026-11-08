@@ -50,7 +50,7 @@ export default {
 }
 
 .container--config {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-md);
   padding: var(--space-lg);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -58,7 +58,7 @@ export default {
 }
 
 .container--detail {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
 }
 
 @media (max-width: 480px) {

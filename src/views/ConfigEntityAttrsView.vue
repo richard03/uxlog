@@ -377,7 +377,7 @@ function doDeleteField() {
 .config-table tr:last-child td { border-bottom: none; }
 .config-table tbody tr:hover td { background: var(--bg-muted, rgba(0,0,0,0.03)); }
 .row-overridden td:first-child { border-left: 3px solid var(--accent, #3b82f6); padding-left: calc(var(--space-sm) - 3px); }
-.row-actions { display: flex; gap: var(--space-xs); justify-content: flex-end; white-space: nowrap; flex-wrap: wrap; }
+.row-actions { display: flex; gap: var(--space-md); justify-content: flex-end; white-space: nowrap; flex-wrap: wrap; }
 .empty-row { color: var(--text-muted); font-style: italic; text-align: center; padding: var(--space-md) !important; }
 .type-badge { display: inline-block; font-size: 0.75rem; padding: 0.15em 0.55em; border-radius: 4px; background: var(--bg-muted); color: var(--text-muted); border: 1px solid var(--border); }
 .source-badge { display: inline-block; font-size: 0.72rem; font-weight: 500; padding: 0.12em 0.5em; border-radius: 4px; border: 1px solid var(--border); }
@@ -388,15 +388,15 @@ function doDeleteField() {
 @media (prefers-color-scheme: dark) { .modified-badge { background: #451a03; color: #fde68a; border-color: #92400e; } }
 .deleted-section { margin-top: var(--space-md); border-top: 1px solid var(--border); padding-top: var(--space-md); }
 .deleted-summary { cursor: pointer; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; padding: var(--space-xs) 0; user-select: none; }
-.deleted-list { list-style: none; margin: var(--space-sm) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.deleted-item { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--border); }
+.deleted-list { list-style: none; margin: var(--space-md) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.deleted-item { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-xs) 0; border-bottom: 1px solid var(--border); }
 .deleted-item:last-child { border-bottom: none; }
 .deleted-name { flex: 1; font-size: 0.92rem; color: var(--text-muted); }
 .no-deleted { margin: var(--space-md) 0 0; font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
 .form-group { margin-bottom: var(--space-md); }
 .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: var(--space-xs); }
-.options-editor-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.options-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
+.options-editor-list { list-style: none; margin: 0 0 var(--space-md); padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.options-editor-item { display: flex; align-items: center; gap: var(--space-md); }
 .options-value-input { flex: 1; max-width: 10rem; }
 .options-label-input { flex: 2; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

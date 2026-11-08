@@ -64,7 +64,7 @@ function getLink(item) {
 .search-item {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   color: var(--text);

@@ -98,7 +98,7 @@ function onSave() {
 </script>
 
 <style scoped>
-.add-source-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-md); }
+.add-source-tabs { display: flex; gap: var(--space-md); margin-bottom: var(--space-md); }
 .add-source-drop {
   border: 2px dashed var(--border);
   border-radius: var(--radius-md);

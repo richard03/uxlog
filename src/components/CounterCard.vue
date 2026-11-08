@@ -67,7 +67,7 @@ defineProps({
 .counter-card.row {
   flex-direction: row;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   font-size: 0.9375rem;
   font-weight: 400;

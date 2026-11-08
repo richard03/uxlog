@@ -167,7 +167,7 @@ function visibleRecordFields(record) {
 .vi-type { margin-left: var(--space-sm); color: var(--text-muted); font-size: 0.85rem; }
 .vi-label { margin-left: var(--space-sm); }
 .vi-path { margin-left: var(--space-sm); color: var(--text-muted); font-size: 0.75rem; font-family: var(--font-mono); }
-.vi-fields { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-xs) var(--space-md); margin: var(--space-sm) 0 0; }
+.vi-fields { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-xs) var(--space-md); margin: var(--space-md) 0 0; }
 .vi-fields dt { color: var(--text-muted); }
 .vi-fields dd { margin: 0; white-space: pre-wrap; }
 .vi-diff { width: 100%; border-collapse: collapse; font-size: 0.85rem; }

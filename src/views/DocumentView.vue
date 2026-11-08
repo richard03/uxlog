@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
 .doc-search {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   flex: 1 1 320px;
   max-width: 520px;
 }
@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
 .doc-toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   font-size: 0.9rem;
   color: var(--text-muted);
   cursor: pointer;
@@ -374,7 +374,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 220px minmax(0, 760px);
   justify-content: center;
-  gap: var(--space-xl);
+  gap: var(--space-md);
   padding: var(--space-xl) var(--space-md) 96px;
 }
 
@@ -456,8 +456,8 @@ onBeforeUnmount(() => {
 .doc-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-lg);
-  margin: 0 0 var(--space-lg);
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
   padding: 0;
   list-style: none;
   font-size: 0.9rem;
@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
 }
 
 .doc-section {
-  margin-top: var(--space-xl);
+  margin-top: var(--space-md);
 }
 
 .doc-h2 {
@@ -485,13 +485,13 @@ onBeforeUnmount(() => {
 }
 
 .doc-item {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 .doc-h3-row {
   display: flex;
   align-items: baseline;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .doc-h3 {
@@ -523,7 +523,7 @@ onBeforeUnmount(() => {
 .doc-props {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 2px var(--space-md);
+  gap: var(--space-md);
   margin: var(--space-sm) 0 0;
   font-size: 0.9375rem;
 }
@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
 }
 
 .doc-block {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .doc-h4 {

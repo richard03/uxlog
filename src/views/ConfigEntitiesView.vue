@@ -80,8 +80,8 @@ function getEntityFieldInfo(entityType) {
 .field-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: 0.25rem;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .field-badge {

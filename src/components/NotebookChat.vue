@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   min-height: 0;
   padding: var(--space-md);
   background: var(--bg-elevated);
@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
 .nb-compose {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   flex-shrink: 0;
 }
 
@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 @media (max-width: 800px) {
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .nb-compose-actions :deep(.btn) {

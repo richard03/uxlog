@@ -414,7 +414,7 @@ function typeLabel(type) {
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding: var(--space-xs);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -459,7 +459,7 @@ function typeLabel(type) {
   top: var(--space-sm);
   left: 50%;
   transform: translateX(-50%);
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: 4px 4px 4px var(--space-sm);
 }
 

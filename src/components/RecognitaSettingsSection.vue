@@ -100,8 +100,8 @@ const {
 .card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .service-hint {

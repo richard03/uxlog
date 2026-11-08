@@ -51,7 +51,7 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   min-height: 2rem;
 }
 
@@ -101,6 +101,6 @@ defineProps({
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 </style>

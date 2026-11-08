@@ -116,7 +116,7 @@ function onSave() {
 .meeting {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .meeting-hint,
@@ -131,7 +131,7 @@ function onSave() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs) var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-sm);
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
@@ -174,7 +174,7 @@ function onSave() {
   color: var(--text-muted);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-sm);
+  gap: var(--space-md);
 }
 
 .meeting-error {

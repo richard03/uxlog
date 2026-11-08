@@ -181,7 +181,7 @@ function doDelete() {
 </script>
 
 <style scoped>
-.source-meta { display: flex; flex-wrap: wrap; gap: var(--space-md) var(--space-lg); margin: 0 0 var(--space-sm); font-size: 0.85rem; }
+.source-meta { display: flex; flex-wrap: wrap; gap: var(--space-md); margin: 0 0 var(--space-md); font-size: 0.85rem; }
 .source-meta dt { color: var(--text-muted); font-size: 0.75rem; }
 .source-meta dd { margin: 0; }
 .source-note { margin: 0 0 var(--space-sm); color: var(--text-muted); font-size: 0.85rem; }

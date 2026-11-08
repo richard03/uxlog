@@ -208,7 +208,7 @@ function saveActivity() {
 <style scoped>
 /* Vzhled sjednocený s řádky ve sloupci Artefakty (CounterCard variant="row") */
 .activity-list {
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .activity-list .activity-card {
@@ -269,11 +269,11 @@ function saveActivity() {
 }
 
 .activity-recs {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
 }
 
 .activity-recs-title {
-  margin: 0 0 var(--space-sm);
+  margin: 0 0 var(--space-md);
   color: var(--text-muted);
   font-size: 0.85rem;
   font-weight: 600;
@@ -282,7 +282,7 @@ function saveActivity() {
 .activity-recs-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -292,7 +292,7 @@ function saveActivity() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);

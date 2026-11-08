@@ -24,7 +24,7 @@
   /* Layoutový grid: 12 sloupců, mezera --grid-gap. Šířky sloupců obrazovek = počet sloupců gridu
      (ladí se jen tady). Vnořené gridy používají stejnou mezeru, takže sloupce lícují s hlavním gridem. */
   --grid-columns: 12;
-  --grid-gap: var(--space-lg);
+  --grid-gap: var(--space-md);
   /* Seznam projektů: šířka dlaždice (3 = čtyři dlaždice na řádek) */
   --grid-project-tile: 3;
   /* Obrazovky projektu (ProjectLayout): obsah | Chat (jen detail projektu) */
@@ -196,7 +196,7 @@ label {
 .form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   justify-content: flex-end;
   margin-top: var(--space-md);
 }
@@ -292,7 +292,7 @@ select.form-control {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 /* Section header row */
@@ -304,7 +304,7 @@ select.form-control {
 
 .header-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -313,7 +313,7 @@ select.form-control {
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-md);
   flex-wrap: wrap;
   margin-bottom: var(--space-md);
 }
@@ -321,7 +321,7 @@ select.form-control {
 .filter-bar-group {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -490,7 +490,7 @@ select.form-control {
 
 /* Config section card */
 .config-section {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-md);
   padding: var(--space-lg);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -499,7 +499,7 @@ select.form-control {
 
 /* Detail panel (entity detail views) */
 .detail-section {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
 }
 
 .detail-list {
@@ -526,7 +526,7 @@ select.form-control {
 .header-title-main {
   display: flex;
   align-items: baseline;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 

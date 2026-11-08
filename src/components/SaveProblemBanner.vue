@@ -99,7 +99,7 @@ onUnmounted(() => stopGuard?.())
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--surface-2);
   border-bottom: 2px solid var(--warning, var(--accent));
@@ -126,6 +126,6 @@ onUnmounted(() => stopGuard?.())
 .save-problem-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 </style>

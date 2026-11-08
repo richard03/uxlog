@@ -37,8 +37,8 @@ const { isProject, project } = useConfigScope()
 
 <style scoped>
 .page-header h1 { margin: 0; font-size: 1.75rem; font-weight: 700; }
-.header-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); flex-wrap: wrap; }
-.header-actions { display: flex; gap: var(--space-sm); align-items: center; }
+.header-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+.header-actions { display: flex; gap: var(--space-md); align-items: center; }
 .header-actions:empty { display: none; }
 .page-hint { margin: var(--space-xs) 0 var(--space-md); color: var(--text-muted); font-size: 0.9rem; max-width: 70ch; }
 </style>

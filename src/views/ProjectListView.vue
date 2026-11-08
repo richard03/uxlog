@@ -239,12 +239,12 @@ function saveProject() {
 
 <style scoped>
 .deleted-projects {
-  margin-top: var(--space-xl);
+  margin-top: var(--space-md);
 }
 
 .deleted-projects-title {
   font-size: 1rem;
-  margin: 0 0 var(--space-sm);
+  margin: 0 0 var(--space-md);
   color: var(--text-muted);
 }
 
@@ -254,13 +254,13 @@ function saveProject() {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .deleted-projects-item {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-xs) var(--space-md);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
@@ -282,7 +282,7 @@ function saveProject() {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 /* Dlaždice projektů ve 12sloupcovém gridu (šířka dlaždice --grid-project-tile), na užších obrazovkách méně; dlaždice v řádku mají stejnou výšku */
@@ -292,7 +292,7 @@ function saveProject() {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-  gap: var(--grid-gap);
+  gap: var(--space-md);
   align-items: stretch;
 }
 
@@ -336,7 +336,7 @@ function saveProject() {
 .project-list :deep(.card-meta) {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .project-list [draggable="true"] { cursor: grab; }

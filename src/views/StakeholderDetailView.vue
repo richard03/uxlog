@@ -157,5 +157,5 @@ function doDelete() {
 </script>
 
 <style scoped>
-.entity-type { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.entity-type { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
 </style>

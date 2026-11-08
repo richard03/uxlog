@@ -496,14 +496,14 @@ function doRemove() {
 
 <style scoped>
 .entity-connections {
-  margin-top: 2rem;
+  margin-top: var(--space-md);
 }
 
 .connections-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-md);
 }
 
 .connections-title {
@@ -518,7 +518,7 @@ function doRemove() {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 /* Karta – sdílí vizuál EntityCard */
@@ -635,7 +635,7 @@ a.connection-entity-link:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-left: 1px solid var(--border);
 }
@@ -648,7 +648,7 @@ a.connection-entity-link:hover {
 
 .conn-note-edit-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 
@@ -662,8 +662,8 @@ a.connection-entity-link:hover {
 .conn-filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-sm);
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .conn-filter-badge {
@@ -710,14 +710,14 @@ a.connection-entity-link:hover {
 /* Záhlaví s více tlačítky */
 .connections-header-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 /* AI: načítání */
 .ai-loading {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-md) 0;
   color: var(--text-muted);
   font-size: 0.875rem;
@@ -742,7 +742,7 @@ a.connection-entity-link:hover {
 .ai-error {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-sm) 0;
 }
 
@@ -759,13 +759,13 @@ a.connection-entity-link:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .ai-suggestion-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -791,7 +791,7 @@ a.connection-entity-link:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .ai-suggestion-entity {
@@ -828,7 +828,7 @@ a.connection-entity-link:hover {
 .ai-action-btns {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   flex-shrink: 0;
 }
 

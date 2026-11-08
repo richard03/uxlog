@@ -289,7 +289,7 @@ function handleImported({ projectId: importedProjectId }) {
   /* Základní informace | Aktivity | Artefakty ve sloupcích 12sloupcového gridu (vnořený grid se stejným
      počtem sloupců a mezerou jako obsah v ProjectLayout, takže lícuje); Chat je vpravo v ProjectLayout */
   grid-template-columns: repeat(var(--grid-project-content), minmax(0, 1fr));
-  gap: var(--grid-gap);
+  gap: var(--space-md);
   align-items: start;
   margin-top: 0;
 }

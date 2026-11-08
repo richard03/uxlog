@@ -362,7 +362,7 @@ function doDelete() {
 /* Vodorovná linka odděluje sloupce od Souvislostí pod nimi */
 .activity-layout-wrap {
   container-type: inline-size;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
   padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--border);
 }
@@ -371,7 +371,7 @@ function doDelete() {
   display: grid;
   /* 12sloupcový grid; šířky sloupců = --grid-activity-* v style.css */
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-  gap: var(--grid-gap);
+  gap: var(--space-md);
   align-items: start;
 }
 

@@ -143,7 +143,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 .chip-picker {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-md);
   padding: 1px 0;
 }
 

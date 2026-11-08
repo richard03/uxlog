@@ -110,7 +110,7 @@ function plainStatusValue(item) {
   height: 24px;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: 0 var(--space-md);
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);

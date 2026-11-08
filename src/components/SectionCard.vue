@@ -26,7 +26,7 @@ export default {
 
 <style scoped>
 .section-card {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
   padding: var(--space-md);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -34,7 +34,7 @@ export default {
 }
 
 .section-card-title {
-  margin: 0 0 var(--space-xs);
+  margin: 0 0 var(--space-md);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);

@@ -203,7 +203,7 @@ dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
   grid-column: 2 / 4;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -217,7 +217,7 @@ dd { margin: 0; font-size: 0.95rem; white-space: pre-wrap; }
 
 .inline-edit-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 

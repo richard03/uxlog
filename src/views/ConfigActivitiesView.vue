@@ -173,16 +173,16 @@ function saveTemplate() {
 
 .checklist-count { display: inline-block; font-size: 0.8rem; color: var(--text-muted); }
 
-.deleted-section { margin-top: var(--space-lg); border-top: 1px solid var(--border); padding-top: var(--space-md); }
+.deleted-section { margin-top: var(--space-md); border-top: 1px solid var(--border); padding-top: var(--space-md); }
 .deleted-summary { cursor: pointer; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; padding: var(--space-xs) 0; user-select: none; }
-.deleted-list { list-style: none; margin: var(--space-sm) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.deleted-item { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) 0; border-bottom: 1px solid var(--border); }
+.deleted-list { list-style: none; margin: var(--space-md) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.deleted-item { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-xs) 0; border-bottom: 1px solid var(--border); }
 .deleted-item:last-child { border-bottom: none; }
 .deleted-name { flex: 1; font-size: 0.92rem; color: var(--text-muted); }
 
 .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: var(--space-xs); }
-.checklist-editor-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.checklist-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
+.checklist-editor-list { list-style: none; margin: 0 0 var(--space-md); padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.checklist-editor-item { display: flex; align-items: center; gap: var(--space-md); }
 .checklist-editor-input { flex: 1; }
-.checklist-add-row { display: flex; gap: var(--space-xs); align-items: center; }
+.checklist-add-row { display: flex; gap: var(--space-md); align-items: center; }
 </style>

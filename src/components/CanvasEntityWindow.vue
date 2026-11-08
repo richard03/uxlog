@@ -114,7 +114,7 @@ onMounted(() => windowEl.value?.focus({ preventScroll: true }))
 .canvas-window-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
   border-bottom: 1px solid var(--border);
   cursor: move;

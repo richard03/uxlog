@@ -56,7 +56,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
   display: grid;
   /* 12sloupcový grid: obrazovka vlevo (--grid-project-content), Chat vpravo (--grid-project-chat) */
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-  column-gap: var(--grid-gap);
+  column-gap: var(--space-md);
   align-items: start;
 }
 

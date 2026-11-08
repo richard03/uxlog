@@ -611,7 +611,7 @@ function clearAllPendingData() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   cursor: pointer;
 }
 
@@ -650,13 +650,13 @@ function clearAllPendingData() {
 .im-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .im-section-header {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -674,15 +674,15 @@ function clearAllPendingData() {
 .im-diff {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   border-left: 2px solid var(--border);
   padding-left: var(--space-sm);
 }
 
 .form-actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   justify-content: flex-end;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 </style>

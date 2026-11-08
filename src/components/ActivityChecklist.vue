@@ -231,14 +231,14 @@ export default {
 
 <style scoped>
 .checklist-section {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
 }
 
 .checklist-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .checklist-title {
@@ -264,7 +264,7 @@ export default {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-md);
 }
 
 .checklist-item {
@@ -278,7 +278,7 @@ export default {
 .checklist-row {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .checklist-label {
@@ -326,7 +326,7 @@ export default {
   padding: var(--space-xs) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .checklist-edit-input {
@@ -336,7 +336,7 @@ export default {
 
 .checklist-edit-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 </style>

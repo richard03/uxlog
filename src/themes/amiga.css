@@ -187,7 +187,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   background: var(--amiga-white);
   color: var(--amiga-blue);
   text-transform: none;

@@ -130,7 +130,7 @@ const dataTarget = computed(() =>
 .view-switch {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .logo {
@@ -147,7 +147,7 @@ const dataTarget = computed(() =>
 .nav {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   flex-shrink: 0;
 }
 

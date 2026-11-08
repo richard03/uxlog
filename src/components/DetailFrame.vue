@@ -21,7 +21,7 @@ const { inCanvas } = useEntityNavigation()
 <style scoped>
 .detail-frame {
   margin-top: 0;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 /* Nadpis detailu začíná u horního okraje rámečku */

@@ -62,7 +62,7 @@ const ListScope = defineComponent({
 .master-detail {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
-  gap: var(--grid-gap);
+  gap: var(--space-md);
   align-items: start;
 }
 
@@ -88,7 +88,7 @@ const ListScope = defineComponent({
 
 /* Seznam v úzkém sloupci: karty pod sebou */
 .master-detail-list :deep(.entity-list) {
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 /* Seznam vedle detailu: jen nadpis a štítky, bez textu */

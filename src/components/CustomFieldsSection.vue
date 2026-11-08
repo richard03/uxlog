@@ -76,7 +76,7 @@ function saveCustomField(fieldId, value) {
 </script>
 
 <style scoped>
-.custom-fields-section { margin-top: var(--space-lg); }
+.custom-fields-section { margin-top: var(--space-md); }
 .custom-fields-title { margin: 0 0 var(--space-sm); font-size: 1rem; font-weight: 600; }
 .detail-list { margin: 0; padding: 0; }
 </style>

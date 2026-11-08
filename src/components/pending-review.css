@@ -17,13 +17,13 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .pr-toolbar-right {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .pr-list {
@@ -31,20 +31,20 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .pr-batch-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   align-items: center;
 }
 
 .pr-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 /* --- Řádek (accordion) --- */
@@ -64,7 +64,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-xs) var(--space-sm) var(--space-xs) 0;
 }
 
@@ -93,7 +93,7 @@
   flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
 }
 
@@ -108,7 +108,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   flex: 1;
   min-width: 0;
 }
@@ -118,7 +118,7 @@
   padding-left: calc(var(--space-md) + 1rem);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 /* --- Shrnutí řádku (badges, titulky) --- */
@@ -178,7 +178,7 @@
   font-size: 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-md);
 }
 
 .pr-field {
@@ -228,14 +228,14 @@
 .pr-merge {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .pr-merge-target {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-md);
   font-size: 0.85rem;
 }
 
@@ -312,7 +312,7 @@
 }
 
 .pr-merge-dl dt {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
   font-weight: 600;
   color: var(--text-muted);
 }

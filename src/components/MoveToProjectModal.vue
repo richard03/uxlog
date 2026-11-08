@@ -132,7 +132,7 @@ useDialog(modalRef, { onClose: () => emit('close') })
 
 .modal-actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   justify-content: flex-end;
 }
 

@@ -29,8 +29,8 @@ defineEmits(['update:modelValue'])
 .color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .color-swatch {

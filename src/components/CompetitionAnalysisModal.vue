@@ -219,7 +219,7 @@ function backToInput() {
 .ca-input {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .ca-label {
@@ -251,7 +251,7 @@ function backToInput() {
 .ca-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .ca-error {

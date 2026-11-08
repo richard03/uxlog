@@ -24,6 +24,6 @@ const { running, cancel } = useAiRequests()
 
 <style scoped>
 .ai-cancel {
-  margin-left: var(--space-xs);
+  margin-left: var(--space-md);
 }
 </style>

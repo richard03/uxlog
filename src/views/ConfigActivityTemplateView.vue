@@ -192,10 +192,10 @@ function doDelete() {
 .header-meta { margin-top: var(--space-sm); }
 .template-form { max-width: 36rem; }
 .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: var(--space-xs); }
-.checklist-editor-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
-.checklist-editor-item { display: flex; align-items: center; gap: var(--space-xs); }
+.checklist-editor-list { list-style: none; margin: 0 0 var(--space-md); padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.checklist-editor-item { display: flex; align-items: center; gap: var(--space-md); }
 .checklist-editor-input { flex: 1; }
-.checklist-add-row { display: flex; gap: var(--space-xs); align-items: center; }
+.checklist-add-row { display: flex; gap: var(--space-md); align-items: center; }
 .form-actions { justify-content: flex-start; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 </style>

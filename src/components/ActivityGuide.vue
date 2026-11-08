@@ -73,7 +73,7 @@ const hasSteps = computed(() => !!props.guide?.steps?.length || !!props.guide?.o
 .ag-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   margin: var(--space-sm) 0 0;
 }
 
@@ -101,6 +101,6 @@ const hasSteps = computed(() => !!props.guide?.steps?.length || !!props.guide?.o
 
 .ag-steps li + li,
 .ag-outputs li + li {
-  margin-top: 2px;
+  margin-top: var(--space-md);
 }
 </style>

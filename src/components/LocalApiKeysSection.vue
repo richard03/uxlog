@@ -111,8 +111,8 @@ async function confirmRevoke() {
 .card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .created {
@@ -154,14 +154,14 @@ async function confirmRevoke() {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .key-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-xs) 0;
   border-bottom: 1px solid var(--border);
 }
@@ -181,7 +181,7 @@ async function confirmRevoke() {
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   margin-top: var(--space-md);
 }
 

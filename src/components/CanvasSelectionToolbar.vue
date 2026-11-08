@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-md);
   padding: 4px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   padding: var(--space-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
 .ct-grid {
   display: grid;
   grid-template-columns: repeat(6, 24px);
-  gap: 6px;
+  gap: var(--space-md);
 }
 
 .ct-option {

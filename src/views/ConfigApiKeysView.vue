@@ -341,7 +341,7 @@ dd {
 }
 
 .card-actions {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .service-hint {
@@ -363,15 +363,15 @@ dd {
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-xs);
+  gap: var(--space-md);
   margin-top: var(--space-md);
 }
 
 .plugin-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .plugin-row {
@@ -389,7 +389,7 @@ dd {
 .plugin-info {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .plugin-status {
@@ -410,7 +410,7 @@ dd {
 }
 
 .reload-hint {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
   color: var(--warning, #ca8a04);
   font-size: 0.85rem;
   font-weight: 500;
