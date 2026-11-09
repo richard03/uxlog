@@ -56,9 +56,9 @@ describe('ACTIVITY_TYPES – struktura', () => {
     }
   })
 
-  it('u nového projektu se zakládají jen původní typy', () => {
+  it('u nového projektu se zakládají jen úvodní aktivity', () => {
     const auto = ACTIVITY_TYPES.filter((t) => t.createOnNewProject).map((t) => t.key).sort()
-    expect(auto).toEqual(Object.keys(LEGACY).sort())
+    expect(auto).toEqual(['competitive_analysis', 'goals_metrics', 'kickoff', 'stakeholder_analysis'])
   })
 
   it('metodika neobsahuje odkazy ani zmínky osob (@)', () => {

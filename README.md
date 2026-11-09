@@ -13,7 +13,7 @@ Desktopová aplikace pro logování UX design procesu a spolupráci s Figmou. Fu
 - **Požadavky** - MoSCoW, kategorie (datový/funkční/kvalitativní/omezení), motivace, konflikty
 - **Scénáře** - spouštěč, uspokojení potřeby, frekvence, hodnota, MoSCoW
 - **Rizika** - pravděpodobnost, dopad, opatření, stav
-- **Aktivity** - katalog 31 UX technik s checklisty, termíny a metodikou „Jak na to“; doporučení dalších aktivit podle stavu projektu
+- **Aktivity** - katalog 31 UX technik s checklisty, termíny a metodikou „Jak na to“; nový projekt začíná čtyřmi úvodními aktivitami, další doporučuje podle stavu projektu (Předání výstupů a Retrospektivu vždy)
 - **Úkoly** - SMART cíle s termíny a přiřazením
 - **Bugy** - závažnost, dopad, priorita
 - **Tým** - členové týmu s rolemi
@@ -89,7 +89,7 @@ Konfigurovatelná data jsou v YAML souborech ve složce `data/` (komentáře `#`
 
 - `data/activity-types.yaml` – katalog typů aktivit: skupiny, názvy, popisy, délky, checklisty a metodika „Jak na to“. Id položek checklistu neměňte (odkazují na ně uložené aktivity).
 - `data/entities.yaml` – datová struktura entit (persony, scénáře, požadavky, rizika, …): prefix kódu, výchozí hodnoty nové entity, atributy formuláře/detailu (typy polí, volby selectů, pořadí) a pole pro skóre úplnosti. Popisky jsou klíče do `src/i18n/cs.js`.
-- `data/app.yaml` – paleta barev projektů, výchozí délky projektů podle rozsahu, práh pro doporučení aktivit.
+- `data/app.yaml` – paleta barev projektů, výchozí délky projektů podle rozsahu, práh a počet doporučení aktivit.
 
 Uživatel může šablony aktivit a atributy entit dál upravovat v aplikaci (Konfigurace); soubory v `data/` určují výchozí stav. Konfigurace v aplikaci má dvě úrovně: výchozí (`uxlog_config`, vzor pro nové projekty) a konfiguraci každého projektu (`project.config`, kopie při založení) – store `stores/config.js` (`configFor(projectId)`), čistá logika `lib/projectConfig.js`, obrazovky pro oba rozsahy přes `useConfigScope` + `ConfigScreenHeader`.
 

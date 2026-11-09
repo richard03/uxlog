@@ -134,7 +134,7 @@ export function normalizeEntityConfig(raw) {
 const APP_DEFAULTS = {
   projectColors: ['#4a90d9'],
   canvasCardColors: [{ color: '#fde68a', labelKey: 'yellow' }],
-  recommendations: { minRequirementsForPrioritization: 5 },
+  recommendations: { minRequirementsForPrioritization: 5, maxContextual: 3 },
   vaultAutoImport: { maxDeletes: 10, maxShare: 0.3, minChanges: 5 },
   ai: { requestTimeoutMs: 120000 },
 }
@@ -175,6 +175,7 @@ export function normalizeAppConfig(raw) {
     canvasCardColors: cardColors.length ? cardColors : APP_DEFAULTS.canvasCardColors.map((c) => ({ ...c })),
     recommendations: {
       minRequirementsForPrioritization: num(r.minRequirementsForPrioritization, APP_DEFAULTS.recommendations.minRequirementsForPrioritization),
+      maxContextual: Math.max(0, num(r.maxContextual, APP_DEFAULTS.recommendations.maxContextual)),
     },
     vaultAutoImport: {
       maxDeletes: Math.max(0, num(v.maxDeletes, vd.maxDeletes)),

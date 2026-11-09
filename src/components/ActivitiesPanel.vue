@@ -97,8 +97,8 @@ const store = useStore()
 const { getTemplate, getEffectiveTemplates } = useConfig(() => props.projectId)
 
 const activities = computed(() => store.getActivities(props.projectId))
-/** Nejvýš tři doporučené aktivity podle stavu artefaktů projektu. */
-const recommendations = computed(() => store.getRecommendedActivities(props.projectId).slice(0, 3))
+/** Doporučené aktivity: několik podle stavu projektu + vždy Předání výstupů a Retrospektiva (limit v data/app.yaml). */
+const recommendations = computed(() => store.getRecommendedActivities(props.projectId))
 const dnd = useDraggableList(() => activities.value, (orderedIds) => store.reorderEntities('activities', props.projectId, orderedIds))
 
 /**

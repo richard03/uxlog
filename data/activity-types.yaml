@@ -417,7 +417,7 @@ types:
     defaultDescription: Vytvoření reprezentativních profilů cílových uživatelů na základě výzkumu.
     sortOrder: 60
     defaultDurationDays: 5
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: proto_personas
         label: Vytvořili jsme protopersony podle cílových skupin
@@ -454,7 +454,7 @@ types:
     defaultDescription: Kvalitativní výzkum formou polostrukturovaných rozhovorů s cílovými uživateli.
     sortOrder: 70
     defaultDurationDays: 14
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: research_goals
         label: Stanovili jsme cíle výzkumu
@@ -651,7 +651,7 @@ types:
     defaultDescription: Specifikace funkčních a nefunkčních požadavků na produkt či službu.
     sortOrder: 90
     defaultDurationDays: 7
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: business
         label: Zmapovali jsme požadavky byznysu
@@ -698,7 +698,7 @@ types:
     defaultDescription: "Popis typických situací, ve kterých uživatelé produkt nebo službu využívají."
     sortOrder: 88
     defaultDurationDays: 5
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: main_scenarios
         label: Definovali jsme všechny hlavní scénáře
@@ -807,7 +807,7 @@ types:
     defaultDescription: "Návrh struktury obsahu, navigace a organizace informací."
     sortOrder: 110
     defaultDurationDays: 7
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: data_model
         label: Zmapovali jsme pojmy a entity (datový model)
@@ -928,7 +928,7 @@ types:
     defaultDescription: Tvorba drátěných modelů obrazovek zachycujících rozvržení a funkce bez vizuálního designu.
     sortOrder: 120
     defaultDurationDays: 14
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: main_flows
         label: Navrhli jsme všechny obrazovky hlavních flows
@@ -961,7 +961,7 @@ types:
     defaultDescription: Testování použitelnosti s reálnými uživateli k odhalení problémů v rozhraní.
     sortOrder: 140
     defaultDurationDays: 14
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: hypotheses
         label: Formulovali jsme hypotézy
@@ -1039,7 +1039,7 @@ types:
     defaultDescription: Finalizace a předání podkladů vývojářskému týmu včetně specifikací a assetů.
     sortOrder: 150
     defaultDurationDays: 3
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: specs
         label: Finalizovali jsme designové specifikace
@@ -1067,7 +1067,7 @@ types:
     defaultDescription: Zpětné hodnocení průběhu projektu a identifikace příležitostí ke zlepšení.
     sortOrder: 160
     defaultDurationDays: 1
-    createOnNewProject: true
+    createOnNewProject: false
     checklist:
       - id: positives
         label: "Zhodnotili jsme, co fungovalo dobře"

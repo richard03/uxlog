@@ -10,6 +10,7 @@
 #   minChanges         podíl se posuzuje až od tohoto počtu změn v projektu
 # recommendations      doporučení dalších aktivit v panelu Aktivity
 #   minRequirementsForPrioritization  od kolika požadavků se stejnou prioritou doporučit prioritizační workshop
+#   maxContextual  kolik doporučení podle stavu projektu ukázat (Předání výstupů a Retrospektiva se ukazují vždy navíc)
 # dictation            diktování přes konektor Recognita – časové limity v ms
 #   connectTimeoutMs   jak dlouho čekat na navázání spojení
 #   slowAfterMs        po jak dlouhé odmlce serveru ukázat „server odpovídá pomalu“ (diktování běží dál)
@@ -58,6 +59,7 @@ canvasCardColors:
     labelKey: slate
 recommendations:
   minRequirementsForPrioritization: 5
+  maxContextual: 3
 vaultAutoImport:
   maxDeletes: 10
   maxShare: 0.3
